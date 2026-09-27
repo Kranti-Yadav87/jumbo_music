@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
+import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../models/playlist.dart';
 
@@ -9,8 +9,11 @@ class MusicApiService {
   static const String _anonKey =
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3dnN5bGFkdnZ2anFsZ25xcHBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyNDY3NDEsImV4cCI6MjA4NzgyMjc0MX0.ibwH6IntJjky3uZKxFplDkVGW9bSH0RrwT0cVrd94hI';
 
-  static final HttpClient _client = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 12);
+  static Map<String, String> get _headers => {
+        'apikey': _anonKey,
+        'Authorization': 'Bearer $_anonKey',
+        'Content-Type': 'application/json',
+      };
 
   static String _unescape(String? input) {
     if (input == null) return '';
@@ -133,15 +136,12 @@ Audio Stream: 320 kbps Original Master
         '$_endpoint?action=jiosaavn-search&q=${Uri.encodeComponent(cleanQuery)}&limit=$limit',
       );
 
-      final request = await _client.getUrl(uri);
-      request.headers.set('apikey', _anonKey);
-      request.headers.set('Authorization', 'Bearer $_anonKey');
-      request.headers.set('Content-Type', 'application/json');
+      final response = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
 
-      final response = await request.close();
-      if (response.statusCode == HttpStatus.ok) {
-        final body = await response.transform(utf8.decoder).join();
-        final data = jsonDecode(body) as Map<String, dynamic>;
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
         final innerData = data['data'];
 
         List<dynamic> results = [];
@@ -177,14 +177,12 @@ Audio Stream: 320 kbps Original Master
         '$_endpoint?action=jiosaavn-playlist&id=$playlistId',
       );
 
-      final request = await _client.getUrl(uri);
-      request.headers.set('apikey', _anonKey);
-      request.headers.set('Authorization', 'Bearer $_anonKey');
-      request.headers.set('Content-Type', 'application/json');
+      final response = await http
+          .get(uri, headers: _headers)
+          .timeout(const Duration(seconds: 12));
 
-      final response = await request.close();
-      if (response.statusCode == HttpStatus.ok) {
-        final body = await response.transform(utf8.decoder).join();
+      if (response.statusCode == 200) {
+        final body = response.body;
         final data = jsonDecode(body) as Map<String, dynamic>;
         final pData = data['data'] as Map<String, dynamic>? ?? {};
 
@@ -244,11 +242,12 @@ Audio Stream: 320 kbps Original Master
         'limit': '$limit',
       });
 
-      final request = await _client.getUrl(uri);
-      final response = await request.close();
+      final response = await http
+          .get(uri)
+          .timeout(const Duration(seconds: 10));
 
-      if (response.statusCode == HttpStatus.ok) {
-        final body = await response.transform(utf8.decoder).join();
+      if (response.statusCode == 200) {
+        final body = response.body;
         final data = jsonDecode(body) as Map<String, dynamic>;
         final results = data['results'] as List<dynamic>? ?? [];
 
