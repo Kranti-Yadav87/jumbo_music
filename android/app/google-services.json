@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375294688779",
+    "project_id": "jumbo-music-ff58c",
+    "storage_bucket": "jumbo-music-ff58c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375294688779:android:c558a013dd361ac517d10e",
+        "android_client_info": {
+          "package_name": "com.jumbomusic.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkbvsBLTCg7aurTS46uwTBr4t7G-HODOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

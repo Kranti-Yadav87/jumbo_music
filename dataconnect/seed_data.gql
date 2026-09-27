@@ -1,0 +1,35 @@
+mutation SeedDatabase @transaction {
+  user_insertMany(data: [
+    { id: "00000000-0000-0000-0000-000000000001", username: "alice_music", email: "alice@example.com" },
+    { id: "00000000-0000-0000-0000-000000000002", username: "bob_beats", email: "bob@example.com" },
+    { id: "00000000-0000-0000-0000-000000000003", username: "charlie_vinyl", email: "charlie@example.com" }
+  ])
+  
+  track_insertMany(data: [
+    { id: "10000000-0000-0000-0000-000000000001", title: "Midnight City", artistName: "M83", externalUrl: "https://example.com/1" },
+    { id: "10000000-0000-0000-0000-000000000002", title: "Retrograde", artistName: "James Blake", externalUrl: "https://example.com/2" },
+    { id: "10000000-0000-0000-0000-000000000003", title: "Get Lucky", artistName: "Daft Punk", externalUrl: "https://example.com/3" }
+  ])
+  
+  playlist_insertMany(data: [
+    { id: "20000000-0000-0000-0000-000000000001", title: "Chill Vibes", creatorId: "00000000-0000-0000-0000-000000000001" },
+    { id: "20000000-0000-0000-0000-000000000002", title: "Workout Mix", creatorId: "00000000-0000-0000-0000-000000000002" },
+    { id: "20000000-0000-0000-0000-000000000003", title: "Late Night", creatorId: "00000000-0000-0000-0000-000000000003" }
+  ])
+  
+  loveNote_insertMany(data: [
+    { playlistId: "20000000-0000-0000-0000-000000000001", trackId: "10000000-0000-0000-0000-000000000001", message: "Love this song!" },
+    { playlistId: "20000000-0000-0000-0000-000000000002", trackId: "10000000-0000-0000-0000-000000000003", message: "Classic!" },
+    { playlistId: "20000000-0000-0000-0000-000000000003", trackId: "10000000-0000-0000-0000-000000000002", message: "Perfect for reading." }
+  ])
+  
+  heart_insertMany(data: [
+    { userId: "00000000-0000-0000-0000-000000000002", playlistId: "20000000-0000-0000-0000-000000000001" },
+    { userId: "00000000-0000-0000-0000-000000000003", playlistId: "20000000-0000-0000-0000-000000000002" }
+  ])
+  
+  follow_insertMany(data: [
+    { followerId: "00000000-0000-0000-0000-000000000001", followingId: "00000000-0000-0000-0000-000000000002" },
+    { followerId: "00000000-0000-0000-0000-000000000002", followingId: "00000000-0000-0000-0000-000000000003" }
+  ])
+}

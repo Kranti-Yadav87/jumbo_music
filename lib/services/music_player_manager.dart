@@ -1,0 +1,562 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
+import 'package:just_audio/just_audio.dart';
+import '../models/song.dart';
+import '../models/playlist.dart';
+import '../data/music_repository.dart';
+import 'music_api_service.dart';
+
+class MusicPlayerManager extends ChangeNotifier {
+  static final MusicPlayerManager _instance = MusicPlayerManager._internal();
+  factory MusicPlayerManager() => _instance;
+
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  List<Song> _allSongs = [];
+  List<Song> _queue = [];
+  int _currentIndex = -1;
+
+  bool _isPlaying = false;
+  bool _isBuffering = false;
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
+  Duration _bufferedPosition = Duration.zero;
+
+  bool _isShuffle = false;
+  LoopMode _loopMode = LoopMode.off;
+  double _playbackSpeed = 1.0;
+
+  // Volume & Mute
+  double _volume = 1.0;
+  bool _isMuted = false;
+  double _preMuteVolume = 1.0;
+
+  // Sound Preset / Equalizer
+  String _soundPreset = 'Normal';
+  final List<String> soundPresets = [
+    'Normal',
+    'Bass Boost',
+    'Vocal Booster',
+    'Acoustic',
+    'Electronic',
+    'Rock',
+  ];
+
+  // Sleep Timer
+  Timer? _sleepTimer;
+  Timer? _sleepTicker;
+  int _sleepSecondsRemaining = 0;
+  bool _sleepAfterCurrentSong = false;
+
+  final Set<String> _favoriteIds = {'1', '2'};
+  final List<Song> _recentlyPlayed = [];
+  List<Playlist> _playlists = [];
+  List<Song> _onlineTrending = [];
+  bool _isLoadingTrending = false;
+
+  String? _errorMessage;
+
+  StreamSubscription? _playerStateSubscription;
+  StreamSubscription? _positionSubscription;
+  StreamSubscription? _durationSubscription;
+  StreamSubscription? _bufferedPositionSubscription;
+
+  MusicPlayerManager._internal() {
+    _init();
+  }
+
+  // Getters
+  List<Song> get allSongs => _allSongs;
+  List<Song> get queue => _queue;
+  int get currentIndex => _currentIndex;
+  Song? get currentSong =>
+      (_currentIndex >= 0 && _currentIndex < _queue.length)
+          ? _queue[_currentIndex]
+          : null;
+
+  bool get isPlaying => _isPlaying;
+  bool get isBuffering => _isBuffering;
+  Duration get position => _position;
+  Duration get duration => _duration;
+  Duration get bufferedPosition => _bufferedPosition;
+
+  bool get isShuffle => _isShuffle;
+  LoopMode get loopMode => _loopMode;
+  double get playbackSpeed => _playbackSpeed;
+
+  double get volume => _volume;
+  bool get isMuted => _isMuted;
+  String get soundPreset => _soundPreset;
+
+  bool get isSleepTimerActive =>
+      _sleepSecondsRemaining > 0 || _sleepAfterCurrentSong;
+  int get sleepSecondsRemaining => _sleepSecondsRemaining;
+  bool get sleepAfterCurrentSong => _sleepAfterCurrentSong;
+  String get formattedSleepTime {
+    if (_sleepAfterCurrentSong) return 'End of song';
+    final m = _sleepSecondsRemaining ~/ 60;
+    final s = _sleepSecondsRemaining % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  Set<String> get favoriteIds => _favoriteIds;
+  List<Song> get favoriteSongs =>
+      _allSongs.where((s) => _favoriteIds.contains(s.id)).toList();
+  List<Song> get recentlyPlayed => _recentlyPlayed;
+  List<Playlist> get playlists => _playlists;
+  List<Song> get onlineTrending => _onlineTrending;
+  bool get isLoadingTrending => _isLoadingTrending;
+  String? get errorMessage => _errorMessage;
+
+  void _init() {
+    _allSongs = List.from(MusicRepository.sampleSongs);
+    _playlists = List.from(MusicRepository.samplePlaylists);
+    _queue = List.from(_allSongs);
+
+    // Listen to player state
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
+      _isPlaying = state.playing;
+      _isBuffering = state.processingState == ProcessingState.buffering ||
+          state.processingState == ProcessingState.loading;
+
+      if (state.processingState == ProcessingState.completed) {
+        _handleSongCompletion();
+      }
+      notifyListeners();
+    }, onError: (Object e) {
+      _errorMessage = "Playback error: $e";
+      _isBuffering = false;
+      notifyListeners();
+    });
+
+    // Listen to position
+    _positionSubscription = _audioPlayer.positionStream.listen((pos) {
+      _position = pos;
+      notifyListeners();
+    });
+
+    // Listen to duration
+    _durationSubscription = _audioPlayer.durationStream.listen((dur) {
+      if (dur != null) {
+        _duration = dur;
+        notifyListeners();
+      }
+    });
+
+    // Listen to buffer position
+    _bufferedPositionSubscription =
+        _audioPlayer.bufferedPositionStream.listen((buf) {
+      _bufferedPosition = buf;
+      notifyListeners();
+    });
+
+    // Asynchronously fetch online trending songs
+    fetchOnlineTrending();
+  }
+
+  Future<void> fetchOnlineTrending() async {
+    _isLoadingTrending = true;
+    notifyListeners();
+
+    try {
+      final indiaTop50Result = await MusicApiService.fetchPlaylist('1134543272');
+      final indiaSongs = (indiaTop50Result['songs'] as List<Song>?) ?? [];
+
+      final trendingResult = await MusicApiService.fetchPlaylist('110858205');
+      final trendingSongs = (trendingResult['songs'] as List<Song>?) ?? [];
+
+      final indieResult = await MusicApiService.fetchPlaylist('82914609');
+      final indieSongs = (indieResult['songs'] as List<Song>?) ?? [];
+
+      final duetsResult = await MusicApiService.fetchPlaylist('159470188');
+      final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
+
+      final List<Playlist> livePlaylists = [];
+      if (indiaSongs.isNotEmpty) {
+        livePlaylists.add(
+          Playlist(
+            id: '1134543272',
+            title: indiaTop50Result['name'] ?? 'India Superhits Top 50',
+            description: 'Top trending 50 chartbusters across India (320 kbps Studio)',
+            coverUrl: (indiaTop50Result['coverUrl'] as String?)?.isNotEmpty == true
+                ? indiaTop50Result['coverUrl']
+                : (indiaSongs.first.coverUrl),
+            songIds: indiaSongs.map((s) => s.id).toList(),
+          ),
+        );
+      }
+
+      if (trendingSongs.isNotEmpty) {
+        livePlaylists.add(
+          Playlist(
+            id: '110858205',
+            title: trendingResult['name'] ?? 'Trending Today',
+            description: 'Today\'s hottest streaming songs live',
+            coverUrl: (trendingResult['coverUrl'] as String?)?.isNotEmpty == true
+                ? trendingResult['coverUrl']
+                : (trendingSongs.first.coverUrl),
+            songIds: trendingSongs.map((s) => s.id).toList(),
+          ),
+        );
+      }
+
+      if (indieSongs.isNotEmpty) {
+        livePlaylists.add(
+          Playlist(
+            id: '82914609',
+            title: indieResult['name'] ?? 'Best of Indie',
+            description: 'Finest independent indie & acoustic releases',
+            coverUrl: (indieResult['coverUrl'] as String?)?.isNotEmpty == true
+                ? indieResult['coverUrl']
+                : (indieSongs.first.coverUrl),
+            songIds: indieSongs.map((s) => s.id).toList(),
+          ),
+        );
+      }
+
+      if (duetsSongs.isNotEmpty) {
+        livePlaylists.add(
+          Playlist(
+            id: '159470188',
+            title: duetsResult['name'] ?? '90s Evergreen Duets',
+            description: 'Golden era Bollywood duets & romantic memories',
+            coverUrl: (duetsResult['coverUrl'] as String?)?.isNotEmpty == true
+                ? duetsResult['coverUrl']
+                : (duetsSongs.first.coverUrl),
+            songIds: duetsSongs.map((s) => s.id).toList(),
+          ),
+        );
+      }
+
+      final allLiveSongs = [
+        ...indiaSongs,
+        ...trendingSongs,
+        ...indieSongs,
+        ...duetsSongs,
+      ];
+
+      if (allLiveSongs.isNotEmpty) {
+        _onlineTrending = allLiveSongs;
+
+        final Set<String> existingIds = _allSongs.map((s) => s.id).toSet();
+        final List<Song> newUnique = allLiveSongs.where((s) => !existingIds.contains(s.id)).toList();
+        _allSongs = [...newUnique, ..._allSongs];
+
+        if (livePlaylists.isNotEmpty) {
+          _playlists = [...livePlaylists, ..._playlists];
+        }
+
+        _queue = List.from(_allSongs);
+      }
+    } catch (_) {}
+
+    _isLoadingTrending = false;
+    notifyListeners();
+  }
+
+  Future<void> playSong(Song song, {List<Song>? newQueue}) async {
+    _errorMessage = null;
+
+    // Ensure song is in _allSongs
+    if (!_allSongs.any((s) => s.id == song.id)) {
+      _allSongs.insert(0, song);
+    }
+
+    if (newQueue != null && newQueue.isNotEmpty) {
+      _queue = List.from(newQueue);
+    } else if (_queue.isEmpty || !_queue.any((s) => s.id == song.id)) {
+      _queue = List.from(_allSongs);
+    }
+
+    final index = _queue.indexWhere((s) => s.id == song.id);
+    _currentIndex = index != -1 ? index : 0;
+
+    _recentlyPlayed.removeWhere((s) => s.id == song.id);
+    _recentlyPlayed.insert(0, song);
+    if (_recentlyPlayed.length > 30) {
+      _recentlyPlayed.removeLast();
+    }
+
+    try {
+      _isBuffering = true;
+      _position = Duration.zero;
+      _duration = song.duration;
+      notifyListeners();
+
+      await _audioPlayer.stop();
+      await _audioPlayer.setUrl(song.audioUrl);
+      await _audioPlayer.setSpeed(_playbackSpeed);
+      await _audioPlayer.setVolume(_volume);
+      await _audioPlayer.setLoopMode(_loopMode);
+      await _audioPlayer.play();
+    } catch (e) {
+      _errorMessage = "Unable to play audio: $e";
+      _isBuffering = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> playPlaylist(List<Song> songs, {int initialIndex = 0}) async {
+    if (songs.isEmpty) return;
+    _queue = List.from(songs);
+    final targetIndex =
+        (initialIndex >= 0 && initialIndex < songs.length) ? initialIndex : 0;
+    await playSong(_queue[targetIndex]);
+  }
+
+  Future<void> togglePlay() async {
+    if (currentSong == null && _allSongs.isNotEmpty) {
+      await playSong(_allSongs[0]);
+      return;
+    }
+
+    if (_isPlaying) {
+      await _audioPlayer.pause();
+    } else {
+      await _audioPlayer.play();
+    }
+  }
+
+  Future<void> next() async {
+    if (_queue.isEmpty) return;
+
+    int nextIndex;
+    if (_isShuffle && _queue.length > 1) {
+      final List<int> candidates = [];
+      for (int i = 0; i < _queue.length; i++) {
+        if (i != _currentIndex) candidates.add(i);
+      }
+      candidates.shuffle();
+      nextIndex = candidates.first;
+    } else {
+      nextIndex = _currentIndex + 1;
+      if (nextIndex >= _queue.length) {
+        nextIndex = 0;
+      }
+    }
+
+    await playSong(_queue[nextIndex]);
+  }
+
+  Future<void> previous() async {
+    if (_queue.isEmpty) return;
+
+    if (_position.inSeconds > 3) {
+      await seek(Duration.zero);
+      return;
+    }
+
+    int prevIndex = _currentIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = _queue.length - 1;
+    }
+
+    await playSong(_queue[prevIndex]);
+  }
+
+  Future<void> seek(Duration newPosition) async {
+    _position = newPosition;
+    notifyListeners();
+    await _audioPlayer.seek(newPosition);
+  }
+
+  void _handleSongCompletion() {
+    if (_sleepAfterCurrentSong) {
+      cancelSleepTimer();
+      _audioPlayer.pause();
+      return;
+    }
+
+    if (_loopMode == LoopMode.one) {
+      _audioPlayer.seek(Duration.zero);
+      _audioPlayer.play();
+    } else if (_loopMode == LoopMode.all ||
+        _currentIndex < _queue.length - 1) {
+      next();
+    } else {
+      _isPlaying = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> toggleShuffle() async {
+    _isShuffle = !_isShuffle;
+    notifyListeners();
+  }
+
+  Future<void> toggleLoopMode() async {
+    if (_loopMode == LoopMode.off) {
+      _loopMode = LoopMode.all;
+    } else if (_loopMode == LoopMode.all) {
+      _loopMode = LoopMode.one;
+    } else {
+      _loopMode = LoopMode.off;
+    }
+    await _audioPlayer.setLoopMode(_loopMode);
+    notifyListeners();
+  }
+
+  Future<void> setPlaybackSpeed(double speed) async {
+    _playbackSpeed = speed;
+    await _audioPlayer.setSpeed(speed);
+    notifyListeners();
+  }
+
+  // Volume & Mute Controls
+  Future<void> setVolume(double val) async {
+    _volume = val.clamp(0.0, 1.0);
+    _isMuted = _volume == 0.0;
+    await _audioPlayer.setVolume(_volume);
+    notifyListeners();
+  }
+
+  Future<void> toggleMute() async {
+    if (_isMuted) {
+      _volume = _preMuteVolume > 0.0 ? _preMuteVolume : 0.8;
+      _isMuted = false;
+    } else {
+      _preMuteVolume = _volume;
+      _volume = 0.0;
+      _isMuted = true;
+    }
+    await _audioPlayer.setVolume(_volume);
+    notifyListeners();
+  }
+
+  // Sound Preset Control
+  void setSoundPreset(String preset) {
+    if (soundPresets.contains(preset)) {
+      _soundPreset = preset;
+      notifyListeners();
+    }
+  }
+
+  // Sleep Timer Engine
+  void setSleepTimer(Duration duration) {
+    cancelSleepTimer();
+    _sleepSecondsRemaining = duration.inSeconds;
+    _sleepAfterCurrentSong = false;
+    notifyListeners();
+
+    _sleepTicker = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_sleepSecondsRemaining > 0) {
+        _sleepSecondsRemaining--;
+        notifyListeners();
+      } else {
+        cancelSleepTimer();
+        _audioPlayer.pause();
+      }
+    });
+  }
+
+  void setSleepTimerAfterSong() {
+    cancelSleepTimer();
+    _sleepAfterCurrentSong = true;
+    notifyListeners();
+  }
+
+  void cancelSleepTimer() {
+    _sleepTimer?.cancel();
+    _sleepTicker?.cancel();
+    _sleepTimer = null;
+    _sleepTicker = null;
+    _sleepSecondsRemaining = 0;
+    _sleepAfterCurrentSong = false;
+    notifyListeners();
+  }
+
+  // Queue Management
+  void removeFromQueue(int index) {
+    if (index < 0 || index >= _queue.length) return;
+    if (index == _currentIndex) {
+      next();
+    }
+    _queue.removeAt(index);
+    if (_currentIndex > index) {
+      _currentIndex--;
+    }
+    notifyListeners();
+  }
+
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, item);
+    if (_currentIndex == oldIndex) {
+      _currentIndex = newIndex;
+    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
+      _currentIndex--;
+    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
+      _currentIndex++;
+    }
+    notifyListeners();
+  }
+
+  void clearQueue() {
+    final current = currentSong;
+    _queue.clear();
+    if (current != null) {
+      _queue.add(current);
+      _currentIndex = 0;
+    } else {
+      _currentIndex = -1;
+    }
+    notifyListeners();
+  }
+
+  void toggleFavorite(String songId) {
+    if (_favoriteIds.contains(songId)) {
+      _favoriteIds.remove(songId);
+    } else {
+      _favoriteIds.add(songId);
+    }
+    notifyListeners();
+  }
+
+  bool isFavorite(String songId) => _favoriteIds.contains(songId);
+
+  void createPlaylist(String title, String description) {
+    final newPlaylist = Playlist(
+      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+      title: title,
+      description: description,
+      coverUrl:
+          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+      songIds: [],
+    );
+    _playlists.add(newPlaylist);
+    notifyListeners();
+  }
+
+  void addSongToPlaylist(String playlistId, String songId) {
+    final index = _playlists.indexWhere((p) => p.id == playlistId);
+    if (index != -1) {
+      final p = _playlists[index];
+      if (!p.songIds.contains(songId)) {
+        final updated = Playlist(
+          id: p.id,
+          title: p.title,
+          description: p.description,
+          coverUrl: p.coverUrl,
+          songIds: [...p.songIds, songId],
+        );
+        _playlists[index] = updated;
+        notifyListeners();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _sleepTimer?.cancel();
+    _sleepTicker?.cancel();
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _bufferedPositionSubscription?.cancel();
+    _audioPlayer.dispose();
+    super.dispose();
+  }
+}

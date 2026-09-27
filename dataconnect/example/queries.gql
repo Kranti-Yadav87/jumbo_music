@@ -1,0 +1,146 @@
+mutation CreateUser($username: String!, $email: String!, $bio: String, $avatarUrl: String) @auth(level: USER) {
+  user_insert(data: {
+    id_expr: "auth.uid",
+    username: $username,
+    email: $email,
+    bio: $bio,
+    avatarUrl: $avatarUrl
+  })
+}
+
+mutation UpdateUser($username: String, $bio: String, $avatarUrl: String) @auth(level: USER) {
+  user_update(key: {id_expr: "auth.uid"}, data: {username: $username, bio: $bio, avatarUrl: $avatarUrl})
+}
+
+mutation DeleteUser @auth(level: USER) {
+  user_delete(key: {id_expr: "auth.uid"})
+}
+
+query GetUser @auth(level: USER) {
+  user(key: {id_expr: "auth.uid"}) {
+    username
+    email
+    bio
+    avatarUrl
+  }
+}
+
+query ListUsers @auth(level: PUBLIC, insecureReason: "Publicly visible user directory") {
+  users {
+    username
+    bio
+  }
+}
+
+mutation CreatePlaylist($title: String!, $description: String, $isPublic: Boolean) @auth(level: USER) {
+  playlist_insert(data: {
+    title: $title,
+    description: $description,
+    isPublic: $isPublic,
+    creatorId_expr: "auth.uid"
+  })
+}
+
+mutation UpdatePlaylist($id: UUID!, $title: String, $description: String, $isPublic: Boolean) @auth(level: USER) {
+  playlist_update(key: {id: $id}, data: {title: $title, description: $description, isPublic: $isPublic})
+}
+
+mutation DeletePlaylist($id: UUID!) @auth(level: USER) {
+  playlist_delete(key: {id: $id})
+}
+
+query GetPlaylist($id: UUID!) @auth(level: PUBLIC, insecureReason: "Playlists are public discovery content") {
+  playlist(id: $id) {
+    title
+    creator { username }
+    description
+  }
+}
+
+query ListPlaylists @auth(level: PUBLIC, insecureReason: "Public discovery of playlists") {
+  playlists(where: {isPublic: {eq: true}}) {
+    title
+    creator { username }
+  }
+}
+
+mutation CreateLoveNote($playlistId: UUID!, $trackId: UUID!, $message: String!) @auth(level: USER) {
+  loveNote_insert(data: {playlistId: $playlistId, trackId: $trackId, message: $message})
+}
+
+mutation UpdateLoveNote($id: UUID!, $message: String!) @auth(level: USER) {
+  loveNote_update(key: {id: $id}, data: {message: $message})
+}
+
+mutation DeleteLoveNote($id: UUID!) @auth(level: USER) {
+  loveNote_delete(key: {id: $id})
+}
+
+query GetLoveNote($id: UUID!) @auth(level: PUBLIC, insecureReason: "Notes on tracks are public") {
+  loveNote(id: $id) {
+    message
+    track { title }
+  }
+}
+
+query ListLoveNotes @auth(level: PUBLIC, insecureReason: "Public stream of love notes") {
+  loveNotes {
+    message
+    track { title }
+  }
+}
+
+mutation HeartPlaylist($playlistId: UUID!) @auth(level: USER) {
+  heart_insert(data: {playlistId: $playlistId, userId_expr: "auth.uid"})
+}
+
+mutation UnheartPlaylist($id: UUID!) @auth(level: USER) {
+  heart_delete(key: {id: $id})
+}
+
+query ListHearts @auth(level: USER) {
+  hearts(where: {userId: {eq_expr: "auth.uid"}}) {
+    playlist { title }
+  }
+}
+
+mutation FollowUser($followingId: UUID!) @auth(level: USER) {
+  follow_insert(data: {followerId_expr: "auth.uid", followingId: $followingId})
+}
+
+mutation UnfollowUser($id: UUID!) @auth(level: USER) {
+  follow_delete(key: {id: $id})
+}
+
+query ListFollowing @auth(level: USER) {
+  follows(where: {followerId: {eq_expr: "auth.uid"}}) {
+    following { username }
+  }
+}
+
+mutation AddTrack($title: String!, $artistName: String!, $externalUrl: String!, $albumName: String, $genre: String) @auth(level: PUBLIC, insecureReason: "Music database is open for community contributions") {
+  track_insert(data: {title: $title, artistName: $artistName, externalUrl: $externalUrl, albumName: $albumName, genre: $genre})
+}
+
+mutation UpdateTrack($id: UUID!, $genre: String) @auth(level: PUBLIC, insecureReason: "Music metadata correction") {
+  track_update(key: {id: $id}, data: {genre: $genre})
+}
+
+mutation DeleteTrack($id: UUID!) @auth(level: PUBLIC, insecureReason: "Removal of invalid tracks") {
+  track_delete(key: {id: $id})
+}
+
+query GetTrack($id: UUID!) @auth(level: PUBLIC, insecureReason: "Public track details") {
+  track(id: $id) {
+    title
+    artistName
+    externalUrl
+  }
+}
+
+query ListTracks @auth(level: PUBLIC, insecureReason: "Public music search") {
+  tracks {
+    title
+    artistName
+  }
+}
