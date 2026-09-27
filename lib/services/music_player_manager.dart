@@ -48,6 +48,11 @@ class MusicPlayerManager extends ChangeNotifier {
   int _sleepSecondsRemaining = 0;
   bool _sleepAfterCurrentSong = false;
 
+  // Autoplay & Smart Infinite Radio Engine
+  bool _autoplay = true;
+  bool _isLoadingRecommendations = false;
+  String? _lastInfilledSongId;
+
   final Set<String> _favoriteIds = {'1', '2'};
   final List<Song> _recentlyPlayed = [];
   List<Playlist> _playlists = [];
@@ -99,11 +104,26 @@ class MusicPlayerManager extends ChangeNotifier {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
+  bool get autoplay => _autoplay;
+  bool get isLoadingRecommendations => _isLoadingRecommendations;
+  void toggleAutoplay() {
+    _autoplay = !_autoplay;
+    notifyListeners();
+  }
+
   Set<String> get favoriteIds => _favoriteIds;
   List<Song> get favoriteSongs =>
       _allSongs.where((s) => _favoriteIds.contains(s.id)).toList();
   List<Song> get recentlyPlayed => _recentlyPlayed;
   List<Playlist> get playlists => _playlists;
+  List<Playlist> get artistMixes =>
+      _playlists.where((p) => p.type == PlaylistType.artistMix).toList();
+  List<Playlist> get genreMixes =>
+      _playlists.where((p) => p.type == PlaylistType.genreMix).toList();
+  List<Playlist> get smartMixes =>
+      _playlists.where((p) => p.type == PlaylistType.smartMix).toList();
+  List<Playlist> get userPlaylists =>
+      _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
@@ -254,6 +274,147 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  void _updateDynamicLibrary(Song song) {
+    // 1. Recently Played (up to 40)
+    _recentlyPlayed.removeWhere((s) => s.id == song.id);
+    _recentlyPlayed.insert(0, song);
+    if (_recentlyPlayed.length > 40) {
+      _recentlyPlayed.removeLast();
+    }
+
+    // 2. Artist Mix Station
+    final rawArtist = song.artist.split(',').first.split('&').first.trim();
+    final mainArtist = rawArtist.isNotEmpty ? rawArtist : 'Featured Artist';
+    final artistPlaylistId = 'artist_${mainArtist.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+
+    final artistIndex = _playlists.indexWhere((p) => p.id == artistPlaylistId);
+    if (artistIndex != -1) {
+      final existing = _playlists[artistIndex];
+      final updatedSongs = List<Song>.from(existing.songs);
+      if (!updatedSongs.any((s) => s.id == song.id)) {
+        updatedSongs.insert(0, song);
+      }
+      final updatedIds = List<String>.from(existing.songIds);
+      if (!updatedIds.contains(song.id)) {
+        updatedIds.insert(0, song.id);
+      }
+      _playlists[artistIndex] = existing.copyWith(
+        songIds: updatedIds,
+        songs: updatedSongs,
+        coverUrl: song.coverUrl.isNotEmpty ? song.coverUrl : existing.coverUrl,
+      );
+    } else {
+      _playlists.insert(
+        0,
+        Playlist(
+          id: artistPlaylistId,
+          title: '$mainArtist Radio',
+          description: 'Non-stop top tracks by $mainArtist & related artists',
+          coverUrl: song.coverUrl,
+          songIds: [song.id],
+          songs: [song],
+          type: PlaylistType.artistMix,
+        ),
+      );
+    }
+
+    // 3. Mood / Genre Station
+    final genre = song.genre.isNotEmpty ? song.genre : 'Bollywood';
+    final genrePlaylistId = 'genre_${genre.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+
+    final genreIndex = _playlists.indexWhere((p) => p.id == genrePlaylistId);
+    if (genreIndex != -1) {
+      final existing = _playlists[genreIndex];
+      final updatedSongs = List<Song>.from(existing.songs);
+      if (!updatedSongs.any((s) => s.id == song.id)) {
+        updatedSongs.insert(0, song);
+      }
+      final updatedIds = List<String>.from(existing.songIds);
+      if (!updatedIds.contains(song.id)) {
+        updatedIds.insert(0, song.id);
+      }
+      _playlists[genreIndex] = existing.copyWith(
+        songIds: updatedIds,
+        songs: updatedSongs,
+      );
+    } else {
+      _playlists.insert(
+        0,
+        Playlist(
+          id: genrePlaylistId,
+          title: '$genre Station',
+          description: 'Endless $genre rhythms & live beats',
+          coverUrl: song.coverUrl,
+          songIds: [song.id],
+          songs: [song],
+          type: PlaylistType.genreMix,
+        ),
+      );
+    }
+
+    // 4. "Made For You" Daily Smart Mix
+    const smartMixId = 'smart_mix_daily';
+    final smartIndex = _playlists.indexWhere((p) => p.id == smartMixId);
+    if (smartIndex != -1) {
+      final existing = _playlists[smartIndex];
+      final updatedSongs = List<Song>.from(existing.songs);
+      if (!updatedSongs.any((s) => s.id == song.id)) {
+        updatedSongs.insert(0, song);
+        if (updatedSongs.length > 30) updatedSongs.removeLast();
+      }
+      _playlists[smartIndex] = existing.copyWith(
+        songs: updatedSongs,
+        songIds: updatedSongs.map((s) => s.id).toList(),
+      );
+    } else {
+      _playlists.insert(
+        0,
+        Playlist(
+          id: smartMixId,
+          title: 'Daily Smart Mix',
+          description: 'Personalized mix based on your listening journey',
+          coverUrl: song.coverUrl,
+          songIds: [song.id],
+          songs: [song],
+          type: PlaylistType.smartMix,
+        ),
+      );
+    }
+  }
+
+  Future<void> _infillSmartQueue(Song seedSong) async {
+    if (!_autoplay || _isLoadingRecommendations) return;
+    if (_lastInfilledSongId == seedSong.id) return;
+    _lastInfilledSongId = seedSong.id;
+
+    _isLoadingRecommendations = true;
+    notifyListeners();
+
+    try {
+      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 12);
+      if (freshTracks.isNotEmpty) {
+        final Set<String> existingQueueIds = _queue.map((s) => s.id).toSet();
+        final List<Song> newTracks =
+            freshTracks.where((s) => !existingQueueIds.contains(s.id)).toList();
+
+        if (newTracks.isNotEmpty) {
+          _queue.addAll(newTracks);
+
+          // Add to allSongs as well
+          final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
+          for (final track in newTracks) {
+            if (!allIds.contains(track.id)) {
+              _allSongs.add(track);
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    _isLoadingRecommendations = false;
+    notifyListeners();
+  }
+
   Future<void> playSong(Song song, {List<Song>? newQueue}) async {
     _errorMessage = null;
 
@@ -271,10 +432,10 @@ class MusicPlayerManager extends ChangeNotifier {
     final index = _queue.indexWhere((s) => s.id == song.id);
     _currentIndex = index != -1 ? index : 0;
 
-    _recentlyPlayed.removeWhere((s) => s.id == song.id);
-    _recentlyPlayed.insert(0, song);
-    if (_recentlyPlayed.length > 30) {
-      _recentlyPlayed.removeLast();
+    // Dynamic library generation & Smart queue infill
+    _updateDynamicLibrary(song);
+    if (_autoplay) {
+      _infillSmartQueue(song);
     }
 
     try {
@@ -320,19 +481,31 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> next() async {
     if (_queue.isEmpty) return;
 
-    int nextIndex;
+    // Proactively infill when near queue end
+    if (_autoplay && currentSong != null && _currentIndex >= _queue.length - 2) {
+      _infillSmartQueue(currentSong!);
+    }
+
     if (_isShuffle && _queue.length > 1) {
       final List<int> candidates = [];
       for (int i = 0; i < _queue.length; i++) {
         if (i != _currentIndex) candidates.add(i);
       }
       candidates.shuffle();
-      nextIndex = candidates.first;
-    } else {
-      nextIndex = _currentIndex + 1;
-      if (nextIndex >= _queue.length) {
-        nextIndex = 0;
+      await playSong(_queue[candidates.first]);
+      return;
+    }
+
+    int nextIndex = _currentIndex + 1;
+    if (nextIndex >= _queue.length) {
+      if (_autoplay && currentSong != null) {
+        await _infillSmartQueue(currentSong!);
+        if (_queue.length > nextIndex) {
+          await playSong(_queue[nextIndex]);
+          return;
+        }
       }
+      nextIndex = 0;
     }
 
     await playSong(_queue[nextIndex]);
@@ -360,7 +533,7 @@ class MusicPlayerManager extends ChangeNotifier {
     await _audioPlayer.seek(newPosition);
   }
 
-  void _handleSongCompletion() {
+  void _handleSongCompletion() async {
     if (_sleepAfterCurrentSong) {
       cancelSleepTimer();
       _audioPlayer.pause();
@@ -370,9 +543,26 @@ class MusicPlayerManager extends ChangeNotifier {
     if (_loopMode == LoopMode.one) {
       _audioPlayer.seek(Duration.zero);
       _audioPlayer.play();
-    } else if (_loopMode == LoopMode.all ||
-        _currentIndex < _queue.length - 1) {
+      return;
+    }
+
+    if (_loopMode == LoopMode.all) {
       next();
+      return;
+    }
+
+    // Normal or Autoplay flow
+    if (_currentIndex < _queue.length - 1) {
+      next();
+    } else if (_autoplay && currentSong != null) {
+      // End of queue: automatically fetch fresh songs and play next!
+      await _infillSmartQueue(currentSong!);
+      if (_currentIndex < _queue.length - 1) {
+        next();
+      } else {
+        _isPlaying = false;
+        notifyListeners();
+      }
     } else {
       _isPlaying = false;
       notifyListeners();

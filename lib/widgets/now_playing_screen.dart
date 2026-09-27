@@ -300,6 +300,47 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                 ),
               ),
               const Divider(color: Colors.white10),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.all_inclusive_rounded, color: Color(0xFF10B981), size: 20),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Continuous Autoplay',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Plays related music beyond search results',
+                            style: TextStyle(color: Colors.white54, fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: manager.autoplay,
+                      activeColor: const Color(0xFF10B981),
+                      onChanged: (_) {
+                        manager.toggleAutoplay();
+                      },
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: ListView.builder(
                   itemCount: manager.queue.length,
@@ -842,6 +883,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
+                          _buildQuickButton(
+                            icon: Icons.all_inclusive_rounded,
+                            label: manager.autoplay ? 'Auto ON' : 'Auto OFF',
+                            isActive: manager.autoplay,
+                            onTap: () => manager.toggleAutoplay(),
+                          ),
                           _buildQuickButton(
                             icon: Icons.lyrics_outlined,
                             label: _showLyrics ? 'Art' : 'Lyrics',

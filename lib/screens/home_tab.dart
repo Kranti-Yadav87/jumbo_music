@@ -3,6 +3,7 @@ import '../models/song.dart';
 import '../data/music_repository.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/song_tile.dart';
+import '../widgets/equalizer_bars.dart';
 import 'playlist_detail_screen.dart';
 
 class HomeTab extends StatefulWidget {
@@ -14,6 +15,18 @@ class HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<HomeTab> {
   String _selectedGenre = 'All';
+
+  final List<String> _genres = [
+    'All',
+    'Bollywood',
+    'Romantic',
+    'Punjabi',
+    'Lo-Fi',
+    'Acoustic',
+    'EDM',
+    'Chill',
+    'Pop',
+  ];
 
   String _getGreeting() {
     final hour = DateTime.now().hour;
@@ -32,19 +45,24 @@ class _HomeTabState extends State<HomeTab> {
         final allSongs = manager.allSongs;
         final filteredSongs = _selectedGenre == 'All'
             ? allSongs
-            : allSongs.where((s) => s.genre.toLowerCase().contains(_selectedGenre.toLowerCase())).toList();
+            : allSongs.where((s) {
+                final q = _selectedGenre.toLowerCase();
+                return s.genre.toLowerCase().contains(q) ||
+                    s.title.toLowerCase().contains(q) ||
+                    s.artist.toLowerCase().contains(q);
+              }).toList();
 
-        final featuredSong = allSongs.isNotEmpty ? allSongs.first : null;
+        final featuredSong = manager.currentSong ?? (allSongs.isNotEmpty ? allSongs.first : null);
         final quickPicks = manager.recentlyPlayed.isNotEmpty
             ? manager.recentlyPlayed
-            : allSongs.take(5).toList();
+            : allSongs.take(8).toList();
 
         return Scaffold(
           backgroundColor: Colors.transparent,
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // Custom Header with Greeting & Sleep Timer indicator
+              // Top Header with Greeting, Brand & Sleep Timer
               SliverToBoxAdapter(
                 child: SafeArea(
                   bottom: false,
@@ -65,26 +83,86 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             ),
                             const SizedBox(height: 2),
-                            const Text(
-                              'JUMBO MUSIC',
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 1.5,
-                                color: Colors.white,
-                              ),
+                            Row(
+                              children: [
+                                const Text(
+                                  'JUMBO MUSIC',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFF818CF8).withOpacity(0.4)),
+                                  ),
+                                  child: const Text(
+                                    'PRO',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF818CF8),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                         Row(
                           children: [
-                            if (manager.isSleepTimerActive)
-                              Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
+                            // Autoplay quick toggle badge
+                            InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () => manager.toggleAutoplay(),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: manager.autoplay
+                                      ? const Color(0xFF10B981).withOpacity(0.15)
+                                      : Colors.white.withOpacity(0.06),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: manager.autoplay
+                                        ? const Color(0xFF10B981).withOpacity(0.4)
+                                        : Colors.white12,
+                                  ),
                                 ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.all_inclusive_rounded,
+                                      size: 14,
+                                      color: manager.autoplay
+                                          ? const Color(0xFF10B981)
+                                          : Colors.white38,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      manager.autoplay ? 'Radio ON' : 'Radio OFF',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: manager.autoplay
+                                            ? const Color(0xFF10B981)
+                                            : Colors.white38,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (manager.isSleepTimerActive) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF6366F1).withOpacity(0.2),
                                   borderRadius: BorderRadius.circular(16),
@@ -96,7 +174,7 @@ class _HomeTabState extends State<HomeTab> {
                                   children: [
                                     const Icon(
                                       Icons.bedtime_rounded,
-                                      size: 13,
+                                      size: 12,
                                       color: Color(0xFF818CF8),
                                     ),
                                     const SizedBox(width: 4),
@@ -111,18 +189,7 @@ class _HomeTabState extends State<HomeTab> {
                                   ],
                                 ),
                               ),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.06),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.headphones_rounded,
-                                color: Color(0xFF818CF8),
-                                size: 22,
-                              ),
-                            ),
+                            ],
                           ],
                         ),
                       ],
@@ -131,35 +198,35 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // Featured Hero Banner
+              // Hero Feature Card (Chill Ratna High Quality Banner)
               if (featuredSong != null)
                 SliverToBoxAdapter(
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    height: 190,
+                    height: 200,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(26),
                       image: DecorationImage(
                         image: NetworkImage(featuredSong.coverUrl),
                         fit: BoxFit.cover,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF6366F1).withOpacity(0.25),
-                          blurRadius: 20,
+                          color: const Color(0xFF6366F1).withOpacity(0.3),
+                          blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
                       ],
                     ),
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: BorderRadius.circular(26),
                         gradient: LinearGradient(
                           begin: Alignment.centerLeft,
                           end: Alignment.centerRight,
                           colors: [
                             Colors.black.withOpacity(0.92),
-                            Colors.black.withOpacity(0.5),
+                            Colors.black.withOpacity(0.55),
                             Colors.transparent,
                           ],
                         ),
@@ -167,64 +234,123 @@ class _HomeTabState extends State<HomeTab> {
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF6366F1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text(
-                              'FEATURED TODAY',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 1,
-                                color: Colors.white,
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (manager.isPlaying && manager.currentSong?.id == featuredSong.id)
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 6),
+                                        child: EqualizerBars(isPlaying: true, color: Colors.white, height: 10, barCount: 3),
+                                      ),
+                                    Text(
+                                      manager.isPlaying && manager.currentSong?.id == featuredSong.id
+                                          ? 'NOW PLAYING LIVE'
+                                          : 'TRENDING HIT',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: const Text(
+                                  '320 KBPS STUDIO',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 8),
+                          const Spacer(),
                           Text(
                             featuredSong.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
                               color: Colors.white,
                             ),
                           ),
+                          const SizedBox(height: 2),
                           Text(
-                            '${featuredSong.artist} • ${featuredSong.quality}',
+                            '${featuredSong.artist} • ${featuredSong.album}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontSize: 13,
                               color: Colors.white70,
                             ),
                           ),
-                          const Spacer(),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 10,
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.white,
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  manager.isPlaying && manager.currentSong?.id == featuredSong.id
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  size: 22,
+                                ),
+                                label: Text(
+                                  manager.isPlaying && manager.currentSong?.id == featuredSong.id
+                                      ? 'Pause'
+                                      : 'Play Stream',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                onPressed: () {
+                                  if (manager.currentSong?.id == featuredSong.id) {
+                                    manager.togglePlay();
+                                  } else {
+                                    manager.playSong(featuredSong);
+                                  }
+                                },
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
+                              const SizedBox(width: 10),
+                              IconButton(
+                                icon: Icon(
+                                  manager.isFavorite(featuredSong.id)
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: manager.isFavorite(featuredSong.id)
+                                      ? const Color(0xFFEF4444)
+                                      : Colors.white70,
+                                ),
+                                onPressed: () => manager.toggleFavorite(featuredSong.id),
                               ),
-                            ),
-                            icon: const Icon(Icons.play_arrow_rounded, size: 20),
-                            label: const Text(
-                              'Play Now',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            onPressed: () => manager.playSong(featuredSong),
+                            ],
                           ),
                         ],
                       ),
@@ -232,17 +358,17 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
 
-              // Genre Filter Chips
+              // Genre Filter Pills
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 48,
+                  height: 46,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: MusicRepository.genres.length,
+                    itemCount: _genres.length,
                     itemBuilder: (context, index) {
-                      final genre = MusicRepository.genres[index];
+                      final genre = _genres[index];
                       final isSelected = genre == _selectedGenre;
 
                       return Padding(
@@ -251,7 +377,7 @@ class _HomeTabState extends State<HomeTab> {
                           label: Text(genre),
                           selected: isSelected,
                           selectedColor: const Color(0xFF6366F1),
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          backgroundColor: Colors.white.withOpacity(0.06),
                           checkmarkColor: Colors.white,
                           labelStyle: TextStyle(
                             color: isSelected ? Colors.white : Colors.white70,
@@ -262,7 +388,7 @@ class _HomeTabState extends State<HomeTab> {
                             borderRadius: BorderRadius.circular(20),
                             side: BorderSide(
                               color: isSelected
-                                  ? const Color(0xFF6366F1)
+                                  ? const Color(0xFF818CF8)
                                   : Colors.white10,
                             ),
                           ),
@@ -278,23 +404,142 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // Curated Playlists Section
+              // Quick Picks Horizontal Row (Recently Played or Jump Back In)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Curated Playlists',
-                        style: TextStyle(
+                      Text(
+                        manager.recentlyPlayed.isNotEmpty
+                            ? 'Listen Again & Quick Picks'
+                            : 'Recommended For You',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
+                      const Icon(Icons.bolt_rounded, color: Color(0xFF818CF8), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 145,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: quickPicks.length,
+                    itemBuilder: (context, index) {
+                      final song = quickPicks[index];
+                      final isCurrent = manager.currentSong?.id == song.id;
+
+                      return GestureDetector(
+                        onTap: () => manager.playSong(song),
+                        child: Container(
+                          width: 115,
+                          margin: const EdgeInsets.only(right: 12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  children: [
+                                    Image.network(
+                                      song.coverUrl,
+                                      width: 115,
+                                      height: 95,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 115,
+                                        height: 95,
+                                        color: Colors.white10,
+                                        child: const Icon(Icons.music_note, color: Colors.white54),
+                                      ),
+                                    ),
+                                    if (isCurrent && manager.isPlaying)
+                                      Positioned.fill(
+                                        child: Container(
+                                          color: Colors.black.withOpacity(0.5),
+                                          child: Center(
+                                            child: EqualizerBars(isPlaying: true, color: const Color(0xFF818CF8), height: 18),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Positioned(
+                                        bottom: 6,
+                                        right: 6,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(5),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.7),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                song.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
+                                ),
+                              ),
+                              Text(
+                                song.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // Smart Mixes & Stations Carousel
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.auto_awesome, color: Color(0xFF818CF8), size: 18),
+                          SizedBox(width: 6),
+                          Text(
+                            'Featured Playlists & Stations',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                       Text(
-                        '${manager.playlists.length} playlists',
+                        '${manager.playlists.length} mixes',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white54,
@@ -320,8 +565,7 @@ class _HomeTabState extends State<HomeTab> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                                  PlaylistDetailScreen(playlist: playlist),
+                              builder: (_) => PlaylistDetailScreen(playlist: playlist),
                             ),
                           );
                         },
@@ -381,86 +625,7 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                               ),
                               Text(
-                                playlist.songIds.isNotEmpty
-                                    ? '${playlist.songIds.length} tracks'
-                                    : 'Live 320 kbps',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Quick Picks Horizontal Row
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                  child: Text(
-                    manager.recentlyPlayed.isNotEmpty
-                        ? 'Recently Played'
-                        : 'Quick Picks',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 140,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: quickPicks.length,
-                    itemBuilder: (context, index) {
-                      final song = quickPicks[index];
-                      return GestureDetector(
-                        onTap: () => manager.playSong(song),
-                        child: Container(
-                          width: 110,
-                          margin: const EdgeInsets.only(right: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(14),
-                                child: Image.network(
-                                  song.coverUrl,
-                                  width: 110,
-                                  height: 90,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 110,
-                                    height: 90,
-                                    color: Colors.white10,
-                                    child: const Icon(Icons.music_note, color: Colors.white54),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                              Text(
-                                song.artist,
+                                playlist.description,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
@@ -480,7 +645,7 @@ class _HomeTabState extends State<HomeTab> {
               // Trending Tracks Section Header
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -488,7 +653,7 @@ class _HomeTabState extends State<HomeTab> {
                         children: [
                           Text(
                             _selectedGenre == 'All'
-                                ? 'Trending Worldwide'
+                                ? 'Top 50 Chartbusters'
                                 : '$_selectedGenre Tracks',
                             style: const TextStyle(
                               fontSize: 18,
@@ -507,7 +672,7 @@ class _HomeTabState extends State<HomeTab> {
                         ],
                       ),
                       Text(
-                        '${filteredSongs.length} songs',
+                        '${filteredSongs.length} tracks',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.white54,
@@ -518,6 +683,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
+              // List of Songs
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {

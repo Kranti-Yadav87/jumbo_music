@@ -300,4 +300,65 @@ Genre: $genre
     } catch (_) {}
     return [];
   }
+
+  /// Discovers 10-15 related, diverse songs matching the seed song's style
+  /// but distinct from the seed track itself ("jo search kiya uss se hat ke").
+  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 15}) async {
+    final List<String> discoveryQueries = [];
+
+    final artistLower = seedSong.artist.toLowerCase();
+    final genreLower = seedSong.genre.toLowerCase();
+
+    if (artistLower.contains('arijit') || artistLower.contains('sukoon') || genreLower.contains('bollywood')) {
+      discoveryQueries.addAll(['Mohit Chauhan', 'Atif Aslam', 'Shreya Ghoshal', 'KK Hindi', 'Jubin Nautiyal']);
+    } else if (artistLower.contains('diljit') || artistLower.contains('sidhu') || genreLower.contains('punjabi')) {
+      discoveryQueries.addAll(['Karan Aujla', 'AP Dhillon', 'Shubh', 'Amrinder Gill', 'B Praak']);
+    } else if (genreLower.contains('lo-fi') || genreLower.contains('chill') || artistLower.contains('kranti') || artistLower.contains('beats')) {
+      discoveryQueries.addAll(['Lo-Fi Hindi Sukoon', 'Chillhop beats', 'Midnight Rain Lo-Fi', 'Coffee Study Chill']);
+    } else if (genreLower.contains('edm') || genreLower.contains('party') || genreLower.contains('dance')) {
+      discoveryQueries.addAll(['Nucleya', 'Ritviz', 'Desi EDM Party', 'Club Dance Hits']);
+    } else if (genreLower.contains('acoustic') || artistLower.contains('kabir') || artistLower.contains('sanaya')) {
+      discoveryQueries.addAll(['Anuv Jain', 'Prateek Kuhad', 'Jasleen Royal', 'Acoustic Hindi Hits']);
+    } else {
+      discoveryQueries.addAll(['Trending Bollywood Hits', 'Top India Hits', 'Romantic Melodies']);
+    }
+
+    discoveryQueries.shuffle();
+    final selectedQueries = discoveryQueries.take(2).toList();
+
+    final List<Song> recommendations = [];
+    final Set<String> seenIds = {seedSong.id};
+    final Set<String> seenTitles = {seedSong.title.toLowerCase()};
+
+    for (final query in selectedQueries) {
+      final results = await searchLiveSongs(query, limit: 12);
+      for (final song in results) {
+        final lowerTitle = song.title.toLowerCase();
+        if (!seenIds.contains(song.id) &&
+            !seenTitles.contains(lowerTitle) &&
+            !lowerTitle.contains(seedSong.title.toLowerCase()) &&
+            song.audioUrl.isNotEmpty) {
+          seenIds.add(song.id);
+          seenTitles.add(lowerTitle);
+          recommendations.add(song);
+          if (recommendations.length >= limit) break;
+        }
+      }
+      if (recommendations.length >= limit) break;
+    }
+
+    if (recommendations.length < 5) {
+      final trending = await fetchTrendingToday();
+      for (final song in trending) {
+        if (!seenIds.contains(song.id) && song.id != seedSong.id) {
+          seenIds.add(song.id);
+          recommendations.add(song);
+          if (recommendations.length >= limit) break;
+        }
+      }
+    }
+
+    return recommendations;
+  }
 }
+

@@ -28,6 +28,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   }
 
   Future<void> _checkAndLoadSongs() async {
+    if (widget.playlist.songs.isNotEmpty) {
+      setState(() {
+        _loadedSongs = widget.playlist.songs;
+      });
+      return;
+    }
+
     final manager = MusicPlayerManager();
     final localSongs = manager.allSongs
         .where((song) => widget.playlist.songIds.contains(song.id))
@@ -74,9 +81,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       builder: (context, _) {
         final List<Song> playlistSongs = _loadedSongs.isNotEmpty
             ? _loadedSongs
-            : manager.allSongs
-                .where((song) => widget.playlist.songIds.contains(song.id))
-                .toList();
+            : widget.playlist.songs.isNotEmpty
+                ? widget.playlist.songs
+                : manager.allSongs
+                    .where((song) => widget.playlist.songIds.contains(song.id))
+                    .toList();
 
         return Scaffold(
           backgroundColor: const Color(0xFF0C0C14),

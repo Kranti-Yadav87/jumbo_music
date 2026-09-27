@@ -25,6 +25,9 @@ class _SearchTabState extends State<SearchTab> {
     'Sidhu Moosewala',
     'Shreya Ghoshal',
     'Atif Aslam',
+    'Karan Aujla',
+    'AP Dhillon',
+    'Anuv Jain',
     'Badshah',
     'Taylor Swift',
     'The Weeknd',
@@ -44,26 +47,26 @@ class _SearchTabState extends State<SearchTab> {
       'icon': Icons.local_fire_department_rounded,
     },
     {
-      'name': 'Lo-Fi Chill & Rain',
-      'query': 'Lo-Fi Study Beats',
+      'name': 'Lo-Fi Chill & Study',
+      'query': 'Lo-Fi Hindi Beats',
       'colors': [Color(0xFF6366F1), Color(0xFF8B5CF6)],
       'icon': Icons.nightlight_round,
     },
     {
-      'name': 'EDM & Party',
-      'query': 'EDM Workout',
+      'name': 'Desi EDM & Club',
+      'query': 'EDM Workout Hits',
       'colors': [Color(0xFF06B6D4), Color(0xFF3B82F6)],
       'icon': Icons.electric_bolt_rounded,
     },
     {
-      'name': 'Acoustic Coffee',
-      'query': 'Acoustic Guitar',
+      'name': 'Acoustic Coffeehouse',
+      'query': 'Acoustic Guitar Hindi',
       'colors': [Color(0xFF10B981), Color(0xFF059669)],
       'icon': Icons.spa_rounded,
     },
     {
-      'name': 'Global Top Hits',
-      'query': 'Top Global Hits',
+      'name': 'Top Global Hits',
+      'query': 'Top Global Hits 2026',
       'colors': [Color(0xFFEC4899), Color(0xFFA855F7)],
       'icon': Icons.star_rounded,
     },
@@ -94,9 +97,9 @@ class _SearchTabState extends State<SearchTab> {
       _isLoading = true;
     });
 
-    _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
       final manager = MusicPlayerManager();
-      // First find local matches
+      // 1. Local matches
       final localMatches = manager.allSongs.where((s) {
         final q = trimmed.toLowerCase();
         return s.title.toLowerCase().contains(q) ||
@@ -105,10 +108,10 @@ class _SearchTabState extends State<SearchTab> {
             s.genre.toLowerCase().contains(q);
       }).toList();
 
-      // Fetch live matches from Aura-Stream (JioSaavn 320kbps master stream)
+      // 2. Fetch live online matches (JioSaavn 320kbps master)
       final onlineMatches = await MusicApiService.searchLiveSongs(trimmed, limit: 30);
 
-      // Merge results avoiding duplicate audio URLs
+      // Merge avoiding duplicate audio URLs
       final Set<String> seenUrls = {};
       final List<Song> combined = [];
 
@@ -147,28 +150,83 @@ class _SearchTabState extends State<SearchTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Search Header
+                // Top Search Header
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Live Search & Explore',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'DISCOVER & SEARCH',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  letterSpacing: 2,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF818CF8),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Live Audio Search',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: manager.autoplay
+                                  ? const Color(0xFF10B981).withOpacity(0.15)
+                                  : Colors.white.withOpacity(0.06),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: manager.autoplay
+                                    ? const Color(0xFF10B981).withOpacity(0.4)
+                                    : Colors.white12,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.all_inclusive,
+                                  size: 13,
+                                  color: manager.autoplay ? const Color(0xFF10B981) : Colors.white54,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  manager.autoplay ? 'Autoplay: Active' : 'Autoplay: Off',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: manager.autoplay ? const Color(0xFF10B981) : Colors.white54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
+
                       // Search Input Box
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.07),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: Colors.white.withOpacity(0.08),
+                            color: _searchQuery.isNotEmpty
+                                ? const Color(0xFF6366F1).withOpacity(0.5)
+                                : Colors.white.withOpacity(0.08),
                           ),
                         ),
                         child: TextField(
@@ -176,11 +234,12 @@ class _SearchTabState extends State<SearchTab> {
                           style: const TextStyle(color: Colors.white),
                           onChanged: _onSearchChanged,
                           decoration: InputDecoration(
-                            hintText: 'Search songs, artists (e.g. Arijit Singh)...',
+                            hintText: 'Search songs, singers (e.g. Kesariya, Diljit)...',
                             hintStyle: const TextStyle(color: Colors.white38),
                             prefixIcon: const Icon(
-                              Icons.search,
+                              Icons.search_rounded,
                               color: Color(0xFF818CF8),
+                              size: 24,
                             ),
                             suffixIcon: _isLoading
                                 ? const Padding(
@@ -190,16 +249,15 @@ class _SearchTabState extends State<SearchTab> {
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Color(0xFF818CF8)),
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Color(0xFF818CF8),
+                                        ),
                                       ),
                                     ),
                                   )
                                 : _searchQuery.isNotEmpty
                                     ? IconButton(
-                                        icon: const Icon(Icons.close,
-                                            color: Colors.white54),
+                                        icon: const Icon(Icons.close_rounded, color: Colors.white60),
                                         onPressed: () {
                                           _searchController.clear();
                                           _onSearchChanged('');
@@ -218,7 +276,7 @@ class _SearchTabState extends State<SearchTab> {
                   ),
                 ),
 
-                // Search Results or Browse View
+                // Results or Browse
                 Expanded(
                   child: _searchQuery.isNotEmpty
                       ? _buildSearchResults()
@@ -243,7 +301,7 @@ class _SearchTabState extends State<SearchTab> {
             ),
             SizedBox(height: 16),
             Text(
-              'Searching worldwide music catalog...',
+              'Searching 320 kbps live catalog...',
               style: TextStyle(color: Colors.white60),
             ),
           ],
@@ -263,15 +321,15 @@ class _SearchTabState extends State<SearchTab> {
             ),
             const SizedBox(height: 12),
             Text(
-              'No results for "$_searchQuery"',
+              'No live tracks found for "$_searchQuery"',
               style: const TextStyle(
                 fontSize: 16,
-                color: Colors.white60,
+                color: Colors.white70,
               ),
             ),
             const SizedBox(height: 4),
             const Text(
-              'Check the spelling or try another artist',
+              'Try another song, artist, or genre name',
               style: TextStyle(fontSize: 13, color: Colors.white38),
             ),
           ],
@@ -289,7 +347,7 @@ class _SearchTabState extends State<SearchTab> {
             child: Row(
               children: [
                 Text(
-                  '${_searchResults.length} live tracks found',
+                  '${_searchResults.length} live tracks • 320 kbps studio',
                   style: const TextStyle(
                     color: Color(0xFF818CF8),
                     fontSize: 13,
@@ -324,15 +382,57 @@ class _SearchTabState extends State<SearchTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Smart Autoplay banner
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF6366F1).withOpacity(0.25),
+                  const Color(0xFF8B5CF6).withOpacity(0.12),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF818CF8).withOpacity(0.3)),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Color(0xFF818CF8), size: 24),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Continuous Radio Autoplay',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Play any searched song and fresh, diverse tracks will automatically queue next without stopping.',
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Quick Artist Chips
           const Padding(
-            padding: EdgeInsets.fromLTRB(20, 12, 20, 8),
+            padding: EdgeInsets.fromLTRB(20, 10, 20, 8),
             child: Text(
-              'Top Artists & Singers',
+              'Trending Artists & Singers',
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
               ),
             ),
           ),
@@ -364,7 +464,7 @@ class _SearchTabState extends State<SearchTab> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
           // Browse Genres Grid
           const Padding(
@@ -401,7 +501,7 @@ class _SearchTabState extends State<SearchTab> {
                 onTap: () => _triggerSearch(query),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(18),
                     gradient: LinearGradient(
                       colors: colors,
                       begin: Alignment.topLeft,
@@ -410,7 +510,7 @@ class _SearchTabState extends State<SearchTab> {
                     boxShadow: [
                       BoxShadow(
                         color: colors.first.withOpacity(0.3),
-                        blurRadius: 10,
+                        blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
                     ],
