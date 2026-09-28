@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import 'equalizer_bars.dart';
+import 'track_options_sheet.dart';
 
 class SongTile extends StatelessWidget {
   final Song song;
@@ -146,6 +147,16 @@ class SongTile extends StatelessWidget {
                       ),
                       onPressed: () {
                         playerManager.toggleFavorite(song.id);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.more_vert_rounded,
+                        color: Colors.white54,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        TrackOptionsSheet.show(context, song);
                       },
                     ),
                     Icon(

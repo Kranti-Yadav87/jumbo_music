@@ -8,7 +8,7 @@ void main() {
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0D0C18),
+      systemNavigationBarColor: Color(0xFF000000),
       systemNavigationBarIconBrightness: Brightness.light,
     ),
   );
@@ -26,11 +26,11 @@ class JumboMusicApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF09090F),
-        colorScheme: ColorScheme.dark(
-          primary: const Color(0xFF6366F1),
-          secondary: const Color(0xFF818CF8),
-          surface: const Color(0xFF141424),
+        scaffoldBackgroundColor: const Color(0xFF000000),
+        colorScheme: const ColorScheme.dark(
+          primary: Color(0xFFE5A5A5),
+          secondary: Color(0xFF80C8DE),
+          surface: Color(0xFF141416),
         ),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
