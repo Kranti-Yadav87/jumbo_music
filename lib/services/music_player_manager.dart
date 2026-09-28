@@ -458,7 +458,7 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> playSong(Song song, {List<Song>? newQueue}) async {
+  Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
     _errorMessage = null;
 
     // Ensure song is in _allSongs
@@ -466,8 +466,9 @@ class MusicPlayerManager extends ChangeNotifier {
       _allSongs.insert(0, song);
     }
 
-    if (newQueue != null && newQueue.isNotEmpty) {
-      _queue = List.from(newQueue);
+    final queueToUse = newQueue ?? playlistContext;
+    if (queueToUse != null && queueToUse.isNotEmpty) {
+      _queue = List.from(queueToUse);
     } else if (_queue.isEmpty || !_queue.any((s) => s.id == song.id)) {
       _queue = List.from(_allSongs);
     }

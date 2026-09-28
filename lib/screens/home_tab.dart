@@ -116,7 +116,7 @@ class _HomeTabState extends State<HomeTab> {
                           label: const Text('Play Radio', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                           onPressed: () {
                             Navigator.pop(ctx);
-                            manager.playSong(genreSongs.first, playlistContext: genreSongs);
+                            manager.playSong(genreSongs.first, newQueue: genreSongs);
                           },
                         ),
                     ],
@@ -492,7 +492,7 @@ class _HomeTabState extends State<HomeTab> {
                       final isCurrent = manager.currentSong?.id == song.id;
 
                       return GestureDetector(
-                        onTap: () => manager.playSong(song, playlistContext: top50),
+                        onTap: () => manager.playSong(song, newQueue: top50),
                         child: Container(
                           width: 140,
                           margin: const EdgeInsets.only(right: 14),
@@ -622,7 +622,7 @@ class _HomeTabState extends State<HomeTab> {
                   title: 'New releases',
                   onArrowTap: () {
                     if (newReleases.isNotEmpty) {
-                      manager.playSong(newReleases.first, playlistContext: newReleases);
+                      manager.playSong(newReleases.first, newQueue: newReleases);
                     }
                   },
                 ),
@@ -641,7 +641,7 @@ class _HomeTabState extends State<HomeTab> {
                       final isCurrent = manager.currentSong?.id == song.id;
 
                       return GestureDetector(
-                        onTap: () => manager.playSong(song, playlistContext: newReleases),
+                        onTap: () => manager.playSong(song, newQueue: newReleases),
                         child: Container(
                           width: 140,
                           margin: const EdgeInsets.only(right: 14),
