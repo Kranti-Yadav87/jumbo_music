@@ -8,6 +8,8 @@ import 'playlist_detail_screen.dart';
 import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
 import 'search_tab.dart';
+import '../widgets/install_app_card.dart';
+import '../widgets/download_app_dialog.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -338,6 +340,15 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             ],
                             const SizedBox(width: 6),
+                            // Download / Install App Button
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.file_download_outlined, color: Color(0xFF818CF8), size: 24),
+                              tooltip: 'Download / Install App',
+                              onPressed: () => showDownloadAppDialog(context),
+                            ),
+                            const SizedBox(width: 10),
                             // Data Privacy & Security Shield Button
                             IconButton(
                               padding: EdgeInsets.zero,
@@ -370,6 +381,13 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
+                ),
+              ),
+
+              // REC MedAssist-style Install App Card
+              const SliverToBoxAdapter(
+                child: InstallAppCard(
+                  margin: EdgeInsets.fromLTRB(18, 4, 18, 12),
                 ),
               ),
 

@@ -8,6 +8,7 @@ import 'search_tab.dart';
 import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/download_app_dialog.dart';
 
 class LibraryTab extends StatefulWidget {
   const LibraryTab({super.key});
@@ -90,6 +91,16 @@ class _LibraryTabState extends State<LibraryTab> {
                       context,
                       MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
                     );
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.install_mobile_rounded, color: Color(0xFF818CF8)),
+                  title: const Text('Download App (PWA & APK)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('Install on Android, iOS & PC for 1-tap playback', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white54),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showDownloadAppDialog(context);
                   },
                 ),
               ],
@@ -214,6 +225,11 @@ class _LibraryTabState extends State<LibraryTab> {
                               MaterialPageRoute(builder: (_) => const SearchTab()),
                             );
                           },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.file_download_outlined, color: Color(0xFF818CF8), size: 24),
+                          tooltip: 'Download App (PWA & APK)',
+                          onPressed: () => showDownloadAppDialog(context),
                         ),
                         IconButton(
                           icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 24),
@@ -389,6 +405,15 @@ class _LibraryTabState extends State<LibraryTab> {
                               ),
                             );
                           },
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Download App (PWA & APK) Tile
+                        _buildQuickAccessTile(
+                          icon: Icons.install_mobile_rounded,
+                          title: 'Download App (PWA & APK)',
+                          subtitle: 'Install on Android, iOS & PC for 1-tap playback',
+                          onTap: () => showDownloadAppDialog(context),
                         ),
                       ],
                     ),

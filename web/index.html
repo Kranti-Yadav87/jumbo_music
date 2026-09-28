@@ -156,6 +156,27 @@
         window.localStorage.removeItem(key);
       } catch(e) {}
     };
+    // PWA Install Prompt Capture & Triggers
+    window.deferredPwaPrompt = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.deferredPwaPrompt = e;
+      console.log('Jumbo Music PWA install prompt captured and ready.');
+    });
+
+    window.triggerPwaInstall = async function () {
+      if (window.deferredPwaPrompt) {
+        window.deferredPwaPrompt.prompt();
+        var choice = await window.deferredPwaPrompt.userChoice;
+        window.deferredPwaPrompt = null;
+        return choice.outcome === 'accepted';
+      }
+      return false;
+    };
+
+    window.canInstallPwa = function () {
+      return !!window.deferredPwaPrompt;
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
