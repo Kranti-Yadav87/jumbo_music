@@ -16,18 +16,19 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
-  String _selectedGenre = 'All';
-
-  final List<String> _genres = [
-    'All',
+  final List<String> _moodAndGenres = [
+    'Classical',
+    'Desi hip-hop',
+    'Country & Americana',
+    'Devotional',
+    'Dance & electronic',
+    'Family',
+    'Decades',
+    'Folk & acoustic',
     'Bollywood',
+    'Lo-Fi & Chill',
+    'Pop & Chart',
     'Romantic',
-    'Punjabi',
-    'Lo-Fi',
-    'Acoustic',
-    'EDM',
-    'Chill',
-    'Pop',
   ];
 
   String _getGreeting() {
@@ -37,6 +38,160 @@ class _HomeTabState extends State<HomeTab> {
     return 'Good Evening 🌙';
   }
 
+  void _showGenreBottomSheet(BuildContext context, String genre, MusicPlayerManager manager) {
+    final genreSongs = manager.allSongs.where((s) {
+      final q = genre.toLowerCase();
+      return s.genre.toLowerCase().contains(q) ||
+          s.title.toLowerCase().contains(q) ||
+          s.artist.toLowerCase().contains(q);
+    }).toList();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF121217),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.92,
+          expand: false,
+          builder: (_, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.music_note_rounded, color: Color(0xFF818CF8), size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              genre,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              '${genreSongs.length} tracks available',
+                              style: const TextStyle(fontSize: 12, color: Colors.white54),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (genreSongs.isNotEmpty)
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          ),
+                          icon: const Icon(Icons.play_arrow_rounded, size: 20),
+                          label: const Text('Play Radio', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                          onPressed: () {
+                            Navigator.pop(ctx);
+                            manager.playSong(genreSongs.first, playlistContext: genreSongs);
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+                const Divider(color: Colors.white12, height: 1),
+                Expanded(
+                  child: genreSongs.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.queue_music_rounded, size: 48, color: Colors.white24),
+                              const SizedBox(height: 12),
+                              Text('No songs currently tagged in $genre',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 14)),
+                              const SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.pop(ctx);
+                                  manager.toggleAutoplay();
+                                },
+                                child: const Text('Start Smart Radio'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: genreSongs.length,
+                          itemBuilder: (context, index) {
+                            final song = genreSongs[index];
+                            return SongTile(
+                              song: song,
+                              index: index + 1,
+                              playlistContext: genreSongs,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionHeader(BuildContext context, {required String title, VoidCallback? onArrowTap}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 26, 14, 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              letterSpacing: -0.3,
+            ),
+          ),
+          if (onArrowTap != null)
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              splashRadius: 20,
+              onPressed: onArrowTap,
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
@@ -44,23 +199,12 @@ class _HomeTabState extends State<HomeTab> {
     return AnimatedBuilder(
       animation: manager,
       builder: (context, _) {
-        final allSongs = manager.allSongs;
-        final filteredSongs = _selectedGenre == 'All'
-            ? allSongs
-            : allSongs.where((s) {
-                final q = _selectedGenre.toLowerCase();
-                return s.genre.toLowerCase().contains(q) ||
-                    s.title.toLowerCase().contains(q) ||
-                    s.artist.toLowerCase().contains(q);
-              }).toList();
-
-        final featuredSong = manager.currentSong ?? (allSongs.isNotEmpty ? allSongs.first : null);
-        final quickPicks = manager.recentlyPlayed.isNotEmpty
-            ? manager.recentlyPlayed
-            : allSongs.take(8).toList();
+        final playlists = manager.playlists;
+        final top50 = manager.top50Songs;
+        final newReleases = manager.newReleases;
 
         return Scaffold(
-          backgroundColor: Colors.transparent,
+          backgroundColor: const Color(0xFF000000),
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -214,368 +358,17 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // Hero Feature Card (Chill Ratna High Quality Banner)
-              if (featuredSong != null)
-                SliverToBoxAdapter(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    height: 200,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(26),
-                      image: DecorationImage(
-                        image: NetworkImage(featuredSong.coverUrl),
-                        fit: BoxFit.cover,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6366F1).withOpacity(0.3),
-                          blurRadius: 24,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(26),
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.black.withOpacity(0.92),
-                            Colors.black.withOpacity(0.55),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (manager.isPlaying && manager.currentSong?.id == featuredSong.id)
-                                      Padding(
-                                        padding: const EdgeInsets.only(right: 6),
-                                        child: EqualizerBars(isPlaying: true, color: Colors.white, height: 10, barCount: 3),
-                                      ),
-                                    Text(
-                                      manager.isPlaying && manager.currentSong?.id == featuredSong.id
-                                          ? 'NOW PLAYING LIVE'
-                                          : 'TRENDING HIT',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: const Text(
-                                  '320 KBPS STUDIO',
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const Spacer(),
-                          Text(
-                            featuredSong.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${featuredSong.artist} • ${featuredSong.album}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.white,
-                                  foregroundColor: Colors.black,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                icon: Icon(
-                                  manager.isPlaying && manager.currentSong?.id == featuredSong.id
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
-                                  size: 22,
-                                ),
-                                label: Text(
-                                  manager.isPlaying && manager.currentSong?.id == featuredSong.id
-                                      ? 'Pause'
-                                      : 'Play Stream',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                onPressed: () {
-                                  if (manager.currentSong?.id == featuredSong.id) {
-                                    manager.togglePlay();
-                                  } else {
-                                    manager.playSong(featuredSong);
-                                  }
-                                },
-                              ),
-                              const SizedBox(width: 10),
-                              IconButton(
-                                icon: Icon(
-                                  manager.isFavorite(featuredSong.id)
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: manager.isFavorite(featuredSong.id)
-                                      ? const Color(0xFFEF4444)
-                                      : Colors.white70,
-                                ),
-                                onPressed: () => manager.toggleFavorite(featuredSong.id),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Genre Filter Pills
+              // 1. TOP CAROUSEL: Mixes & Featured Playlists (90s Chill, '90s Indian Pop, Tamil, etc.)
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 46,
+                  height: 215,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _genres.length,
+                    itemCount: playlists.length,
                     itemBuilder: (context, index) {
-                      final genre = _genres[index];
-                      final isSelected = genre == _selectedGenre;
-
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(genre),
-                          selected: isSelected,
-                          selectedColor: const Color(0xFF6366F1),
-                          backgroundColor: Colors.white.withOpacity(0.06),
-                          checkmarkColor: Colors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected ? Colors.white : Colors.white70,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: isSelected
-                                  ? const Color(0xFF818CF8)
-                                  : Colors.white10,
-                            ),
-                          ),
-                          onSelected: (val) {
-                            setState(() {
-                              _selectedGenre = genre;
-                            });
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Quick Picks Horizontal Row (Recently Played or Jump Back In)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        manager.recentlyPlayed.isNotEmpty
-                            ? 'Listen Again & Quick Picks'
-                            : 'Recommended For You',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Icon(Icons.bolt_rounded, color: Color(0xFF818CF8), size: 20),
-                    ],
-                  ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 145,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: quickPicks.length,
-                    itemBuilder: (context, index) {
-                      final song = quickPicks[index];
-                      final isCurrent = manager.currentSong?.id == song.id;
-
-                      return GestureDetector(
-                        onTap: () => manager.playSong(song),
-                        child: Container(
-                          width: 115,
-                          margin: const EdgeInsets.only(right: 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Stack(
-                                  children: [
-                                    Image.network(
-                                      song.coverUrl,
-                                      width: 115,
-                                      height: 95,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 115,
-                                        height: 95,
-                                        color: Colors.white10,
-                                        child: const Icon(Icons.music_note, color: Colors.white54),
-                                      ),
-                                    ),
-                                    if (isCurrent && manager.isPlaying)
-                                      Positioned.fill(
-                                        child: Container(
-                                          color: Colors.black.withOpacity(0.5),
-                                          child: Center(
-                                            child: EqualizerBars(isPlaying: true, color: const Color(0xFF818CF8), height: 18),
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Positioned(
-                                        bottom: 6,
-                                        right: 6,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(5),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.7),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
-                                ),
-                              ),
-                              Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Smart Mixes & Stations Carousel
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.auto_awesome, color: Color(0xFF818CF8), size: 18),
-                          SizedBox(width: 6),
-                          Text(
-                            'Featured Playlists & Stations',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${manager.playlists.length} mixes',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 160,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: manager.playlists.length,
-                    itemBuilder: (context, index) {
-                      final playlist = manager.playlists[index];
+                      final playlist = playlists[index];
                       return GestureDetector(
                         onTap: () {
                           Navigator.push(
@@ -585,6 +378,106 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                           );
                         },
+                        child: Container(
+                          width: 145,
+                          margin: const EdgeInsets.only(right: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  children: [
+                                    Image.network(
+                                      playlist.coverUrl,
+                                      width: 145,
+                                      height: 145,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 145,
+                                        height: 145,
+                                        color: const Color(0xFF18181B),
+                                        child: const Icon(Icons.music_note_rounded, color: Colors.white38, size: 40),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      bottom: 8,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(7),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.75),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: const Icon(
+                                          Icons.play_arrow_rounded,
+                                          size: 20,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                playlist.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                playlist.description,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white60,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+
+              // 2. TOP 50 CHARTBUSTERS: Dedicated Clean Carousel with Arrow -> Full Rankings Screen
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  context,
+                  title: 'Top 50 Chartbusters',
+                  onArrowTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const Top50Screen()),
+                    );
+                  },
+                ),
+              ),
+
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 215,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: top50.length > 15 ? 15 : top50.length,
+                    itemBuilder: (context, index) {
+                      final song = top50[index];
+                      final rank = index + 1;
+                      final isCurrent = manager.currentSong?.id == song.id;
+
+                      return GestureDetector(
+                        onTap: () => manager.playSong(song, playlistContext: top50),
                         child: Container(
                           width: 140,
                           margin: const EdgeInsets.only(right: 14),
@@ -596,57 +489,106 @@ class _HomeTabState extends State<HomeTab> {
                                 child: Stack(
                                   children: [
                                     Image.network(
-                                      playlist.coverUrl,
+                                      song.coverUrl,
                                       width: 140,
-                                      height: 110,
+                                      height: 140,
                                       fit: BoxFit.cover,
                                       errorBuilder: (_, __, ___) => Container(
                                         width: 140,
-                                        height: 110,
-                                        color: const Color(0xFF1E1B4B),
-                                        child: const Icon(
-                                          Icons.queue_music,
-                                          color: Colors.white54,
-                                        ),
+                                        height: 140,
+                                        color: const Color(0xFF18181B),
+                                        child: const Icon(Icons.music_note_rounded, color: Colors.white38),
                                       ),
                                     ),
+                                    // Rank Badge
                                     Positioned(
-                                      bottom: 6,
-                                      right: 6,
+                                      top: 8,
+                                      left: 8,
                                       child: Container(
-                                        padding: const EdgeInsets.all(6),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withOpacity(0.7),
-                                          shape: BoxShape.circle,
+                                          gradient: rank == 1
+                                              ? const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)])
+                                              : rank == 2
+                                                  ? const LinearGradient(colors: [Color(0xFF94A3B8), Color(0xFF64748B)])
+                                                  : rank == 3
+                                                      ? const LinearGradient(colors: [Color(0xFFB45309), Color(0xFF78350F)])
+                                                      : LinearGradient(colors: [
+                                                          const Color(0xFF1E1E24).withOpacity(0.9),
+                                                          const Color(0xFF0F0F14).withOpacity(0.9),
+                                                        ]),
+                                          borderRadius: BorderRadius.circular(12),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.4),
+                                              blurRadius: 4,
+                                            ),
+                                          ],
                                         ),
-                                        child: const Icon(
-                                          Icons.play_arrow_rounded,
-                                          size: 18,
-                                          color: Colors.white,
+                                        child: Text(
+                                          rank == 1 ? '👑 #1' : '#$rank',
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w900,
+                                            color: Colors.white,
+                                          ),
                                         ),
                                       ),
                                     ),
+                                    // Play / Equalizer Overlay
+                                    if (isCurrent && manager.isPlaying)
+                                      Positioned.fill(
+                                        child: Container(
+                                          color: Colors.black.withOpacity(0.55),
+                                          child: Center(
+                                            child: EqualizerBars(
+                                              isPlaying: true,
+                                              color: const Color(0xFF818CF8),
+                                              height: 22,
+                                              barCount: 4,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Positioned(
+                                        bottom: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(7),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.75),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.play_arrow_rounded,
+                                            size: 20,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
-                              const SizedBox(height: 6),
+                              const SizedBox(height: 8),
                               Text(
-                                playlist.title,
+                                song.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
                                 ),
                               ),
+                              const SizedBox(height: 2),
                               Text(
-                                playlist.description,
+                                song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white54,
+                                  color: Colors.white60,
                                 ),
                               ),
                             ],
@@ -658,163 +600,177 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // 1. Dedicated Top 50 Chartbusters Section (If 'All' is selected)
-              if (_selectedGenre == 'All') ...[
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 24, 18, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE11D48).withOpacity(0.18),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.local_fire_department_rounded,
-                                color: Color(0xFFF43F5E),
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Top 50 Chartbusters',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                Text(
-                                  '${manager.top50Songs.length} songs • Official Rankings',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        TextButton.icon(
-                          style: TextButton.styleFrom(
-                            foregroundColor: const Color(0xFFE5A5A5),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          ),
-                          icon: const Text('See All 50', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          label: const Icon(Icons.arrow_forward_rounded, size: 16),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const Top50Screen()),
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+              // 3. NEW RELEASES: Exact Match to Screenshot (Mero Mann, AUJLA SZN 1, Ghostface, etc.)
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  context,
+                  title: 'New releases',
+                  onArrowTap: () {
+                    if (newReleases.isNotEmpty) {
+                      manager.playSong(newReleases.first, playlistContext: newReleases);
+                    }
+                  },
                 ),
+              ),
 
-                // Top 8 preview list with rank badges
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final song = manager.top50Songs[index];
-                      return SongTile(
-                        song: song,
-                        index: index + 1,
-                        playlistContext: manager.top50Songs,
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 215,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: newReleases.length,
+                    itemBuilder: (context, index) {
+                      final song = newReleases[index];
+                      final isCurrent = manager.currentSong?.id == song.id;
+
+                      return GestureDetector(
+                        onTap: () => manager.playSong(song, playlistContext: newReleases),
+                        child: Container(
+                          width: 140,
+                          margin: const EdgeInsets.only(right: 14),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Stack(
+                                  children: [
+                                    Image.network(
+                                      song.coverUrl,
+                                      width: 140,
+                                      height: 140,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 140,
+                                        height: 140,
+                                        color: const Color(0xFF18181B),
+                                        child: const Icon(Icons.album_rounded, color: Colors.white38),
+                                      ),
+                                    ),
+                                    if (isCurrent && manager.isPlaying)
+                                      Positioned.fill(
+                                        child: Container(
+                                          color: Colors.black.withOpacity(0.55),
+                                          child: Center(
+                                            child: EqualizerBars(
+                                              isPlaying: true,
+                                              color: const Color(0xFF818CF8),
+                                              height: 22,
+                                              barCount: 4,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Positioned(
+                                        bottom: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.all(7),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withOpacity(0.75),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.play_arrow_rounded,
+                                            size: 20,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                song.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                song.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.white60,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       );
                     },
-                    childCount: manager.top50Songs.length > 8 ? 8 : manager.top50Songs.length,
-                  ),
-                ),
-
-                // Button to open full Top 50 screen
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFFE5A5A5),
-                        side: BorderSide(color: const Color(0xFFE5A5A5).withOpacity(0.4)),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      icon: const Icon(Icons.format_list_numbered_rounded, size: 18),
-                      label: const Text(
-                        'View Full Top 50 Chartbusters Rankings →',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                      ),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const Top50Screen()),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ],
-
-              // 2. Separate Music Catalog / Filtered Section
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            _selectedGenre == 'All' ? Icons.library_music_rounded : Icons.category_rounded,
-                            size: 18,
-                            color: const Color(0xFF818CF8),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _selectedGenre == 'All'
-                                ? 'All Tracks Catalog'
-                                : '$_selectedGenre Collection',
-                            style: const TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Text(
-                        '${filteredSongs.length} tracks',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
 
-              // Filtered songs list
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final song = filteredSongs[index];
-                    return SongTile(
-                      song: song,
-                      index: index + 1,
-                      playlistContext: filteredSongs,
-                    );
+              // 4. MOOD AND GENRES: Exact 2-Column Dark Category Grid Matching Screenshot
+              SliverToBoxAdapter(
+                child: _buildSectionHeader(
+                  context,
+                  title: 'Mood and Genres',
+                  onArrowTap: () {
+                    _showGenreBottomSheet(context, _moodAndGenres.first, manager);
                   },
-                  childCount: filteredSongs.length,
+                ),
+              ),
+
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverGrid(
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    mainAxisExtent: 52,
+                  ),
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final genre = _moodAndGenres[index];
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => _showGenreBottomSheet(context, genre, manager),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF18181C),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.05),
+                                width: 1,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                genre,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                  letterSpacing: -0.1,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: _moodAndGenres.length,
+                  ),
                 ),
               ),
 

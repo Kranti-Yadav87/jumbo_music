@@ -127,11 +127,15 @@ class MusicPlayerManager extends ChangeNotifier {
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   List<Song> get top50Songs => _allSongs.take(50).toList();
+  List<Song> get newReleases => MusicRepository.newReleases;
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
 
   void _init() {
-    _allSongs = List.from(MusicRepository.sampleSongs);
+    _allSongs = [
+      ...MusicRepository.sampleSongs,
+      ...MusicRepository.newReleases,
+    ];
     _playlists = List.from(MusicRepository.samplePlaylists);
     _queue = List.from(_allSongs);
 
