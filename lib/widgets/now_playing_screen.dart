@@ -124,9 +124,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
       label: Text(label, style: const TextStyle(color: Colors.white)),
       onPressed: () {
         if (minutes == -1) {
-          manager.setSleepAfterCurrentSong(true);
+          manager.setSleepTimerAfterSong();
         } else {
-          manager.setSleepTimer(minutes);
+          manager.setSleepTimer(Duration(minutes: minutes));
         }
         Navigator.pop(ctx);
         ScaffoldMessenger.of(context).showSnackBar(
