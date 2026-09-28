@@ -66,4 +66,41 @@ class Song {
     final seconds = duration.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'artist': artist,
+      'album': album,
+      'durationSec': duration.inSeconds,
+      'audioUrl': audioUrl,
+      'coverUrl': coverUrl,
+      'genre': genre,
+      'lyrics': lyrics,
+      'isFavorite': isFavorite,
+      'releaseYear': releaseYear,
+      'quality': quality,
+      'isLiveStream': isLiveStream,
+    };
+  }
+
+  factory Song.fromJson(Map<String, dynamic> json) {
+    return Song(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? 'Unknown Title',
+      artist: json['artist'] as String? ?? 'Unknown Artist',
+      album: json['album'] as String? ?? 'Single',
+      duration: Duration(seconds: json['durationSec'] as int? ?? 210),
+      audioUrl: json['audioUrl'] as String? ?? '',
+      coverUrl: json['coverUrl'] as String? ?? '',
+      genre: json['genre'] as String? ?? 'Pop',
+      lyrics: json['lyrics'] as String? ?? '',
+      isFavorite: json['isFavorite'] as bool? ?? false,
+      releaseYear: json['releaseYear'] as String? ?? '2026',
+      quality: json['quality'] as String? ?? '320 kbps HD',
+      isLiveStream: json['isLiveStream'] as bool? ?? false,
+    );
+  }
 }
+

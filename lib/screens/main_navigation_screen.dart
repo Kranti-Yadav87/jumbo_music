@@ -14,7 +14,7 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 3; // Defaults to Library as per Screenshot 2 or Home
+  int _currentIndex = 0; // Defaults to HomeTab
 
   final List<Widget> _tabs = const [
     HomeTab(),

@@ -136,6 +136,26 @@
         console.error('Download error:', e);
       }
     };
+
+    window.jumboStorageGet = function(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch(e) {
+        return null;
+      }
+    };
+
+    window.jumboStorageSet = function(key, val) {
+      try {
+        window.localStorage.setItem(key, val);
+      } catch(e) {}
+    };
+
+    window.jumboStorageRemove = function(key) {
+      try {
+        window.localStorage.removeItem(key);
+      } catch(e) {}
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

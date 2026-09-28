@@ -143,7 +143,7 @@ class _LibraryTabState extends State<LibraryTab> {
               onPressed: () {
                 final title = titleController.text.trim();
                 if (title.isNotEmpty) {
-                  manager.createPlaylist(title, 'Custom Collection');
+                  manager.createPlaylist(title, description: 'Custom Collection');
                   Navigator.pop(context);
                 }
               },
@@ -458,7 +458,54 @@ class _LibraryTabState extends State<LibraryTab> {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
                             ),
-                            trailing: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
+                            trailing: pl.type == PlaylistType.custom
+                                ? PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
+                                    color: const Color(0xFF1C1C1E),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                    onSelected: (val) {
+                                      if (val == 'play') {
+                                        final songs = pl.songs.isNotEmpty
+                                            ? pl.songs
+                                            : manager.allSongs.where((s) => pl.songIds.contains(s.id)).toList();
+                                        if (songs.isNotEmpty) {
+                                          manager.playPlaylist(songs);
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Playlist is empty')),
+                                          );
+                                        }
+                                      } else if (val == 'delete') {
+                                        manager.deletePlaylist(pl.id);
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Deleted "${pl.title}"')),
+                                        );
+                                      }
+                                    },
+                                    itemBuilder: (_) => [
+                                      const PopupMenuItem(
+                                        value: 'play',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Play All', style: TextStyle(color: Colors.white)),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
+                                        value: 'delete',
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                            SizedBox(width: 8),
+                                            Text('Delete Playlist', style: TextStyle(color: Colors.redAccent)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
                             onTap: () {
                               Navigator.push(
                                 context,

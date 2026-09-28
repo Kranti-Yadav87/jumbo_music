@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/song.dart';
+import 'database_service.dart';
 import 'web_download_helper.dart';
 
 class DownloadItem {
@@ -26,11 +27,34 @@ class DownloadService extends ChangeNotifier {
   final Set<String> _downloadingIds = {};
 
   DownloadService._internal() {
-    _initSampleDownloads();
+    _hydrateFromDatabase();
+  }
+
+  void _hydrateFromDatabase() {
+    final db = DatabaseService.instance;
+    final savedDownloads = db.rawDownloads;
+
+    if (savedDownloads.isNotEmpty) {
+      for (final item in savedDownloads) {
+        if (item['song'] != null && item['song'] is Map<String, dynamic>) {
+          final song = Song.fromJson(item['song'] as Map<String, dynamic>);
+          final dAt = item['downloadedAt'] != null
+              ? DateTime.tryParse(item['downloadedAt'] as String) ?? DateTime.now()
+              : DateTime.now();
+          _downloadedItems[song.id] = DownloadItem(
+            song: song,
+            fileSize: (item['fileSize'] as String?) ?? '10.2 MB',
+            downloadedAt: dAt,
+            localPath: (item['localPath'] as String?) ?? 'offline_storage/${song.id}.mp3',
+          );
+        }
+      }
+    } else {
+      _initSampleDownloads();
+    }
   }
 
   void _initSampleDownloads() {
-    // Pre-populate with first 2 sample songs so user immediately sees downloaded section working
     final sample1 = Song(
       id: 'dl_1',
       title: 'Kesariya Sukoon',
@@ -66,6 +90,18 @@ class DownloadService extends ChangeNotifier {
       song: sample2,
       fileSize: '16.4 MB',
       downloadedAt: DateTime.now().subtract(const Duration(days: 1)),
+      localPath: 'offline_storage/dl_2.mp3',
+    );
+
+    // Save to DatabaseService
+    DatabaseService.instance.saveDownload(
+      song: sample1,
+      fileSize: '10.2 MB',
+      localPath: 'offline_storage/dl_1.mp3',
+    );
+    DatabaseService.instance.saveDownload(
+      song: sample2,
+      fileSize: '16.4 MB',
       localPath: 'offline_storage/dl_2.mp3',
     );
   }
@@ -170,6 +206,13 @@ class DownloadService extends ChangeNotifier {
       localPath: 'offline_storage/${song.id}.mp3',
     );
 
+    // Persist to DatabaseService
+    DatabaseService.instance.saveDownload(
+      song: song,
+      fileSize: sizeStr,
+      localPath: 'offline_storage/${song.id}.mp3',
+    );
+
     _downloadingIds.remove(song.id);
     notifyListeners();
 
@@ -220,10 +263,14 @@ class DownloadService extends ChangeNotifier {
 
   void removeDownload(String songId) {
     _downloadedItems.remove(songId);
+    DatabaseService.instance.removeDownload(songId);
     notifyListeners();
   }
 
   void clearAllDownloads() {
+    for (final id in _downloadedItems.keys) {
+      DatabaseService.instance.removeDownload(id);
+    }
     _downloadedItems.clear();
     notifyListeners();
   }

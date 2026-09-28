@@ -6,6 +6,7 @@ import '../models/playlist.dart';
 import '../data/music_repository.dart';
 import 'music_api_service.dart';
 import 'privacy_security_service.dart';
+import 'database_service.dart';
 
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
@@ -139,6 +140,9 @@ class MusicPlayerManager extends ChangeNotifier {
     _playlists = List.from(MusicRepository.samplePlaylists);
     _queue = List.from(_allSongs);
 
+    // Hydrate state from DatabaseService
+    _hydrateFromDatabase();
+
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
       _isPlaying = state.playing;
@@ -178,6 +182,37 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Asynchronously fetch online trending songs
     fetchOnlineTrending();
+  }
+
+  void _hydrateFromDatabase() {
+    final db = DatabaseService.instance;
+
+    _autoplay = db.getSetting('autoplay', true) as bool;
+    _soundPreset = db.getSetting('soundPreset', 'Normal') as String;
+    _volume = (db.getSetting('volume', 1.0) as num).toDouble();
+    _playbackSpeed = (db.getSetting('playbackSpeed', 1.0) as num).toDouble();
+
+    if (db.favoriteIds.isNotEmpty) {
+      _favoriteIds.clear();
+      _favoriteIds.addAll(db.favoriteIds);
+    }
+
+    if (db.customPlaylists.isNotEmpty) {
+      for (final p in db.customPlaylists) {
+        if (!_playlists.any((item) => item.id == p.id)) {
+          _playlists.insert(0, p);
+        }
+      }
+    }
+
+    if (db.history.isNotEmpty) {
+      _recentlyPlayed.clear();
+      for (final item in db.history) {
+        if (item['song'] != null && item['song'] is Map<String, dynamic>) {
+          _recentlyPlayed.add(Song.fromJson(item['song'] as Map<String, dynamic>));
+        }
+      }
+    }
   }
 
   Future<void> fetchOnlineTrending() async {
@@ -439,6 +474,11 @@ class MusicPlayerManager extends ChangeNotifier {
 
     final index = _queue.indexWhere((s) => s.id == song.id);
     _currentIndex = index != -1 ? index : 0;
+
+    // Record to history and persist via DatabaseService
+    _recentlyPlayed.removeWhere((item) => item.id == song.id);
+    _recentlyPlayed.insert(0, song);
+    DatabaseService.instance.addHistory(song);
 
     // Dynamic library generation & Smart queue infill
     _updateDynamicLibrary(song);
@@ -704,57 +744,103 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void toggleFavorite(String songId) {
-    if (_favoriteIds.contains(songId)) {
-      _favoriteIds.remove(songId);
-    } else {
-      _favoriteIds.add(songId);
+  Future<void> toggleFavorite(String songId) async {
+    Song? song;
+    try {
+      song = _allSongs.firstWhere((s) => s.id == songId);
+    } catch (_) {
+      try {
+        song = _queue.firstWhere((s) => s.id == songId);
+      } catch (_) {
+        song = currentSong;
+      }
     }
-    notifyListeners();
+
+    if (song != null) {
+      await DatabaseService.instance.toggleFavorite(song);
+      _favoriteIds.clear();
+      _favoriteIds.addAll(DatabaseService.instance.favoriteIds);
+      notifyListeners();
+    } else {
+      if (_favoriteIds.contains(songId)) {
+        _favoriteIds.remove(songId);
+      } else {
+        _favoriteIds.add(songId);
+      }
+      notifyListeners();
+    }
   }
 
   bool isFavorite(String songId) => _favoriteIds.contains(songId);
 
-  void clearPlaybackHistory() {
+  Future<void> clearPlaybackHistory() async {
     _recentlyPlayed.clear();
+    await DatabaseService.instance.clearHistory();
     notifyListeners();
   }
 
-  void clearAllUserData() {
+  Future<void> clearAllUserData() async {
     _recentlyPlayed.clear();
     _favoriteIds.clear();
     _playlists.removeWhere((p) => p.type == PlaylistType.custom);
+    await DatabaseService.instance.clearAllUserData();
     notifyListeners();
   }
 
-  void createPlaylist(String title, String description) {
-    final newPlaylist = Playlist(
-      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
-      title: title,
+  Future<Playlist> createPlaylist(String title, {String description = ''}) async {
+    final newPlaylist = await DatabaseService.instance.createPlaylist(
+      title,
       description: description,
-      coverUrl:
-          'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
-      songIds: [],
     );
-    _playlists.add(newPlaylist);
+    _playlists.insert(0, newPlaylist);
+    notifyListeners();
+    return newPlaylist;
+  }
+
+  Future<void> deletePlaylist(String playlistId) async {
+    await DatabaseService.instance.deletePlaylist(playlistId);
+    _playlists.removeWhere((p) => p.id == playlistId);
     notifyListeners();
   }
 
-  void addSongToPlaylist(String playlistId, String songId) {
+  Future<void> addSongToPlaylist(String playlistId, String songId) async {
+    Song? song;
+    try {
+      song = _allSongs.firstWhere((s) => s.id == songId);
+    } catch (_) {
+      try {
+        song = _queue.firstWhere((s) => s.id == songId);
+      } catch (_) {
+        song = currentSong;
+      }
+    }
+
+    if (song != null) {
+      await DatabaseService.instance.addSongToPlaylist(playlistId, song);
+      final index = _playlists.indexWhere((p) => p.id == playlistId);
+      if (index != -1) {
+        final p = _playlists[index];
+        if (!p.songIds.contains(songId)) {
+          _playlists[index] = p.copyWith(
+            songIds: [...p.songIds, songId],
+            songs: [...p.songs, song],
+          );
+          notifyListeners();
+        }
+      }
+    }
+  }
+
+  Future<void> removeSongFromPlaylist(String playlistId, String songId) async {
+    await DatabaseService.instance.removeSongFromPlaylist(playlistId, songId);
     final index = _playlists.indexWhere((p) => p.id == playlistId);
     if (index != -1) {
       final p = _playlists[index];
-      if (!p.songIds.contains(songId)) {
-        final updated = Playlist(
-          id: p.id,
-          title: p.title,
-          description: p.description,
-          coverUrl: p.coverUrl,
-          songIds: [...p.songIds, songId],
-        );
-        _playlists[index] = updated;
-        notifyListeners();
-      }
+      _playlists[index] = p.copyWith(
+        songIds: p.songIds.where((id) => id != songId).toList(),
+        songs: p.songs.where((s) => s.id != songId).toList(),
+      );
+      notifyListeners();
     }
   }
 

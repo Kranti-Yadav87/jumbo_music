@@ -51,5 +51,63 @@ class Playlist {
       createdAt: createdAt ?? this.createdAt,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'coverUrl': coverUrl,
+      'songIds': songIds,
+      'songs': songs.map((s) => s.toJson()).toList(),
+      'type': type.name,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory Playlist.fromJson(Map<String, dynamic> json) {
+    PlaylistType pType = PlaylistType.custom;
+    final typeName = json['type'] as String?;
+    if (typeName != null) {
+      for (final val in PlaylistType.values) {
+        if (val.name == typeName) {
+          pType = val;
+          break;
+        }
+      }
+    }
+
+    final rawSongs = json['songs'] as List?;
+    final List<Song> songList = [];
+    if (rawSongs != null) {
+      for (final item in rawSongs) {
+        if (item is Map<String, dynamic>) {
+          songList.add(Song.fromJson(item));
+        }
+      }
+    }
+
+    final rawSongIds = json['songIds'] as List?;
+    final List<String> sIds = [];
+    if (rawSongIds != null) {
+      for (final id in rawSongIds) {
+        if (id is String) sIds.add(id);
+      }
+    }
+
+    return Playlist(
+      id: json['id'] as String? ?? 'p_${DateTime.now().millisecondsSinceEpoch}',
+      title: json['title'] as String? ?? 'Custom Playlist',
+      description: json['description'] as String? ?? '',
+      coverUrl: json['coverUrl'] as String? ?? '',
+      songIds: sIds,
+      songs: songList,
+      type: pType,
+      createdAt: json['createdAt'] != null
+          ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+    );
+  }
 }
+
 

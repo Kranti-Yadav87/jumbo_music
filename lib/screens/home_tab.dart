@@ -7,6 +7,7 @@ import '../widgets/equalizer_bars.dart';
 import 'playlist_detail_screen.dart';
 import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
+import 'search_tab.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -336,7 +337,7 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                               ),
                             ],
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             // Data Privacy & Security Shield Button
                             IconButton(
                               padding: EdgeInsets.zero,
@@ -347,6 +348,20 @@ class _HomeTabState extends State<HomeTab> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                                );
+                              },
+                            ),
+                            const SizedBox(width: 10),
+                            // Live Search Button
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+                              tooltip: 'Search Songs & Artists',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SearchTab()),
                                 );
                               },
                             ),
