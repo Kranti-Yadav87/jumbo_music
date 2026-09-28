@@ -5,6 +5,8 @@ import '../services/music_player_manager.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/equalizer_bars.dart';
 import 'playlist_detail_screen.dart';
+import 'privacy_security_screen.dart';
+import 'top_50_screen.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -190,6 +192,20 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                               ),
                             ],
+                            const SizedBox(width: 4),
+                            // Data Privacy & Security Shield Button
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              icon: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 24),
+                              tooltip: 'Data Privacy & Security',
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                                );
+                              },
+                            ),
                           ],
                         ),
                       ],
@@ -642,33 +658,137 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // Trending Tracks Section Header
+              // 1. Dedicated Top 50 Chartbusters Section (If 'All' is selected)
+              if (_selectedGenre == 'All') ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 24, 18, 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE11D48).withOpacity(0.18),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.local_fire_department_rounded,
+                                color: Color(0xFFF43F5E),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Top 50 Chartbusters',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  '${manager.top50Songs.length} songs • Official Rankings',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFE5A5A5),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          ),
+                          icon: const Text('See All 50', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          label: const Icon(Icons.arrow_forward_rounded, size: 16),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const Top50Screen()),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Top 8 preview list with rank badges
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final song = manager.top50Songs[index];
+                      return SongTile(
+                        song: song,
+                        index: index + 1,
+                        playlistContext: manager.top50Songs,
+                      );
+                    },
+                    childCount: manager.top50Songs.length > 8 ? 8 : manager.top50Songs.length,
+                  ),
+                ),
+
+                // Button to open full Top 50 screen
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFE5A5A5),
+                        side: BorderSide(color: const Color(0xFFE5A5A5).withOpacity(0.4)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
+                      icon: const Icon(Icons.format_list_numbered_rounded, size: 18),
+                      label: const Text(
+                        'View Full Top 50 Chartbusters Rankings →',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const Top50Screen()),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ],
+
+              // 2. Separate Music Catalog / Filtered Section
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 20, 18, 8),
+                  padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
+                          Icon(
+                            _selectedGenre == 'All' ? Icons.library_music_rounded : Icons.category_rounded,
+                            size: 18,
+                            color: const Color(0xFF818CF8),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
                             _selectedGenre == 'All'
-                                ? 'Top 50 Chartbusters'
-                                : '$_selectedGenre Tracks',
+                                ? 'All Tracks Catalog'
+                                : '$_selectedGenre Collection',
                             style: const TextStyle(
-                              fontSize: 18,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
-                          if (manager.isLoadingTrending) ...[
-                            const SizedBox(width: 8),
-                            const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          ],
                         ],
                       ),
                       Text(
@@ -683,7 +803,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // List of Songs
+              // Filtered songs list
               SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {

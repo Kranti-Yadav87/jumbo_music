@@ -5,6 +5,7 @@ import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
 import 'music_api_service.dart';
+import 'privacy_security_service.dart';
 
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
@@ -125,6 +126,7 @@ class MusicPlayerManager extends ChangeNotifier {
   List<Playlist> get userPlaylists =>
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
+  List<Song> get top50Songs => _allSongs.take(50).toList();
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
 
@@ -275,11 +277,13 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   void _updateDynamicLibrary(Song song) {
-    // 1. Recently Played (up to 40)
-    _recentlyPlayed.removeWhere((s) => s.id == song.id);
-    _recentlyPlayed.insert(0, song);
-    if (_recentlyPlayed.length > 40) {
-      _recentlyPlayed.removeLast();
+    // 1. Recently Played (up to 40) - Skipped if Incognito Mode is active for privacy
+    if (!PrivacySecurityService().isIncognitoMode) {
+      _recentlyPlayed.removeWhere((s) => s.id == song.id);
+      _recentlyPlayed.insert(0, song);
+      if (_recentlyPlayed.length > 40) {
+        _recentlyPlayed.removeLast();
+      }
     }
 
     // 2. Artist Mix Station
@@ -706,6 +710,18 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   bool isFavorite(String songId) => _favoriteIds.contains(songId);
+
+  void clearPlaybackHistory() {
+    _recentlyPlayed.clear();
+    notifyListeners();
+  }
+
+  void clearAllUserData() {
+    _recentlyPlayed.clear();
+    _favoriteIds.clear();
+    _playlists.removeWhere((p) => p.type == PlaylistType.custom);
+    notifyListeners();
+  }
 
   void createPlaylist(String title, String description) {
     final newPlaylist = Playlist(

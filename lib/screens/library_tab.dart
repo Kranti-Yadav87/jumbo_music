@@ -5,6 +5,8 @@ import '../services/download_service.dart';
 import 'downloaded_songs_screen.dart';
 import 'playlist_detail_screen.dart';
 import 'search_tab.dart';
+import 'privacy_security_screen.dart';
+import 'top_50_screen.dart';
 import '../widgets/track_options_sheet.dart';
 
 class LibraryTab extends StatefulWidget {
@@ -76,6 +78,19 @@ class _LibraryTabState extends State<LibraryTab> {
                   title: const Text('Audio Quality Preset', style: TextStyle(color: Colors.white)),
                   subtitle: Text(manager.soundPreset, style: const TextStyle(color: Colors.white54, fontSize: 12)),
                   onTap: () => Navigator.pop(ctx),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.shield_rounded, color: Color(0xFF10B981)),
+                  title: const Text('Data Privacy & Security', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  subtitle: const Text('100% Client-side. Incognito, vault, no tracking.', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white54),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                    );
+                  },
                 ),
               ],
             ),
@@ -348,22 +363,12 @@ class _LibraryTabState extends State<LibraryTab> {
                         _buildQuickAccessTile(
                           icon: Icons.trending_up_rounded,
                           title: 'My top 50',
-                          subtitle: '${manager.allSongs.take(50).length} top played',
+                          subtitle: '${manager.top50Songs.length} chartbusters ranked',
                           onTap: () {
-                            final top50Playlist = Playlist(
-                              id: 'my_top_50',
-                              title: 'My Top 50',
-                              description: 'Most played hits and trending chartbusters',
-                              coverUrl: manager.allSongs.isNotEmpty
-                                  ? manager.allSongs.first.coverUrl
-                                  : '',
-                              songIds: manager.allSongs.take(50).map((s) => s.id).toList(),
-                              songs: manager.allSongs.take(50).toList(),
-                            );
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => PlaylistDetailScreen(playlist: top50Playlist),
+                                builder: (_) => const Top50Screen(),
                               ),
                             );
                           },

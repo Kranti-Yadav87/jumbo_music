@@ -25,7 +25,7 @@ query GetUser @auth(level: USER) {
   }
 }
 
-query ListUsers @auth(level: PUBLIC, insecureReason: "Publicly visible user directory") {
+query ListUsers @auth(level: USER) {
   users {
     username
     bio
@@ -118,15 +118,15 @@ query ListFollowing @auth(level: USER) {
   }
 }
 
-mutation AddTrack($title: String!, $artistName: String!, $externalUrl: String!, $albumName: String, $genre: String) @auth(level: PUBLIC, insecureReason: "Music database is open for community contributions") {
+mutation AddTrack($title: String!, $artistName: String!, $externalUrl: String!, $albumName: String, $genre: String) @auth(level: USER) {
   track_insert(data: {title: $title, artistName: $artistName, externalUrl: $externalUrl, albumName: $albumName, genre: $genre})
 }
 
-mutation UpdateTrack($id: UUID!, $genre: String) @auth(level: PUBLIC, insecureReason: "Music metadata correction") {
+mutation UpdateTrack($id: UUID!, $genre: String) @auth(level: USER) {
   track_update(key: {id: $id}, data: {genre: $genre})
 }
 
-mutation DeleteTrack($id: UUID!) @auth(level: PUBLIC, insecureReason: "Removal of invalid tracks") {
+mutation DeleteTrack($id: UUID!) @auth(level: USER) {
   track_delete(key: {id: $id})
 }
 
