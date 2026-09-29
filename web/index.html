@@ -176,8 +176,60 @@
       return !!window.deferredPwaPrompt;
     };
 
-    // === MediaSession & Lock Screen Engine ===
+    // === MediaSession, WakeLock & Lock Screen Keep-Alive Engine ===
     window.jumboMediaActionHandler = null;
+    window._jumboAudioCtx = null;
+    window._jumboSilentGain = null;
+    window._jumboWakeLock = null;
+
+    window.jumboStartAudioKeepAlive = function() {
+      try {
+        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!window._jumboAudioCtx && AudioContextClass) {
+          window._jumboAudioCtx = new AudioContextClass();
+        }
+        if (window._jumboAudioCtx) {
+          if (window._jumboAudioCtx.state === 'suspended') {
+            window._jumboAudioCtx.resume();
+          }
+          if (!window._jumboSilentGain) {
+            var osc = window._jumboAudioCtx.createOscillator();
+            var gain = window._jumboAudioCtx.createGain();
+            gain.gain.setValueAtTime(0.00001, window._jumboAudioCtx.currentTime);
+            osc.connect(gain);
+            gain.connect(window._jumboAudioCtx.destination);
+            osc.start();
+            window._jumboSilentGain = gain;
+          }
+        }
+        if ('wakeLock' in navigator && !window._jumboWakeLock) {
+          navigator.wakeLock.request('screen').then(function(lock) {
+            window._jumboWakeLock = lock;
+            lock.addEventListener('release', function() {
+              window._jumboWakeLock = null;
+            });
+          }).catch(function() {});
+        }
+      } catch (e) {
+        console.warn('Audio keep-alive notice:', e);
+      }
+    };
+
+    window.jumboStopAudioKeepAlive = function() {
+      try {
+        if (window._jumboWakeLock) {
+          window._jumboWakeLock.release().catch(function(){});
+          window._jumboWakeLock = null;
+        }
+      } catch (e) {}
+    };
+
+    // User gesture handler to enable Web Audio Context
+    document.addEventListener('pointerdown', function() {
+      if (window._jumboAudioCtx && window._jumboAudioCtx.state === 'suspended') {
+        window._jumboAudioCtx.resume();
+      }
+    }, { once: false, passive: true });
 
     window.jumboMediaUpdateMetadata = function(title, artist, album, coverUrl) {
       if (!('mediaSession' in navigator)) return;
@@ -203,6 +255,11 @@
     };
 
     window.jumboMediaUpdatePlaybackState = function(isPlaying) {
+      if (isPlaying) {
+        window.jumboStartAudioKeepAlive();
+      } else {
+        window.jumboStopAudioKeepAlive();
+      }
       if (!('mediaSession' in navigator)) return;
       try {
         navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';

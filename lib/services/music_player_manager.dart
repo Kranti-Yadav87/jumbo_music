@@ -54,6 +54,7 @@ class MusicPlayerManager extends ChangeNotifier {
   // Autoplay & Smart Infinite Radio Engine
   bool _autoplay = true;
   bool _isLoadingRecommendations = false;
+  bool _isTransitioning = false;
   String? _lastInfilledSongId;
 
   final Set<String> _favoriteIds = {'1', '2'};
@@ -558,6 +559,8 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
+    if (_isTransitioning) return;
+    _isTransitioning = true;
     _errorMessage = null;
 
     // Ensure song is in _allSongs
@@ -607,7 +610,7 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
-      await _audioPlayer.stop();
+      // Direct URL switch without stopping the underlying browser audio session
       await _audioPlayer.setUrl(song.audioUrl);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
@@ -618,6 +621,8 @@ class MusicPlayerManager extends ChangeNotifier {
       _isBuffering = false;
       MediaSessionService.updatePlaybackState(isPlaying: false);
       notifyListeners();
+    } finally {
+      _isTransitioning = false;
     }
   }
 
@@ -645,8 +650,8 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> next() async {
     if (_queue.isEmpty) return;
 
-    // Proactively infill when near queue end
-    if (_autoplay && currentSong != null && _currentIndex >= _queue.length - 2) {
+    // Proactively infill when within 4 songs of queue end
+    if (_autoplay && currentSong != null && _currentIndex >= _queue.length - 4) {
       _infillSmartQueue(currentSong!);
     }
 
@@ -706,6 +711,8 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   void _handleSongCompletion() async {
+    if (_isTransitioning) return;
+
     if (_sleepAfterCurrentSong) {
       cancelSleepTimer();
       _audioPlayer.pause();
@@ -719,24 +726,26 @@ class MusicPlayerManager extends ChangeNotifier {
     }
 
     if (_loopMode == LoopMode.all) {
-      next();
+      await next();
       return;
     }
 
     // Normal or Autoplay flow
     if (_currentIndex < _queue.length - 1) {
-      next();
+      await next();
     } else if (_autoplay && currentSong != null) {
-      // End of queue: automatically fetch fresh songs and play next!
+      // Proactively fetch fresh songs and continue uninterrupted playback
       await _infillSmartQueue(currentSong!);
       if (_currentIndex < _queue.length - 1) {
-        next();
+        await next();
       } else {
         _isPlaying = false;
+        MediaSessionService.updatePlaybackState(isPlaying: false);
         notifyListeners();
       }
     } else {
       _isPlaying = false;
+      MediaSessionService.updatePlaybackState(isPlaying: false);
       notifyListeners();
     }
   }

@@ -341,7 +341,42 @@ Genre: $genre
     final artistLower = seedSong.artist.toLowerCase();
     final genreLower = seedSong.genre.toLowerCase();
 
-    if (artistLower.contains('quratulain') ||
+    final titleLower = seedSong.title.toLowerCase();
+
+    if (artistLower.contains('king') ||
+        titleLower.contains('teri ho na saki') ||
+        titleLower.contains('maan meri jaan') ||
+        titleLower.contains('tu aake dekhle') ||
+        artistLower.contains('talwiinder') ||
+        artistLower.contains('mitraz') ||
+        artistLower.contains('hustle') ||
+        artistLower.contains('seedhe maut') ||
+        artistLower.contains('kr\$na') ||
+        artistLower.contains('aditya a') ||
+        artistLower.contains('aur')) {
+      discoveryQueries.addAll([
+        'KING Maan Meri Jaan',
+        'Talwiinder Dhundhala',
+        'KING Tu Aake Dekhle',
+        'Talwiinder Khayaal',
+        'Karan Aujla Tauba Tauba',
+        'AP Dhillon With You',
+        'Shubh Cheques',
+        'Mitraz Akhiyaan',
+        'Tu Hai Kahan AUR',
+        'Sitaare Arijit',
+        'Anuv Jain Husn',
+        'Starstruck UR DEBUT',
+        'Pal Pal Afusic',
+        'Ishq Faheem Abdullah',
+        'Diljit Dosanjh Lover',
+        'Hass Hass Diljit Sia',
+        'Winning Speech Karan Aujla',
+        'Jasleen Royal Heeriye',
+        'Chaand Baaliyan Aditya A',
+        'Legends KING',
+      ]);
+    } else if (artistLower.contains('quratulain') ||
         artistLower.contains('balouch') ||
         artistLower.contains('kaifi') ||
         artistLower.contains('afusic') ||
