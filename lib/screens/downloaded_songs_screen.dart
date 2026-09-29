@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/song.dart';
 import '../services/download_service.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/track_options_sheet.dart';

@@ -69,6 +69,39 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           }
         }
       }
+    } else if (!widget.playlist.id.startsWith('pl_')) {
+      // Dynamic search based on curated playlist theme
+      setState(() {
+        _isLoading = true;
+      });
+
+      String query = widget.playlist.title;
+      if (widget.playlist.id == 'p_90s_tamil') {
+        query = '90s Tamil Hits';
+      } else if (widget.playlist.id == 'p_90s_chill') {
+        query = '90s Bollywood Hits';
+      } else if (widget.playlist.id == 'p_90s_pop') {
+        query = '90s Indian Pop';
+      } else if (widget.playlist.id == 'p1') {
+        query = 'Lo-Fi Chill Hindi';
+      } else if (widget.playlist.id == 'p2') {
+        query = 'Bollywood Sukoon Arijit';
+      }
+
+      final songs = await MusicApiService.searchLiveSongs(query, limit: 30);
+
+      if (mounted) {
+        setState(() {
+          _loadedSongs = songs;
+          _isLoading = false;
+        });
+
+        for (final s in songs) {
+          if (!manager.allSongs.any((item) => item.id == s.id)) {
+            manager.allSongs.add(s);
+          }
+        }
+      }
     }
   }
 
@@ -265,9 +298,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: Text(
-                      'No tracks in this playlist yet',
-                      style: TextStyle(color: Colors.white54),
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        'No tracks in this playlist yet\nAdd songs from Search or Track options',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white54, height: 1.5),
+                      ),
                     ),
                   ),
                 )

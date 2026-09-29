@@ -16,7 +16,6 @@ analyzer:
     - windows/**
     - macos/**
     - linux/**
-    - lib/dataconnect_generated/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

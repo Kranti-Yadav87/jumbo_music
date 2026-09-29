@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/song.dart';
-import '../data/music_repository.dart';
 import '../services/music_player_manager.dart';
-import '../widgets/song_tile.dart';
 import '../widgets/equalizer_bars.dart';
 import 'playlist_detail_screen.dart';
 import 'privacy_security_screen.dart';

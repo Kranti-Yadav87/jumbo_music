@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
-import '../models/playlist.dart';
 
 class MusicApiService {
   static const String _endpoint =
@@ -341,7 +340,6 @@ Genre: $genre
     final List<String> discoveryQueries = [];
     final artistLower = seedSong.artist.toLowerCase();
     final genreLower = seedSong.genre.toLowerCase();
-    final titleLower = seedSong.title.toLowerCase();
 
     if (artistLower.contains('quratulain') ||
         artistLower.contains('balouch') ||

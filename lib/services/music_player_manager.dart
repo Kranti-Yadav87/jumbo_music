@@ -145,7 +145,6 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void _init() {
     _allSongs = [
-      ...MusicRepository.sampleSongs,
       ...MusicRepository.newReleases,
     ];
     _playlists = List.from(MusicRepository.samplePlaylists);
