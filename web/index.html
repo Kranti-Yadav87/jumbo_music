@@ -177,6 +177,86 @@
     window.canInstallPwa = function () {
       return !!window.deferredPwaPrompt;
     };
+
+    // === MediaSession & Lock Screen Engine ===
+    window.jumboMediaActionHandler = null;
+
+    window.jumboMediaUpdateMetadata = function(title, artist, album, coverUrl) {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        var artworkList = [];
+        var srcUrl = (coverUrl && coverUrl.trim().length > 0) ? coverUrl.trim() : 'icons/Icon-512.png';
+        var sizes = [96, 128, 192, 256, 384, 512];
+        for (var i = 0; i < sizes.length; i++) {
+          artworkList.push({
+            src: srcUrl,
+            sizes: sizes[i] + 'x' + sizes[i]
+          });
+        }
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: title || 'Jumbo Music',
+          artist: artist || 'Unknown Artist',
+          album: album || 'Jumbo Music',
+          artwork: artworkList
+        });
+      } catch (e) {
+        console.warn('Error setting MediaMetadata:', e);
+      }
+    };
+
+    window.jumboMediaUpdatePlaybackState = function(isPlaying) {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+      } catch (e) {}
+    };
+
+    window.jumboMediaUpdatePositionState = function(durationSec, positionSec, speed) {
+      if (!('mediaSession' in navigator) || !navigator.mediaSession.setPositionState) return;
+      try {
+        if (durationSec && durationSec > 0) {
+          var curPos = positionSec || 0;
+          if (curPos > durationSec) curPos = durationSec;
+          if (curPos < 0) curPos = 0;
+          navigator.mediaSession.setPositionState({
+            duration: durationSec,
+            playbackRate: speed || 1.0,
+            position: curPos
+          });
+        }
+      } catch (e) {}
+    };
+
+    window.jumboRegisterMediaActionHandler = function(handler) {
+      window.jumboMediaActionHandler = handler;
+      if (!('mediaSession' in navigator)) return;
+
+      var actions = [
+        ['play', function() { window.jumboDispatchMediaAction('play', 0); }],
+        ['pause', function() { window.jumboDispatchMediaAction('pause', 0); }],
+        ['previoustrack', function() { window.jumboDispatchMediaAction('previous', 0); }],
+        ['nexttrack', function() { window.jumboDispatchMediaAction('next', 0); }],
+        ['seekto', function(details) { window.jumboDispatchMediaAction('seek', details ? details.seekTime : 0); }],
+        ['seekbackward', function(details) { window.jumboDispatchMediaAction('seekbackward', details ? (details.seekOffset || 10) : 10); }],
+        ['seekforward', function(details) { window.jumboDispatchMediaAction('seekforward', details ? (details.seekOffset || 10) : 10); }]
+      ];
+
+      for (var i = 0; i < actions.length; i++) {
+        try {
+          navigator.mediaSession.setActionHandler(actions[i][0], actions[i][1]);
+        } catch (e) {}
+      }
+    };
+
+    window.jumboDispatchMediaAction = function(action, param) {
+      if (typeof window.jumboMediaActionHandler === 'function') {
+        try {
+          window.jumboMediaActionHandler(action, param || 0);
+        } catch (e) {
+          console.error('Error in jumboDispatchMediaAction:', e);
+        }
+      }
+    };
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

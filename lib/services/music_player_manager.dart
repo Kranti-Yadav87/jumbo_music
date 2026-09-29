@@ -7,6 +7,7 @@ import '../data/music_repository.dart';
 import 'music_api_service.dart';
 import 'privacy_security_service.dart';
 import 'database_service.dart';
+import 'media_session_service.dart';
 
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
@@ -153,11 +154,41 @@ class MusicPlayerManager extends ChangeNotifier {
     // Hydrate state from DatabaseService
     _hydrateFromDatabase();
 
+    // Register MediaSession lock screen action handlers
+    MediaSessionService.registerActionHandler((action, param) {
+      switch (action) {
+        case 'play':
+          if (!_isPlaying) togglePlay();
+          break;
+        case 'pause':
+          if (_isPlaying) togglePlay();
+          break;
+        case 'next':
+          next();
+          break;
+        case 'previous':
+          previous();
+          break;
+        case 'seek':
+          seek(Duration(seconds: param.toInt()));
+          break;
+        case 'seekforward':
+          seek(_position + Duration(seconds: param.toInt() > 0 ? param.toInt() : 10));
+          break;
+        case 'seekbackward':
+          final target = _position.inSeconds - (param.toInt() > 0 ? param.toInt() : 10);
+          seek(Duration(seconds: target > 0 ? target : 0));
+          break;
+      }
+    });
+
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
       _isPlaying = state.playing;
       _isBuffering = state.processingState == ProcessingState.buffering ||
           state.processingState == ProcessingState.loading;
+
+      MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
 
       if (state.processingState == ProcessingState.completed) {
         _handleSongCompletion();
@@ -166,12 +197,25 @@ class MusicPlayerManager extends ChangeNotifier {
     }, onError: (Object e) {
       _errorMessage = "Playback error: $e";
       _isBuffering = false;
+      MediaSessionService.updatePlaybackState(isPlaying: false);
       notifyListeners();
     });
 
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
-      _position = pos;
+      if (_position.inSeconds != pos.inSeconds) {
+        _position = pos;
+        final dur = _duration.inSeconds > 0
+            ? _duration.inSeconds.toDouble()
+            : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+        MediaSessionService.updatePositionState(
+          durationSeconds: dur,
+          positionSeconds: pos.inSeconds.toDouble(),
+          playbackRate: _playbackSpeed,
+        );
+      } else {
+        _position = pos;
+      }
       notifyListeners();
     });
 
@@ -179,6 +223,11 @@ class MusicPlayerManager extends ChangeNotifier {
     _durationSubscription = _audioPlayer.durationStream.listen((dur) {
       if (dur != null) {
         _duration = dur;
+        MediaSessionService.updatePositionState(
+          durationSeconds: dur.inSeconds.toDouble(),
+          positionSeconds: _position.inSeconds.toDouble(),
+          playbackRate: _playbackSpeed,
+        );
         notifyListeners();
       }
     });
@@ -503,6 +552,21 @@ class MusicPlayerManager extends ChangeNotifier {
       _duration = song.duration;
       notifyListeners();
 
+      MediaSessionService.updateMetadata(
+        title: song.title,
+        artist: song.artist,
+        album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
+        coverUrl: song.coverUrl,
+      );
+      MediaSessionService.updatePlaybackState(isPlaying: true);
+      MediaSessionService.updatePositionState(
+        durationSeconds: song.duration.inSeconds > 0
+            ? song.duration.inSeconds.toDouble()
+            : 240.0,
+        positionSeconds: 0.0,
+        playbackRate: _playbackSpeed,
+      );
+
       await _audioPlayer.stop();
       await _audioPlayer.setUrl(song.audioUrl);
       await _audioPlayer.setSpeed(_playbackSpeed);
@@ -512,6 +576,7 @@ class MusicPlayerManager extends ChangeNotifier {
     } catch (e) {
       _errorMessage = "Unable to play audio: $e";
       _isBuffering = false;
+      MediaSessionService.updatePlaybackState(isPlaying: false);
       notifyListeners();
     }
   }
@@ -588,6 +653,14 @@ class MusicPlayerManager extends ChangeNotifier {
 
   Future<void> seek(Duration newPosition) async {
     _position = newPosition;
+    final dur = _duration.inSeconds > 0
+        ? _duration.inSeconds.toDouble()
+        : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+    MediaSessionService.updatePositionState(
+      durationSeconds: dur,
+      positionSeconds: newPosition.inSeconds.toDouble(),
+      playbackRate: _playbackSpeed,
+    );
     notifyListeners();
     await _audioPlayer.seek(newPosition);
   }
@@ -648,6 +721,14 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> setPlaybackSpeed(double speed) async {
     _playbackSpeed = speed;
     await _audioPlayer.setSpeed(speed);
+    final dur = _duration.inSeconds > 0
+        ? _duration.inSeconds.toDouble()
+        : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+    MediaSessionService.updatePositionState(
+      durationSeconds: dur,
+      positionSeconds: _position.inSeconds.toDouble(),
+      playbackRate: _playbackSpeed,
+    );
     notifyListeners();
   }
 
