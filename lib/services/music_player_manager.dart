@@ -617,8 +617,16 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
-      // Direct URL switch without stopping the underlying browser audio session
-      await _audioPlayer.setUrl(song.audioUrl);
+      // 1. Explicitly stop and reset previous audio stream so old song immediately ceases
+      try {
+        await _audioPlayer.stop();
+      } catch (_) {}
+
+      // 2. Set new audio source with preload
+      await _audioPlayer.setAudioSource(
+        AudioSource.uri(Uri.parse(song.audioUrl)),
+        preload: true,
+      );
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
