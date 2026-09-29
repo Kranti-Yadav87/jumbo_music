@@ -79,12 +79,13 @@ class _HomeTabState extends State<HomeTab> {
                       children: [
                       Expanded(
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 38,
-                              height: 38,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(11),
+                                borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
                                     color: const Color(0xFF6366F1).withValues(alpha: 0.35),
@@ -94,23 +95,25 @@ class _HomeTabState extends State<HomeTab> {
                                 ],
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(11),
+                                borderRadius: BorderRadius.circular(12),
                                 child: Image.asset(
-                                  'assets/images/app_logo.png',
-                                  width: 38,
-                                  height: 38,
+                                  'assets/logo.png',
+                                  width: 40,
+                                  height: 40,
                                   fit: BoxFit.cover,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Expanded(
+                            Flexible(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     _getGreeting(),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 11.5,
                                       color: AppThemeManager.textSecondary(context),
@@ -127,7 +130,7 @@ class _HomeTabState extends State<HomeTab> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontSize: 18,
+                                            fontSize: 17,
                                             fontWeight: FontWeight.w900,
                                             letterSpacing: 0.8,
                                             color: AppThemeManager.textPrimary(context),

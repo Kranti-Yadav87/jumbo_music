@@ -185,37 +185,44 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
-      _isPlaying = state.playing;
-      _isBuffering = state.processingState == ProcessingState.buffering ||
-          state.processingState == ProcessingState.loading;
+      if (!_isTransitioning) {
+        _isPlaying = state.playing;
+        _isBuffering = state.processingState == ProcessingState.buffering ||
+            state.processingState == ProcessingState.loading;
+      }
 
       MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
 
-      if (state.processingState == ProcessingState.completed) {
+      if (state.processingState == ProcessingState.completed && !_isTransitioning) {
         _handleSongCompletion();
       }
       notifyListeners();
     }, onError: (Object e) {
       _errorMessage = "Playback error: $e";
       _isBuffering = false;
+      _isPlaying = false;
       MediaSessionService.updatePlaybackState(isPlaying: false);
       notifyListeners();
     });
 
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
-      if (_position.inSeconds != pos.inSeconds) {
-        _position = pos;
-        final dur = _duration.inSeconds > 0
-            ? _duration.inSeconds.toDouble()
-            : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
-        MediaSessionService.updatePositionState(
-          durationSeconds: dur,
-          positionSeconds: pos.inSeconds.toDouble(),
-          playbackRate: _playbackSpeed,
-        );
-      } else {
-        _position = pos;
+      _position = pos;
+      final dur = _duration.inSeconds > 0
+          ? _duration.inSeconds.toDouble()
+          : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+      MediaSessionService.updatePositionState(
+        durationSeconds: dur,
+        positionSeconds: pos.inSeconds.toDouble(),
+        playbackRate: _playbackSpeed,
+      );
+
+      // Web Audio fallback: if song reaches the end, trigger completion seamlessly
+      if (_duration > const Duration(seconds: 2) &&
+          pos >= _duration - const Duration(milliseconds: 300) &&
+          _isPlaying &&
+          !_isTransitioning) {
+        _handleSongCompletion();
       }
       notifyListeners();
     });
@@ -559,7 +566,6 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
-    if (_isTransitioning) return;
     _isTransitioning = true;
     _errorMessage = null;
 
@@ -589,12 +595,13 @@ class MusicPlayerManager extends ChangeNotifier {
       _infillSmartQueue(song);
     }
 
-    try {
-      _isBuffering = true;
-      _position = Duration.zero;
-      _duration = song.duration;
-      notifyListeners();
+    _isPlaying = true;
+    _isBuffering = true;
+    _position = Duration.zero;
+    _duration = song.duration;
+    notifyListeners();
 
+    try {
       MediaSessionService.updateMetadata(
         title: song.title,
         artist: song.artist,
@@ -612,17 +619,21 @@ class MusicPlayerManager extends ChangeNotifier {
 
       // Direct URL switch without stopping the underlying browser audio session
       await _audioPlayer.setUrl(song.audioUrl);
+      await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
       await _audioPlayer.setLoopMode(_loopMode);
       await _audioPlayer.play();
+      _isPlaying = true;
+      _isBuffering = false;
     } catch (e) {
       _errorMessage = "Unable to play audio: $e";
       _isBuffering = false;
+      _isPlaying = false;
       MediaSessionService.updatePlaybackState(isPlaying: false);
-      notifyListeners();
     } finally {
       _isTransitioning = false;
+      notifyListeners();
     }
   }
 
@@ -643,6 +654,9 @@ class MusicPlayerManager extends ChangeNotifier {
     if (_isPlaying) {
       await _audioPlayer.pause();
     } else {
+      if (_position >= _duration && _duration > Duration.zero) {
+        await _audioPlayer.seek(Duration.zero);
+      }
       await _audioPlayer.play();
     }
   }
@@ -712,41 +726,54 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void _handleSongCompletion() async {
     if (_isTransitioning) return;
+    _isTransitioning = true;
 
-    if (_sleepAfterCurrentSong) {
-      cancelSleepTimer();
-      _audioPlayer.pause();
-      return;
-    }
+    try {
+      if (_sleepAfterCurrentSong) {
+        cancelSleepTimer();
+        await _audioPlayer.pause();
+        _isPlaying = false;
+        _isTransitioning = false;
+        notifyListeners();
+        return;
+      }
 
-    if (_loopMode == LoopMode.one) {
-      _audioPlayer.seek(Duration.zero);
-      _audioPlayer.play();
-      return;
-    }
+      if (_loopMode == LoopMode.one) {
+        await _audioPlayer.seek(Duration.zero);
+        await _audioPlayer.play();
+        _isTransitioning = false;
+        return;
+      }
 
-    if (_loopMode == LoopMode.all) {
-      await next();
-      return;
-    }
-
-    // Normal or Autoplay flow
-    if (_currentIndex < _queue.length - 1) {
-      await next();
-    } else if (_autoplay && currentSong != null) {
-      // Proactively fetch fresh songs and continue uninterrupted playback
-      await _infillSmartQueue(currentSong!);
-      if (_currentIndex < _queue.length - 1) {
+      if (_loopMode == LoopMode.all) {
+        _isTransitioning = false;
         await next();
+        return;
+      }
+
+      // Normal or Autoplay flow
+      if (_currentIndex < _queue.length - 1) {
+        _isTransitioning = false;
+        await next();
+      } else if (_autoplay && currentSong != null) {
+        // Proactively fetch fresh songs and continue uninterrupted playback
+        await _infillSmartQueue(currentSong!);
+        _isTransitioning = false;
+        if (_currentIndex < _queue.length - 1) {
+          await next();
+        } else {
+          _isPlaying = false;
+          MediaSessionService.updatePlaybackState(isPlaying: false);
+          notifyListeners();
+        }
       } else {
         _isPlaying = false;
+        _isTransitioning = false;
         MediaSessionService.updatePlaybackState(isPlaying: false);
         notifyListeners();
       }
-    } else {
-      _isPlaying = false;
-      MediaSessionService.updatePlaybackState(isPlaying: false);
-      notifyListeners();
+    } catch (_) {
+      _isTransitioning = false;
     }
   }
 
