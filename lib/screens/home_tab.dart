@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
+import '../services/theme_service.dart';
 import '../widgets/equalizer_bars.dart';
+import '../widgets/app_footer.dart';
 import 'playlist_detail_screen.dart';
 import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
 import 'search_tab.dart';
-import '../widgets/install_app_card.dart';
-import '../widgets/download_app_dialog.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -23,8 +23,8 @@ class _HomeTabState extends State<HomeTab> {
     return 'Good Evening 🌙';
   }
 
-
   Widget _buildSectionHeader(BuildContext context, {required String title, VoidCallback? onArrowTap}) {
+    final textColor = AppThemeManager.textPrimary(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 26, 14, 14),
       child: Row(
@@ -32,16 +32,16 @@ class _HomeTabState extends State<HomeTab> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: textColor,
               letterSpacing: -0.3,
             ),
           ),
           if (onArrowTap != null)
             IconButton(
-              icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 22),
+              icon: Icon(Icons.arrow_forward_rounded, color: textColor, size: 22),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
               splashRadius: 20,
@@ -64,7 +64,7 @@ class _HomeTabState extends State<HomeTab> {
         final newReleases = manager.newReleases;
 
         return Scaffold(
-          backgroundColor: const Color(0xFF000000),
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
@@ -82,31 +82,31 @@ class _HomeTabState extends State<HomeTab> {
                           children: [
                             Text(
                               _getGreeting(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.white60,
+                                color: AppThemeManager.textSecondary(context),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Row(
                               children: [
-                                const Text(
+                                Text(
                                   'JUMBO MUSIC',
                                   style: TextStyle(
                                     fontSize: 24,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 1.2,
-                                    color: Colors.white,
+                                    color: AppThemeManager.textPrimary(context),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF6366F1).withOpacity(0.2),
+                                    color: const Color(0xFF6366F1).withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFF818CF8).withOpacity(0.4)),
+                                    border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
                                   ),
                                   child: const Text(
                                     'PRO',
@@ -131,13 +131,15 @@ class _HomeTabState extends State<HomeTab> {
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
                                   color: manager.autoplay
-                                      ? const Color(0xFF10B981).withOpacity(0.15)
-                                      : Colors.white.withOpacity(0.06),
+                                      ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                      : (AppThemeManager.instance.isDarkMode
+                                          ? Colors.white.withValues(alpha: 0.06)
+                                          : Colors.black.withValues(alpha: 0.04)),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: manager.autoplay
-                                        ? const Color(0xFF10B981).withOpacity(0.4)
-                                        : Colors.white12,
+                                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                        : (AppThemeManager.instance.isDarkMode ? Colors.white12 : const Color(0xFFE2E8F0)),
                                   ),
                                 ),
                                 child: Row(
@@ -148,7 +150,7 @@ class _HomeTabState extends State<HomeTab> {
                                       size: 14,
                                       color: manager.autoplay
                                           ? const Color(0xFF10B981)
-                                          : Colors.white38,
+                                          : AppThemeManager.textMuted(context),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -158,7 +160,7 @@ class _HomeTabState extends State<HomeTab> {
                                         fontWeight: FontWeight.bold,
                                         color: manager.autoplay
                                             ? const Color(0xFF10B981)
-                                            : Colors.white38,
+                                            : AppThemeManager.textMuted(context),
                                       ),
                                     ),
                                   ],
@@ -170,10 +172,10 @@ class _HomeTabState extends State<HomeTab> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF6366F1).withOpacity(0.2),
+                                  color: const Color(0xFF6366F1).withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFF818CF8).withOpacity(0.4),
+                                    color: const Color(0xFF818CF8).withValues(alpha: 0.4),
                                   ),
                                 ),
                                 child: Row(
@@ -197,13 +199,23 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             ],
                             const SizedBox(width: 6),
-                            // Download / Install App Button
+                            // Lite / Dark Mode Quick Switch
                             IconButton(
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              icon: const Icon(Icons.file_download_outlined, color: Color(0xFF818CF8), size: 24),
-                              tooltip: 'Download / Install App',
-                              onPressed: () => showDownloadAppDialog(context),
+                              icon: Icon(
+                                AppThemeManager.instance.isDarkMode
+                                    ? Icons.light_mode_rounded
+                                    : Icons.dark_mode_rounded,
+                                color: AppThemeManager.instance.isDarkMode
+                                    ? const Color(0xFFFBBF24)
+                                    : const Color(0xFF6366F1),
+                                size: 22,
+                              ),
+                              tooltip: AppThemeManager.instance.isDarkMode
+                                  ? 'Switch to Lite Mode'
+                                  : 'Switch to Dark Mode',
+                              onPressed: () => AppThemeManager.instance.toggleTheme(),
                             ),
                             const SizedBox(width: 10),
                             // Data Privacy & Security Shield Button
@@ -224,7 +236,7 @@ class _HomeTabState extends State<HomeTab> {
                             IconButton(
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              icon: const Icon(Icons.search_rounded, color: Colors.white, size: 24),
+                              icon: Icon(Icons.search_rounded, color: AppThemeManager.textPrimary(context), size: 24),
                               tooltip: 'Search Songs & Artists',
                               onPressed: () {
                                 Navigator.push(
@@ -238,13 +250,6 @@ class _HomeTabState extends State<HomeTab> {
                       ],
                     ),
                   ),
-                ),
-              ),
-
-              // REC MedAssist-style Install App Card
-              const SliverToBoxAdapter(
-                child: InstallAppCard(
-                  margin: EdgeInsets.fromLTRB(18, 4, 18, 12),
                 ),
               ),
 
@@ -314,10 +319,10 @@ class _HomeTabState extends State<HomeTab> {
                                 playlist.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: AppThemeManager.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -325,9 +330,9 @@ class _HomeTabState extends State<HomeTab> {
                                 playlist.description,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.white60,
+                                  color: AppThemeManager.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -468,7 +473,7 @@ class _HomeTabState extends State<HomeTab> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
+                                  color: isCurrent ? const Color(0xFF818CF8) : AppThemeManager.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -476,9 +481,9 @@ class _HomeTabState extends State<HomeTab> {
                                 song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white60,
+                                  color: AppThemeManager.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -581,7 +586,7 @@ class _HomeTabState extends State<HomeTab> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
+                                  color: isCurrent ? const Color(0xFF818CF8) : AppThemeManager.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -589,9 +594,9 @@ class _HomeTabState extends State<HomeTab> {
                                 song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.white60,
+                                  color: AppThemeManager.textSecondary(context),
                                 ),
                               ),
                             ],
@@ -601,6 +606,11 @@ class _HomeTabState extends State<HomeTab> {
                     },
                   ),
                 ),
+              ),
+
+              // Bottom Footer: Download App, Terms, Privacy Policy & Made with Love by Kranti
+              const SliverToBoxAdapter(
+                child: AppFooter(),
               ),
 
               const SliverToBoxAdapter(

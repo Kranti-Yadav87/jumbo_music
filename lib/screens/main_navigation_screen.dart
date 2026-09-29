@@ -28,7 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final manager = MusicPlayerManager();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Active Tab Content
@@ -54,13 +54,26 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0C0C0E),
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF0C0C0E)
+              : Colors.white,
           border: Border(
             top: BorderSide(
-              color: Colors.white.withOpacity(0.06),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : const Color(0xFFE2E8F0),
               width: 0.5,
             ),
           ),
+          boxShadow: Theme.of(context).brightness == Brightness.light
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  ),
+                ]
+              : null,
         ),
         child: SafeArea(
           top: false,
@@ -83,6 +96,23 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final activePillColor = isDark
+        ? const Color(0xFF563F42)
+        : const Color(0xFFEEF2FF);
+    final activeIconColor = isDark
+        ? const Color(0xFFFFD4D4)
+        : const Color(0xFF4F46E5);
+    final inactiveIconColor = isDark
+        ? Colors.white60
+        : const Color(0xFF94A3B8);
+    final activeTextColor = isDark
+        ? Colors.white
+        : const Color(0xFF4F46E5);
+    final inactiveTextColor = isDark
+        ? Colors.white54
+        : const Color(0xFF64748B);
 
     return InkWell(
       onTap: () {
@@ -96,16 +126,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Pill capsule highlight around icon for active tab (Screenshot 2)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF563F42) : Colors.transparent,
+                color: isSelected ? activePillColor : Colors.transparent,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 icon,
-                color: isSelected ? const Color(0xFFFFD4D4) : Colors.white60,
+                color: isSelected ? activeIconColor : inactiveIconColor,
                 size: 22,
               ),
             ),
@@ -113,7 +142,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white54,
+                color: isSelected ? activeTextColor : inactiveTextColor,
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),

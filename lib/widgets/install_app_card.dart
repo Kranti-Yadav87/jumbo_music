@@ -13,6 +13,8 @@ class InstallAppCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: margin ?? const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Material(
@@ -20,28 +22,41 @@ class InstallAppCard extends StatelessWidget {
         child: InkWell(
           onTap: () => showDownloadAppDialog(context),
           borderRadius: BorderRadius.circular(16),
-          splashColor: const Color(0xFF6366F1).withOpacity(0.15),
-          highlightColor: const Color(0xFF6366F1).withOpacity(0.08),
+          splashColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+          highlightColor: const Color(0xFF6366F1).withValues(alpha: 0.08),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF6366F1).withOpacity(0.12),
-                  const Color(0xFFA855F7).withOpacity(0.08),
-                  const Color(0xFF14141E).withOpacity(0.7),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: isDark
+                  ? LinearGradient(
+                      colors: [
+                        const Color(0xFF6366F1).withValues(alpha: 0.12),
+                        const Color(0xFFA855F7).withValues(alpha: 0.08),
+                        const Color(0xFF14141E).withValues(alpha: 0.7),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    )
+                  : const LinearGradient(
+                      colors: [
+                        Color(0xFFF8FAFC),
+                        Color(0xFFEEF2FF),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: const Color(0xFF6366F1).withOpacity(0.35),
+                color: isDark
+                    ? const Color(0xFF6366F1).withValues(alpha: 0.35)
+                    : const Color(0xFFC7D2FE),
                 width: 1,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF6366F1).withOpacity(0.12),
+                  color: isDark
+                      ? const Color(0xFF6366F1).withValues(alpha: 0.12)
+                      : Colors.black.withValues(alpha: 0.05),
                   blurRadius: 16,
                   offset: const Offset(0, 4),
                 ),
@@ -62,7 +77,7 @@ class InstallAppCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(11),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6366F1).withOpacity(0.4),
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -83,7 +98,7 @@ class InstallAppCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Text(
                         'Install Jumbo Music App',
                         maxLines: 1,
@@ -91,18 +106,18 @@ class InstallAppCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
                           letterSpacing: -0.2,
                         ),
                       ),
-                      SizedBox(height: 2),
+                      const SizedBox(height: 2),
                       Text(
                         '1-Tap access on Android, iOS & PC',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: Colors.white60,
+                          color: isDark ? Colors.white60 : const Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -122,7 +137,7 @@ class InstallAppCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF6366F1).withOpacity(0.3),
+                        color: const Color(0xFF6366F1).withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),

@@ -20,20 +20,26 @@ class MiniPlayer extends StatelessWidget {
 
         final isFav = manager.isFavorite(song.id);
 
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return Container(
           margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
           decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
+            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.6),
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.6)
+                    : Colors.black.withValues(alpha: 0.08),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               ),
             ],
             border: Border.all(
-              color: Colors.white.withOpacity(0.08),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : const Color(0xFFE2E8F0),
               width: 0.5,
             ),
           ),
@@ -85,7 +91,7 @@ class MiniPlayer extends StatelessWidget {
                             height: 28,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.black.withOpacity(0.55),
+                              color: Colors.black.withValues(alpha: 0.55),
                             ),
                             child: Icon(
                               manager.isPlaying
@@ -111,8 +117,8 @@ class MiniPlayer extends StatelessWidget {
                             song.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
                             ),
@@ -122,8 +128,8 @@ class MiniPlayer extends StatelessWidget {
                             song.artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFF8E8E93),
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFF8E8E93) : const Color(0xFF64748B),
                               fontSize: 12,
                             ),
                           ),
@@ -135,9 +141,9 @@ class MiniPlayer extends StatelessWidget {
                     IconButton(
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.person_outline_rounded,
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : const Color(0xFF64748B),
                         size: 22,
                       ),
                       onPressed: () {
@@ -153,7 +159,7 @@ class MiniPlayer extends StatelessWidget {
                       constraints: const BoxConstraints(),
                       icon: Icon(
                         isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isFav ? const Color(0xFFE5A5A5) : Colors.white70,
+                        color: isFav ? const Color(0xFFE5A5A5) : (isDark ? Colors.white70 : const Color(0xFF94A3B8)),
                         size: 22,
                       ),
                       onPressed: () {
