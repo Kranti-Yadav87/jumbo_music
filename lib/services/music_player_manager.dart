@@ -117,7 +117,7 @@ class MusicPlayerManager extends ChangeNotifier {
   bool get isLoadingRecommendations => _isLoadingRecommendations;
   void toggleAutoplay() {
     _autoplay = !_autoplay;
-    DatabaseService.instance.saveSetting('autoplay', _autoplay);
+    DatabaseService.instance.updateSetting('autoplay', _autoplay);
     if (_autoplay && currentSong != null && _queue.length < 30) {
       _infillSmartQueue(currentSong!);
     }

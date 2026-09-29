@@ -347,6 +347,8 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  Future<void> saveSetting(String key, dynamic value) => updateSetting(key, value);
+
   // -------------------------------------------------------------
   // 6. GDPR DATA EXPORT & TOTAL WIPE
   // -------------------------------------------------------------
