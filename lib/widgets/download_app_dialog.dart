@@ -163,11 +163,6 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
                         borderRadius: BorderRadius.circular(13),
                         boxShadow: [
                           BoxShadow(
@@ -177,11 +172,13 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Icon(
-                          Icons.music_note_rounded,
-                          color: Colors.white,
-                          size: 26,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(13),
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          width: 44,
+                          height: 44,
+                          fit: BoxFit.cover,
                         ),
                       ),
                     ),

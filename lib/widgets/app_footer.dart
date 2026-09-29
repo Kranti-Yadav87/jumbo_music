@@ -219,11 +219,6 @@ class AppFooter extends StatelessWidget {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
@@ -233,11 +228,13 @@ class AppFooter extends StatelessWidget {
                               ),
                             ],
                           ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.music_note_rounded,
-                              color: Colors.white,
-                              size: 20,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.asset(
+                              'assets/images/app_logo.png',
+                              width: 38,
+                              height: 38,
+                              fit: BoxFit.cover,
                             ),
                           ),
                         ),

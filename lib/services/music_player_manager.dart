@@ -517,6 +517,46 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Plays a song selected from Search and automatically builds a smart,
+  /// personalized radio queue based on user's feed, playlists, listening history,
+  /// favorites and live genre/artist recommendations (instead of raw search keyword matches).
+  Future<void> playSongFromSearch(Song song) async {
+    final personalizedQueue = <Song>[song];
+    final Set<String> seenIds = {song.id};
+
+    // 1. Add user's recently played & favorite tracks
+    for (final s in [..._recentlyPlayed, ...favoriteSongs]) {
+      if (!seenIds.contains(s.id)) {
+        seenIds.add(s.id);
+        personalizedQueue.add(s);
+      }
+    }
+
+    // 2. Add songs from user's custom & curated playlists
+    for (final p in _playlists) {
+      for (final s in p.songs) {
+        if (!seenIds.contains(s.id)) {
+          seenIds.add(s.id);
+          personalizedQueue.add(s);
+        }
+      }
+    }
+
+    // 3. Add songs from home feed / online trending / general library
+    for (final s in [..._onlineTrending, ..._allSongs]) {
+      if (!seenIds.contains(s.id)) {
+        seenIds.add(s.id);
+        personalizedQueue.add(s);
+      }
+    }
+
+    // Play with personalized queue
+    await playSong(song, newQueue: personalizedQueue);
+
+    // 4. Fetch smart similar artist & style recommendations in the background
+    _infillSmartQueue(song);
+  }
+
   Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
     _errorMessage = null;
 

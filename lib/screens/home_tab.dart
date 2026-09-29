@@ -77,41 +77,47 @@ class _HomeTabState extends State<HomeTab> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               _getGreeting(),
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 12,
                                 color: AppThemeManager.textSecondary(context),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
                             const SizedBox(height: 2),
                             Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(
-                                  'JUMBO MUSIC',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                    color: AppThemeManager.textPrimary(context),
+                                Flexible(
+                                  child: Text(
+                                    'JUMBO MUSIC',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.8,
+                                      color: AppThemeManager.textPrimary(context),
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(6),
                                     border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
                                   ),
                                   child: const Text(
                                     'PRO',
                                     style: TextStyle(
-                                      fontSize: 10,
+                                      fontSize: 9,
                                       fontWeight: FontWeight.bold,
                                       color: Color(0xFF818CF8),
                                     ),
@@ -121,132 +127,136 @@ class _HomeTabState extends State<HomeTab> {
                             ),
                           ],
                         ),
-                        Row(
-                          children: [
-                            // Autoplay quick toggle badge
-                            InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () => manager.toggleAutoplay(),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Autoplay quick toggle badge
+                          InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => manager.toggleAutoplay(),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: manager.autoplay
+                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                    : (AppThemeManager.instance.isDarkMode
+                                        ? Colors.white.withValues(alpha: 0.06)
+                                        : Colors.black.withValues(alpha: 0.04)),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
                                   color: manager.autoplay
-                                      ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                                      : (AppThemeManager.instance.isDarkMode
-                                          ? Colors.white.withValues(alpha: 0.06)
-                                          : Colors.black.withValues(alpha: 0.04)),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: manager.autoplay
-                                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
-                                        : (AppThemeManager.instance.isDarkMode ? Colors.white12 : const Color(0xFFE2E8F0)),
-                                  ),
+                                      ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                      : (AppThemeManager.instance.isDarkMode ? Colors.white12 : const Color(0xFFE2E8F0)),
                                 ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.all_inclusive_rounded,
-                                      size: 14,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.all_inclusive_rounded,
+                                    size: 13,
+                                    color: manager.autoplay
+                                        ? const Color(0xFF10B981)
+                                        : AppThemeManager.textMuted(context),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    manager.autoplay ? 'Radio' : 'Off',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
                                       color: manager.autoplay
                                           ? const Color(0xFF10B981)
                                           : AppThemeManager.textMuted(context),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      manager.autoplay ? 'Radio ON' : 'Radio OFF',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: manager.autoplay
-                                            ? const Color(0xFF10B981)
-                                            : AppThemeManager.textMuted(context),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                            if (manager.isSleepTimerActive) ...[
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF6366F1).withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: const Color(0xFF818CF8).withValues(alpha: 0.4),
-                                  ),
+                          ),
+                          if (manager.isSleepTimerActive) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFF818CF8).withValues(alpha: 0.4),
                                 ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.bedtime_rounded,
-                                      size: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.bedtime_rounded,
+                                    size: 11,
+                                    color: Color(0xFF818CF8),
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    manager.formattedSleepTime,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                       color: Color(0xFF818CF8),
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      manager.formattedSleepTime,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: Color(0xFF818CF8),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ],
-                            const SizedBox(width: 6),
-                            // Lite / Dark Mode Quick Switch
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: Icon(
-                                AppThemeManager.instance.isDarkMode
-                                    ? Icons.light_mode_rounded
-                                    : Icons.dark_mode_rounded,
-                                color: AppThemeManager.instance.isDarkMode
-                                    ? const Color(0xFFFBBF24)
-                                    : const Color(0xFF6366F1),
-                                size: 22,
-                              ),
-                              tooltip: AppThemeManager.instance.isDarkMode
-                                  ? 'Switch to Lite Mode'
-                                  : 'Switch to Dark Mode',
-                              onPressed: () => AppThemeManager.instance.toggleTheme(),
-                            ),
-                            const SizedBox(width: 10),
-                            // Data Privacy & Security Shield Button
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: const Icon(Icons.shield_rounded, color: Color(0xFF10B981), size: 24),
-                              tooltip: 'Data Privacy & Security',
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 10),
-                            // Live Search Button
-                            IconButton(
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                              icon: Icon(Icons.search_rounded, color: AppThemeManager.textPrimary(context), size: 24),
-                              tooltip: 'Search Songs & Artists',
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const SearchTab()),
-                                );
-                              },
                             ),
                           ],
-                        ),
+                          const SizedBox(width: 6),
+                          // Lite / Dark Mode Quick Switch
+                          IconButton(
+                            padding: const EdgeInsets.all(6),
+                            constraints: const BoxConstraints(),
+                            icon: Icon(
+                              AppThemeManager.instance.isDarkMode
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
+                              color: AppThemeManager.instance.isDarkMode
+                                  ? const Color(0xFFFBBF24)
+                                  : const Color(0xFF6366F1),
+                              size: 21,
+                            ),
+                            tooltip: AppThemeManager.instance.isDarkMode
+                                ? 'Switch to Lite Mode'
+                                : 'Switch to Dark Mode',
+                            onPressed: () => AppThemeManager.instance.toggleTheme(),
+                          ),
+                          const SizedBox(width: 6),
+                          // Prominent Live Search Button (in place of shield)
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const SearchTab()),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(7),
+                              decoration: BoxDecoration(
+                                color: AppThemeManager.instance.isDarkMode
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: AppThemeManager.instance.isDarkMode
+                                      ? Colors.white12
+                                      : const Color(0xFFE2E8F0),
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.search_rounded,
+                                color: AppThemeManager.textPrimary(context),
+                                size: 21,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                       ],
                     ),
                   ),

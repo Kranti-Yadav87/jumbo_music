@@ -20,6 +20,7 @@ class DatabaseService extends ChangeNotifier {
   final List<Playlist> _customPlaylists = [];
   final Map<String, Map<String, dynamic>> _downloadsMap = {};
   final List<Map<String, dynamic>> _historyList = [];
+  final List<String> _searchHistory = [];
   final Map<String, dynamic> _settings = {
     'autoplay': true,
     'soundPreset': 'Normal',
@@ -35,6 +36,7 @@ class DatabaseService extends ChangeNotifier {
   static const String _keyPlaylists = 'jumbo_db_playlists';
   static const String _keyDownloads = 'jumbo_db_downloads';
   static const String _keyHistory = 'jumbo_db_history';
+  static const String _keySearchHistory = 'jumbo_db_search_history';
   static const String _keySettings = 'jumbo_db_settings';
 
   /// Initialize database and load all stores into memory
@@ -47,6 +49,7 @@ class DatabaseService extends ChangeNotifier {
         _loadPlaylists(),
         _loadDownloads(),
         _loadHistory(),
+        _loadSearchHistory(),
         _loadSettings(),
       ]);
     } catch (e) {
@@ -321,7 +324,63 @@ class DatabaseService extends ChangeNotifier {
   }
 
   // -------------------------------------------------------------
-  // 5. SETTINGS STORE
+  // 5. SEARCH HISTORY STORE
+  // -------------------------------------------------------------
+  List<String> get searchHistory => List.unmodifiable(_searchHistory);
+
+  Future<void> _loadSearchHistory() async {
+    try {
+      final raw = await StorageEngine.getItem(_keySearchHistory);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(raw);
+        _searchHistory.clear();
+        for (final item in list) {
+          if (item is String && item.trim().isNotEmpty) {
+            _searchHistory.add(item.trim());
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _flushSearchHistory() async {
+    try {
+      await StorageEngine.setItem(_keySearchHistory, jsonEncode(_searchHistory));
+    } catch (_) {}
+  }
+
+  Future<void> addSearchQuery(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    // Respect Incognito Mode
+    if (getSetting('incognitoMode', false) == true) return;
+
+    _searchHistory.removeWhere((item) => item.toLowerCase() == trimmed.toLowerCase());
+    _searchHistory.insert(0, trimmed);
+
+    if (_searchHistory.length > 25) {
+      _searchHistory.removeRange(25, _searchHistory.length);
+    }
+
+    notifyListeners();
+    await _flushSearchHistory();
+  }
+
+  Future<void> removeSearchQuery(String query) async {
+    _searchHistory.removeWhere((item) => item.toLowerCase() == query.trim().toLowerCase());
+    notifyListeners();
+    await _flushSearchHistory();
+  }
+
+  Future<void> clearSearchHistory() async {
+    _searchHistory.clear();
+    notifyListeners();
+    await _flushSearchHistory();
+  }
+
+  // -------------------------------------------------------------
+  // 6. SETTINGS STORE
   // -------------------------------------------------------------
   Map<String, dynamic> get settings => Map.unmodifiable(_settings);
 
@@ -350,7 +409,7 @@ class DatabaseService extends ChangeNotifier {
   Future<void> saveSetting(String key, dynamic value) => updateSetting(key, value);
 
   // -------------------------------------------------------------
-  // 6. GDPR DATA EXPORT & TOTAL WIPE
+  // 7. GDPR DATA EXPORT & TOTAL WIPE
   // -------------------------------------------------------------
   Future<String> exportAllDataJson() async {
     final export = {
@@ -360,6 +419,7 @@ class DatabaseService extends ChangeNotifier {
       'customPlaylists': _customPlaylists.map((p) => p.toJson()).toList(),
       'downloads': _downloadsMap.values.toList(),
       'history': _historyList,
+      'searchHistory': _searchHistory,
       'settings': _settings,
     };
     return const JsonEncoder.withIndent('  ').convert(export);
@@ -371,12 +431,14 @@ class DatabaseService extends ChangeNotifier {
     _customPlaylists.clear();
     _downloadsMap.clear();
     _historyList.clear();
+    _searchHistory.clear();
 
     await Future.wait([
       StorageEngine.removeItem(_keyFavorites),
       StorageEngine.removeItem(_keyPlaylists),
       StorageEngine.removeItem(_keyDownloads),
       StorageEngine.removeItem(_keyHistory),
+      StorageEngine.removeItem(_keySearchHistory),
     ]);
 
     notifyListeners();

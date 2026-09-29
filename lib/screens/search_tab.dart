@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/music_api_service.dart';
+import '../services/database_service.dart';
+import '../services/theme_service.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/now_playing_screen.dart';
 
 class SearchTab extends StatefulWidget {
   const SearchTab({super.key});
@@ -21,25 +24,23 @@ class _SearchTabState extends State<SearchTab> {
   List<Song> _searchResults = [];
   List<String> _suggestions = [];
 
-  final List<String> _popularKeywords = [
-    'jiya dhadak dhadak',
-    'jiya jale',
-    'jiya lage na',
-    'jiya re',
-    'jiya jiya re',
-    'kesariya',
-    'apna bana le',
-    'diljit dosanjh hits',
-    'sidhu moosewala',
-    'arijit singh melodies',
-    'shreya ghoshal classics',
-    'lofi sukoon hindi',
+  // Trending discovery pills shown ONLY when search history is empty
+  final List<String> _trendingTags = [
+    'Trending Top 50',
+    'Arijit Singh',
+    'Bollywood Hits',
+    'Punjabi Pop',
+    'Diljit Dosanjh',
+    'Lo-Fi Sukoon',
+    'Romantic Melodies',
+    '90s Retro Classics',
+    'Shreya Ghoshal',
+    'Party & Dance',
   ];
 
   @override
   void initState() {
     super.initState();
-    _suggestions = _popularKeywords.take(6).toList();
   }
 
   @override
@@ -59,41 +60,21 @@ class _SearchTabState extends State<SearchTab> {
         _searchQuery = '';
         _isLoading = false;
         _searchResults = [];
-        _suggestions = _popularKeywords.take(6).toList();
+        _suggestions = [];
       });
       return;
     }
 
-    // Generate dynamic autocomplete suggestions matching query (Screenshot 4)
     final q = trimmed.toLowerCase();
-    final matchedSuggestions = <String>[];
-    
-    // Exact or prefix matches from popular keywords
-    for (final kw in _popularKeywords) {
-      if (kw.toLowerCase().contains(q) && !matchedSuggestions.contains(kw)) {
-        matchedSuggestions.add(kw);
-      }
-    }
-    
-    // Add variations if fewer than 5
-    if (!matchedSuggestions.contains(trimmed.toLowerCase())) {
-      matchedSuggestions.insert(0, trimmed.toLowerCase());
-    }
-    if (matchedSuggestions.length < 6) {
-      matchedSuggestions.add('$trimmed acoustic');
-      matchedSuggestions.add('$trimmed lofi remix');
-      matchedSuggestions.add('$trimmed 320kbps');
-    }
 
     setState(() {
       _searchQuery = trimmed;
       _isLoading = true;
-      _suggestions = matchedSuggestions.take(6).toList();
     });
 
     _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
       final manager = MusicPlayerManager();
-      
+
       // 1. Local matches
       final localMatches = manager.allSongs.where((s) {
         return s.title.toLowerCase().contains(q) ||
@@ -115,9 +96,25 @@ class _SearchTabState extends State<SearchTab> {
         }
       }
 
+      // Generate dynamic autocomplete suggestions from real search results
+      final dynamicSuggestions = <String>[];
+      dynamicSuggestions.add(trimmed);
+
+      for (final s in combined) {
+        if (!dynamicSuggestions.any((item) => item.toLowerCase() == s.title.toLowerCase()) &&
+            dynamicSuggestions.length < 5) {
+          dynamicSuggestions.add(s.title);
+        }
+        if (!dynamicSuggestions.any((item) => item.toLowerCase() == s.artist.toLowerCase()) &&
+            dynamicSuggestions.length < 5) {
+          dynamicSuggestions.add(s.artist);
+        }
+      }
+
       if (mounted && _searchQuery == trimmed) {
         setState(() {
           _searchResults = combined;
+          _suggestions = dynamicSuggestions;
           _isLoading = false;
         });
       }
@@ -125,35 +122,47 @@ class _SearchTabState extends State<SearchTab> {
   }
 
   void _triggerSearch(String term) {
-    _searchController.text = term;
+    final trimmed = term.trim();
+    if (trimmed.isEmpty) return;
+
+    _searchController.text = trimmed;
     _searchController.selection = TextSelection.fromPosition(
-      TextPosition(offset: term.length),
+      TextPosition(offset: trimmed.length),
     );
-    _onSearchChanged(term);
+    DatabaseService.instance.addSearchQuery(trimmed);
+    _onSearchChanged(trimmed);
   }
 
   @override
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
+    final db = DatabaseService.instance;
+    final isDark = AppThemeManager.instance.isDarkMode;
 
     return AnimatedBuilder(
-      animation: manager,
+      animation: Listenable.merge([manager, db]),
       builder: (context, _) {
+        final recentSearches = db.searchHistory;
+
         return Scaffold(
-          backgroundColor: const Color(0xFF000000),
+          backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF8FAFC),
           body: SafeArea(
             bottom: false,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Top Search Bar (Screenshot 4)
+                // 1. Top Search Header
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 4),
+                  padding: const EdgeInsets.fromLTRB(8, 8, 16, 8),
                   child: Row(
                     children: [
                       // Back Button
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 24),
+                        icon: Icon(
+                          Icons.arrow_back_rounded,
+                          color: AppThemeManager.textPrimary(context),
+                          size: 24,
+                        ),
                         onPressed: () {
                           if (Navigator.canPop(context)) {
                             Navigator.pop(context);
@@ -165,22 +174,41 @@ class _SearchTabState extends State<SearchTab> {
 
                       // Text Field
                       Expanded(
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _focusNode,
-                          autofocus: false,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.normal,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF14141E) : const Color(0xFFE2E8F0),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                            ),
                           ),
-                          cursorColor: Colors.white,
-                          onChanged: _onSearchChanged,
-                          decoration: const InputDecoration(
-                            hintText: 'Search songs, artists...',
-                            hintStyle: TextStyle(color: Colors.white38, fontSize: 18),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _focusNode,
+                            autofocus: true,
+                            style: TextStyle(
+                              color: AppThemeManager.textPrimary(context),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            cursorColor: const Color(0xFF6366F1),
+                            onChanged: _onSearchChanged,
+                            onSubmitted: (val) {
+                              if (val.trim().isNotEmpty) {
+                                DatabaseService.instance.addSearchQuery(val.trim());
+                              }
+                            },
+                            decoration: InputDecoration(
+                              hintText: 'Search songs, artists, albums...',
+                              hintStyle: TextStyle(
+                                color: AppThemeManager.textMuted(context),
+                                fontSize: 15,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
                           ),
                         ),
                       ),
@@ -188,39 +216,189 @@ class _SearchTabState extends State<SearchTab> {
                       // Clear Button (✕)
                       if (_searchController.text.isNotEmpty)
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: AppThemeManager.textSecondary(context),
+                            size: 20,
+                          ),
                           onPressed: () {
                             _searchController.clear();
                             _onSearchChanged('');
                           },
                         ),
-
-                      // Globe Button
-                      IconButton(
-                        icon: const Icon(Icons.language_rounded, color: Colors.white, size: 22),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Searching global 320 kbps library & multi-language catalogs'),
-                              duration: Duration(seconds: 2),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        },
-                      ),
                     ],
                   ),
                 ),
 
-                const Divider(height: 1, color: Color(0xFF1C1C1E)),
+                Divider(
+                  height: 1,
+                  color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0),
+                ),
 
-                // 2. Body: Autocomplete Suggestions + Top Results (Screenshot 4)
+                // 2. Body: Recent Searches / Discovery / Search Results
                 Expanded(
                   child: ListView(
                     physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
                     children: [
-                      // Autocomplete Suggestions List with ↖ action button
-                      if (_suggestions.isNotEmpty)
+                      // A. When Query is Empty -> Show User's Real Search History (with Clear option)
+                      if (_searchQuery.isEmpty) ...[
+                        if (recentSearches.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(18, 12, 16, 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.history_rounded,
+                                      size: 18,
+                                      color: Color(0xFF6366F1),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Recent Searches',
+                                      style: TextStyle(
+                                        color: AppThemeManager.textPrimary(context),
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(50, 30),
+                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  onPressed: () => db.clearSearchHistory(),
+                                  child: const Text(
+                                    'Clear all',
+                                    style: TextStyle(
+                                      color: Color(0xFFEF4444),
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ...recentSearches.map((term) {
+                            return InkWell(
+                              onTap: () {
+                                _triggerSearch(term);
+                                _focusNode.unfocus();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF181822)
+                                            : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.history_rounded,
+                                          color: AppThemeManager.textSecondary(context),
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Text(
+                                        term,
+                                        style: TextStyle(
+                                          color: AppThemeManager.textPrimary(context),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.close_rounded,
+                                        color: AppThemeManager.textMuted(context),
+                                        size: 18,
+                                      ),
+                                      splashRadius: 18,
+                                      onPressed: () => db.removeSearchQuery(term),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Discover Trending Section
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.local_fire_department_rounded,
+                                size: 18,
+                                color: Color(0xFFF59E0B),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Trending & Discover',
+                                style: TextStyle(
+                                  color: AppThemeManager.textPrimary(context),
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _trendingTags.map((tag) {
+                              return ActionChip(
+                                label: Text(tag),
+                                labelStyle: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                ),
+                                backgroundColor: isDark
+                                    ? const Color(0xFF14141E)
+                                    : const Color(0xFFF1F5F9),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: isDark
+                                        ? Colors.white.withValues(alpha: 0.08)
+                                        : const Color(0xFFE2E8F0),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  _triggerSearch(tag);
+                                  _focusNode.unfocus();
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ],
+
+                      // B. When Query is Typed -> Dynamic Suggestions
+                      if (_searchQuery.isNotEmpty && _suggestions.isNotEmpty) ...[
                         ..._suggestions.map((suggestion) {
                           return InkWell(
                             onTap: () {
@@ -228,45 +406,44 @@ class _SearchTabState extends State<SearchTab> {
                               _focusNode.unfocus();
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                               child: Row(
                                 children: [
-                                  // Dark rounded search icon container
                                   Container(
-                                    width: 44,
-                                    height: 44,
+                                    width: 36,
+                                    height: 36,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF141416),
-                                      borderRadius: BorderRadius.circular(14),
+                                      color: isDark
+                                          ? const Color(0xFF181822)
+                                          : const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                    child: const Center(
+                                    child: Center(
                                       child: Icon(
                                         Icons.search_rounded,
-                                        color: Colors.white70,
-                                        size: 20,
+                                        color: AppThemeManager.textSecondary(context),
+                                        size: 18,
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(width: 16),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Text(
                                       suggestion,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
+                                      style: TextStyle(
+                                        color: AppThemeManager.textPrimary(context),
+                                        fontSize: 15,
                                         fontWeight: FontWeight.normal,
                                       ),
                                     ),
                                   ),
-                                  // North-West arrow action button (Screenshot 4)
                                   IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.north_west_rounded,
-                                      color: Colors.white54,
+                                      color: AppThemeManager.textMuted(context),
                                       size: 18,
                                     ),
                                     onPressed: () {
-                                      // Fills text without submitting
                                       _searchController.text = suggestion;
                                       _searchController.selection = TextSelection.fromPosition(
                                         TextPosition(offset: suggestion.length),
@@ -279,26 +456,28 @@ class _SearchTabState extends State<SearchTab> {
                             ),
                           );
                         }),
+                      ],
 
-                      // 3. | Top Results Section (Screenshot 4)
+                      // C. Search Results Section
                       if (_searchResults.isNotEmpty) ...[
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
+                          padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
                           child: Row(
-                            children: const [
-                              Text(
-                                '|  ',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
+                            children: [
+                              Container(
+                                width: 3,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6366F1),
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
-                                'Top Results',
+                                'Top Results (${_searchResults.length})',
                                 style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 17,
+                                  color: AppThemeManager.textPrimary(context),
+                                  fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -311,6 +490,9 @@ class _SearchTabState extends State<SearchTab> {
                           return Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             child: ListTile(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
                               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
@@ -322,8 +504,8 @@ class _SearchTabState extends State<SearchTab> {
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 48,
                                     height: 48,
-                                    color: const Color(0xFF1C1C1E),
-                                    child: const Icon(Icons.music_note, color: Colors.white30),
+                                    color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE2E8F0),
+                                    child: Icon(Icons.music_note, color: AppThemeManager.textMuted(context)),
                                   ),
                                 ),
                               ),
@@ -332,26 +514,46 @@ class _SearchTabState extends State<SearchTab> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: isCurrent ? const Color(0xFFE5A5A5) : Colors.white,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  color: isCurrent
+                                      ? const Color(0xFF818CF8)
+                                      : AppThemeManager.textPrimary(context),
+                                  fontSize: 14.5,
+                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
                                 ),
                               ),
                               subtitle: Text(
                                 song.artist,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Color(0xFF8E8E93),
-                                  fontSize: 13,
+                                style: TextStyle(
+                                  color: AppThemeManager.textSecondary(context),
+                                  fontSize: 12.5,
                                 ),
                               ),
                               trailing: IconButton(
-                                icon: const Icon(Icons.more_vert_rounded, color: Colors.white54),
+                                icon: Icon(
+                                  Icons.more_vert_rounded,
+                                  color: AppThemeManager.textMuted(context),
+                                ),
                                 onPressed: () => TrackOptionsSheet.show(context, song),
                               ),
                               onTap: () {
-                                manager.playSong(song, newQueue: _searchResults);
+                                DatabaseService.instance.addSearchQuery(_searchQuery.isNotEmpty ? _searchQuery : song.title);
+                                manager.playSongFromSearch(song);
+
+                                Navigator.of(context).push(
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, anim1, anim2) => const NowPlayingScreen(),
+                                    transitionsBuilder: (context, anim1, anim2, child) {
+                                      const begin = Offset(0.0, 1.0);
+                                      const end = Offset.zero;
+                                      const curve = Curves.easeOutCubic;
+                                      final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                                      return SlideTransition(position: anim1.drive(tween), child: child);
+                                    },
+                                    transitionDuration: const Duration(milliseconds: 300),
+                                  ),
+                                );
                               },
                             ),
                           );
@@ -363,8 +565,32 @@ class _SearchTabState extends State<SearchTab> {
                           padding: EdgeInsets.all(40),
                           child: Center(
                             child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5A5A5)),
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
                             ),
+                          ),
+                        ),
+
+                      if (!_isLoading && _searchQuery.isNotEmpty && _searchResults.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(48),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.search_off_rounded,
+                                size: 54,
+                                color: AppThemeManager.textMuted(context),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'No results found for "$_searchQuery"',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppThemeManager.textSecondary(context),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
 
