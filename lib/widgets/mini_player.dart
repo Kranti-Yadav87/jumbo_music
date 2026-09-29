@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import 'now_playing_screen.dart';
-import 'track_options_sheet.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
