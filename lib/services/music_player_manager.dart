@@ -106,10 +106,21 @@ class MusicPlayerManager extends ChangeNotifier {
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
+  bool _isQueueLocked = false;
+  bool get isQueueLocked => _isQueueLocked;
+  void toggleQueueLock() {
+    _isQueueLocked = !_isQueueLocked;
+    notifyListeners();
+  }
+
   bool get autoplay => _autoplay;
   bool get isLoadingRecommendations => _isLoadingRecommendations;
   void toggleAutoplay() {
     _autoplay = !_autoplay;
+    DatabaseService.instance.saveSetting('autoplay', _autoplay);
+    if (_autoplay && currentSong != null && _queue.length < 30) {
+      _infillSmartQueue(currentSong!);
+    }
     notifyListeners();
   }
 
@@ -426,15 +437,15 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> _infillSmartQueue(Song seedSong) async {
-    if (!_autoplay || _isLoadingRecommendations) return;
-    if (_lastInfilledSongId == seedSong.id) return;
+    if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
+    if (_lastInfilledSongId == seedSong.id && _queue.length >= 30) return;
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
     notifyListeners();
 
     try {
-      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 12);
+      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 50);
       if (freshTracks.isNotEmpty) {
         final Set<String> existingQueueIds = _queue.map((s) => s.id).toSet();
         final List<Song> newTracks =

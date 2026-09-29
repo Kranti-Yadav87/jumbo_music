@@ -301,61 +301,165 @@ Genre: $genre
     return [];
   }
 
-  /// Discovers 10-15 related, diverse songs matching the seed song's style
-  /// but distinct from the seed track itself ("jo search kiya uss se hat ke").
-  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 15}) async {
-    final List<String> discoveryQueries = [];
+  /// Discovers 50+ related, diverse songs matching the seed song's artist,
+  /// style and mood for endless "Continue Playing - Autoplaying similar music".
+  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 50}) async {
+    final List<Song> recommendations = [];
+    final Set<String> seenIds = {seedSong.id};
+    final Set<String> seenTitles = {seedSong.title.toLowerCase().trim()};
 
+    // 1. Direct Artist Match: Fetch top tracks from the seed song's artist
+    final rawArtist = seedSong.artist
+        .split(',')
+        .first
+        .split('&')
+        .first
+        .split('feat.')
+        .first
+        .trim();
+    if (rawArtist.isNotEmpty &&
+        rawArtist.toLowerCase() != 'unknown artist' &&
+        rawArtist.toLowerCase() != 'music') {
+      try {
+        final artistSongs = await searchLiveSongs(rawArtist, limit: 20);
+        for (final song in artistSongs) {
+          final lowerTitle = song.title.toLowerCase().trim();
+          if (!seenIds.contains(song.id) &&
+              !seenTitles.contains(lowerTitle) &&
+              !lowerTitle.contains(seedSong.title.toLowerCase()) &&
+              song.audioUrl.isNotEmpty) {
+            seenIds.add(song.id);
+            seenTitles.add(lowerTitle);
+            recommendations.add(song);
+            if (recommendations.length >= limit) return recommendations;
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Contextual Mood & Related Discovery Queries
+    final List<String> discoveryQueries = [];
     final artistLower = seedSong.artist.toLowerCase();
     final genreLower = seedSong.genre.toLowerCase();
+    final titleLower = seedSong.title.toLowerCase();
 
-    if (artistLower.contains('arijit') || artistLower.contains('sukoon') || genreLower.contains('bollywood')) {
-      discoveryQueries.addAll(['Mohit Chauhan', 'Atif Aslam', 'Shreya Ghoshal', 'KK Hindi', 'Jubin Nautiyal']);
-    } else if (artistLower.contains('diljit') || artistLower.contains('sidhu') || genreLower.contains('punjabi')) {
-      discoveryQueries.addAll(['Karan Aujla', 'AP Dhillon', 'Shubh', 'Amrinder Gill', 'B Praak']);
-    } else if (genreLower.contains('lo-fi') || genreLower.contains('chill') || artistLower.contains('kranti') || artistLower.contains('beats')) {
-      discoveryQueries.addAll(['Lo-Fi Hindi Sukoon', 'Chillhop beats', 'Midnight Rain Lo-Fi', 'Coffee Study Chill']);
-    } else if (genreLower.contains('edm') || genreLower.contains('party') || genreLower.contains('dance')) {
-      discoveryQueries.addAll(['Nucleya', 'Ritviz', 'Desi EDM Party', 'Club Dance Hits']);
-    } else if (genreLower.contains('acoustic') || artistLower.contains('kabir') || artistLower.contains('sanaya')) {
-      discoveryQueries.addAll(['Anuv Jain', 'Prateek Kuhad', 'Jasleen Royal', 'Acoustic Hindi Hits']);
+    if (artistLower.contains('quratulain') ||
+        artistLower.contains('balouch') ||
+        artistLower.contains('kaifi') ||
+        artistLower.contains('afusic') ||
+        artistLower.contains('kushagra') ||
+        artistLower.contains('faheem') ||
+        artistLower.contains('bhoomi') ||
+        artistLower.contains('sufi') ||
+        genreLower.contains('indie') ||
+        genreLower.contains('acoustic') ||
+        genreLower.contains('romantic') ||
+        genreLower.contains('bollywood') ||
+        artistLower.contains('arijit') ||
+        artistLower.contains('sukoon')) {
+      discoveryQueries.addAll([
+        'Jaane Na Tu',
+        'Sitaare Arijit',
+        'Pal Pal Afusic',
+        'Ishq Faheem Abdullah',
+        'Pyar Se Kushagra',
+        'Starstruck UR DEBUT',
+        'Kahani Suno Kaifi',
+        'Suniyan Suniyan Juss',
+        'Ve Haaniyaan',
+        'Mohit Chauhan Hits',
+        'Atif Aslam Sukoon',
+        'Shreya Ghoshal Hits',
+        'KK Hindi Hits',
+        'Arijit Singh Romantic',
+        'Jubin Nautiyal Sukoon',
+        'Coke Studio Hits',
+      ]);
+    } else if (artistLower.contains('diljit') ||
+        artistLower.contains('sidhu') ||
+        artistLower.contains('karan') ||
+        artistLower.contains('shubh') ||
+        genreLower.contains('punjabi')) {
+      discoveryQueries.addAll([
+        'Diljit Dosanjh Hits',
+        'Karan Aujla New',
+        'AP Dhillon Hits',
+        'Sidhu Moosewala Hits',
+        'Suniyan Suniyan Juss',
+        'Ve Haaniyaan',
+        'Shubh Punjabi Hits',
+        'Amrinder Gill Hits',
+      ]);
+    } else if (genreLower.contains('lo-fi') || genreLower.contains('chill')) {
+      discoveryQueries.addAll([
+        'Lo-Fi Hindi Sukoon',
+        'Chillhop beats',
+        'Midnight Lo-Fi',
+        'Anuv Jain Hits',
+        'Jasleen Royal Acoustic',
+        'Prateek Kuhad Melodies',
+      ]);
+    } else if (genreLower.contains('edm') || genreLower.contains('dance')) {
+      discoveryQueries.addAll([
+        'Nucleya Bass',
+        'Ritviz Hits',
+        'Desi Party Hits',
+        'Club Dance Bollywood',
+      ]);
     } else {
-      discoveryQueries.addAll(['Trending Bollywood Hits', 'Top India Hits', 'Romantic Melodies']);
+      discoveryQueries.addAll([
+        'Trending Hindi Songs',
+        'Top Bollywood Melodies',
+        'India Top 50 Hits',
+        'Viral Spotify India',
+      ]);
     }
 
     discoveryQueries.shuffle();
-    final selectedQueries = discoveryQueries.take(2).toList();
-
-    final List<Song> recommendations = [];
-    final Set<String> seenIds = {seedSong.id};
-    final Set<String> seenTitles = {seedSong.title.toLowerCase()};
-
-    for (final query in selectedQueries) {
-      final results = await searchLiveSongs(query, limit: 12);
-      for (final song in results) {
-        final lowerTitle = song.title.toLowerCase();
-        if (!seenIds.contains(song.id) &&
-            !seenTitles.contains(lowerTitle) &&
-            !lowerTitle.contains(seedSong.title.toLowerCase()) &&
-            song.audioUrl.isNotEmpty) {
-          seenIds.add(song.id);
-          seenTitles.add(lowerTitle);
-          recommendations.add(song);
-          if (recommendations.length >= limit) break;
-        }
-      }
+    for (final query in discoveryQueries) {
       if (recommendations.length >= limit) break;
+      try {
+        final results = await searchLiveSongs(query, limit: 12);
+        for (final song in results) {
+          final lowerTitle = song.title.toLowerCase().trim();
+          if (!seenIds.contains(song.id) &&
+              !seenTitles.contains(lowerTitle) &&
+              !lowerTitle.contains(seedSong.title.toLowerCase()) &&
+              song.audioUrl.isNotEmpty) {
+            seenIds.add(song.id);
+            seenTitles.add(lowerTitle);
+            recommendations.add(song);
+            if (recommendations.length >= limit) break;
+          }
+        }
+      } catch (_) {}
     }
 
-    if (recommendations.length < 5) {
-      final trending = await fetchTrendingToday();
-      for (final song in trending) {
-        if (!seenIds.contains(song.id) && song.id != seedSong.id) {
-          seenIds.add(song.id);
-          recommendations.add(song);
-          if (recommendations.length >= limit) break;
+    // 3. Fallback: Trending Today and Top 50 to ensure full 50-song queue
+    if (recommendations.length < limit) {
+      try {
+        final trending = await fetchTrendingToday();
+        for (final song in trending) {
+          if (!seenIds.contains(song.id) && song.id != seedSong.id) {
+            seenIds.add(song.id);
+            recommendations.add(song);
+            if (recommendations.length >= limit) break;
+          }
         }
-      }
+      } catch (_) {}
+    }
+
+    if (recommendations.length < limit) {
+      try {
+        final top50 = await fetchIndiaTop50();
+        for (final song in top50) {
+          if (!seenIds.contains(song.id) && song.id != seedSong.id) {
+            seenIds.add(song.id);
+            recommendations.add(song);
+            if (recommendations.length >= limit) break;
+          }
+        }
+      } catch (_) {}
     }
 
     return recommendations;
