@@ -78,52 +78,83 @@ class _HomeTabState extends State<HomeTab> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Text(
-                              _getGreeting(),
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppThemeManager.textSecondary(context),
-                                fontWeight: FontWeight.w500,
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(11),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(11),
+                                child: Image.asset(
+                                  'assets/images/app_logo.png',
+                                  width: 38,
+                                  height: 38,
+                                  fit: BoxFit.cover,
+                                ),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    'JUMBO MUSIC',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _getGreeting(),
                                     style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 0.8,
-                                      color: AppThemeManager.textPrimary(context),
+                                      fontSize: 11.5,
+                                      color: AppThemeManager.textSecondary(context),
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
+                                  const SizedBox(height: 1),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          'JUMBO MUSIC',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.8,
+                                            color: AppThemeManager.textPrimary(context),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
+                                        ),
+                                        child: const Text(
+                                          'PRO',
+                                          style: TextStyle(
+                                            fontSize: 8.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF818CF8),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  child: const Text(
-                                    'PRO',
-                                    style: TextStyle(
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF818CF8),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
