@@ -181,9 +181,25 @@
     window._jumboAudioCtx = null;
     window._jumboSilentGain = null;
     window._jumboWakeLock = null;
+    window._jumboKeepAliveAudio = null;
+
+    function getKeepAliveAudio() {
+      if (!window._jumboKeepAliveAudio) {
+        window._jumboKeepAliveAudio = new Audio();
+        // 1-second silent WAV audio data URI
+        window._jumboKeepAliveAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+        window._jumboKeepAliveAudio.loop = true;
+        window._jumboKeepAliveAudio.volume = 0.001; // inaudible but keeps OS background audio session 100% active
+      }
+      return window._jumboKeepAliveAudio;
+    }
 
     window.jumboStartAudioKeepAlive = function() {
       try {
+        var audio = getKeepAliveAudio();
+        if (audio.paused) {
+          audio.play().catch(function(){});
+        }
         var AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!window._jumboAudioCtx && AudioContextClass) {
           window._jumboAudioCtx = new AudioContextClass();
@@ -217,6 +233,9 @@
 
     window.jumboStopAudioKeepAlive = function() {
       try {
+        if (window._jumboKeepAliveAudio) {
+          window._jumboKeepAliveAudio.pause();
+        }
         if (window._jumboWakeLock) {
           window._jumboWakeLock.release().catch(function(){});
           window._jumboWakeLock = null;
@@ -224,7 +243,7 @@
       } catch (e) {}
     };
 
-    // User gesture handler to enable Web Audio Context
+    // User gesture handler to enable Web Audio Context & KeepAlive
     document.addEventListener('pointerdown', function() {
       if (window._jumboAudioCtx && window._jumboAudioCtx.state === 'suspended') {
         window._jumboAudioCtx.resume();
@@ -286,14 +305,13 @@
       window.jumboMediaActionHandler = handler;
       if (!('mediaSession' in navigator)) return;
 
+      // Register Previous Track and Next Track explicitly so lock screen controls always show them
       var actions = [
         ['play', function() { window.jumboDispatchMediaAction('play', 0); }],
         ['pause', function() { window.jumboDispatchMediaAction('pause', 0); }],
         ['previoustrack', function() { window.jumboDispatchMediaAction('previous', 0); }],
         ['nexttrack', function() { window.jumboDispatchMediaAction('next', 0); }],
-        ['seekto', function(details) { window.jumboDispatchMediaAction('seek', details ? details.seekTime : 0); }],
-        ['seekbackward', function(details) { window.jumboDispatchMediaAction('seekbackward', details ? (details.seekOffset || 10) : 10); }],
-        ['seekforward', function(details) { window.jumboDispatchMediaAction('seekforward', details ? (details.seekOffset || 10) : 10); }]
+        ['seekto', function(details) { window.jumboDispatchMediaAction('seek', details ? details.seekTime : 0); }]
       ];
 
       for (var i = 0; i < actions.length; i++) {
@@ -301,7 +319,23 @@
           navigator.mediaSession.setActionHandler(actions[i][0], actions[i][1]);
         } catch (e) {}
       }
+
+      // Explicitly remove seekbackward/seekforward so mobile lock screen MUST show PREVIOUS TRACK & NEXT TRACK!
+      try { navigator.mediaSession.setActionHandler('seekbackward', null); } catch (e) {}
+      try { navigator.mediaSession.setActionHandler('seekforward', null); } catch (e) {}
     };
+
+    // Auto-init mediaSession action handlers immediately
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.setActionHandler('play', function() { window.jumboDispatchMediaAction('play', 0); });
+        navigator.mediaSession.setActionHandler('pause', function() { window.jumboDispatchMediaAction('pause', 0); });
+        navigator.mediaSession.setActionHandler('previoustrack', function() { window.jumboDispatchMediaAction('previous', 0); });
+        navigator.mediaSession.setActionHandler('nexttrack', function() { window.jumboDispatchMediaAction('next', 0); });
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
+      } catch (e) {}
+    }
 
     window.jumboDispatchMediaAction = function(action, param) {
       if (typeof window.jumboMediaActionHandler === 'function') {
