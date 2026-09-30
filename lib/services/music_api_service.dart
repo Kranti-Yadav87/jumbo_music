@@ -336,14 +336,83 @@ Genre: $genre
       } catch (_) {}
     }
 
-    // 2. Contextual Mood & Related Discovery Queries
+    // 2. Contextual Era, Mood & Related Discovery Queries
     final List<String> discoveryQueries = [];
     final artistLower = seedSong.artist.toLowerCase();
     final genreLower = seedSong.genre.toLowerCase();
-
     final titleLower = seedSong.title.toLowerCase();
 
-    if (artistLower.contains('king') ||
+    final isOldClassic = artistLower.contains('asha bhosle') ||
+        artistLower.contains('lata mangeshkar') ||
+        artistLower.contains('kishore kumar') ||
+        artistLower.contains('mohammed rafi') ||
+        artistLower.contains('mohd rafi') ||
+        artistLower.contains('rafi') ||
+        artistLower.contains('mukesh') ||
+        artistLower.contains('r. d. burman') ||
+        artistLower.contains('rd burman') ||
+        artistLower.contains('s. d. burman') ||
+        artistLower.contains('sd burman') ||
+        artistLower.contains('hemant kumar') ||
+        artistLower.contains('talat mahmood') ||
+        artistLower.contains('manna dey') ||
+        artistLower.contains('geeta dutt') ||
+        artistLower.contains('jagjit singh') ||
+        artistLower.contains('kalyanji') ||
+        artistLower.contains('laxmikant') ||
+        artistLower.contains('anuradha paudwal') ||
+        artistLower.contains('kumar sanu') ||
+        artistLower.contains('alka yagnik') ||
+        artistLower.contains('udit narayan') ||
+        artistLower.contains('pankaj udhas') ||
+        artistLower.contains('chitra singh') ||
+        artistLower.contains('bhupinder') ||
+        artistLower.contains('salil chowdhury') ||
+        artistLower.contains('naushad') ||
+        artistLower.contains('mubarak begum') ||
+        titleLower.contains('sajna hai mujhe') ||
+        titleLower.contains('lag ja gale') ||
+        titleLower.contains('pal pal dil') ||
+        titleLower.contains('roop tera') ||
+        titleLower.contains('kabhie kabhie') ||
+        titleLower.contains('mere sapno ki') ||
+        titleLower.contains('pyar kiya to') ||
+        titleLower.contains('tere bina zindagi') ||
+        genreLower.contains('retro') ||
+        genreLower.contains('classic') ||
+        genreLower.contains('old') ||
+        genreLower.contains('70s') ||
+        genreLower.contains('80s') ||
+        genreLower.contains('90s') ||
+        genreLower.contains('evergreen') ||
+        genreLower.contains('ghazal') ||
+        genreLower.contains('golden');
+
+    if (isOldClassic) {
+      // STRICT PURANE GAANE (Evergreen 60s, 70s, 80s, 90s Golden Era Classics Only)
+      discoveryQueries.addAll([
+        'Kishore Kumar Evergreen Hits',
+        'Lata Mangeshkar Golden Hits',
+        'Mohammed Rafi Classic Romantic',
+        'Asha Bhosle Retro Hits',
+        'Mukesh Bollywood Classics',
+        'RD Burman 70s Superhits',
+        'Kalyanji Anandji Superhits',
+        'Laxmikant Pyarelal Hits',
+        'Golden Era Bollywood 70s',
+        '80s Romantic Hindi Classics',
+        'Purane Gane Superhits',
+        '90s Melodies Kumar Sanu Alka',
+        'Lata Kishore Duets',
+        'Asha Kishore Duets',
+        'Rafi Asha Bhosle Duets',
+        'Jagjit Singh Ghazals',
+        'Manna Dey Classic Hits',
+        'Evergreen 70s Bollywood Melodies',
+        'Mohammed Rafi Sad Songs',
+        'Kishore Kumar Romantic Hits',
+      ]);
+    } else if (artistLower.contains('king') ||
         titleLower.contains('teri ho na saki') ||
         titleLower.contains('maan meri jaan') ||
         titleLower.contains('tu aake dekhle') ||
@@ -452,7 +521,7 @@ Genre: $genre
     for (final query in discoveryQueries) {
       if (recommendations.length >= limit) break;
       try {
-        final results = await searchLiveSongs(query, limit: 12);
+        final results = await searchLiveSongs(query, limit: 10);
         for (final song in results) {
           final lowerTitle = song.title.toLowerCase().trim();
           if (!seenIds.contains(song.id) &&
@@ -468,21 +537,33 @@ Genre: $genre
       } catch (_) {}
     }
 
-    // 3. Fallback: Trending Today and Top 50 to ensure full 50-song queue
+    // 3. Fallback: Contextual era-safe fallback to ensure 50-60 song queue
     if (recommendations.length < limit) {
       try {
-        final trending = await fetchTrendingToday();
-        for (final song in trending) {
-          if (!seenIds.contains(song.id) && song.id != seedSong.id) {
-            seenIds.add(song.id);
-            recommendations.add(song);
-            if (recommendations.length >= limit) break;
+        if (isOldClassic) {
+          final duetsResult = await fetchPlaylist('159470188'); // 90s & Golden Era Duets
+          final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
+          for (final song in duetsSongs) {
+            if (!seenIds.contains(song.id) && song.id != seedSong.id) {
+              seenIds.add(song.id);
+              recommendations.add(song);
+              if (recommendations.length >= limit) break;
+            }
+          }
+        } else {
+          final trending = await fetchTrendingToday();
+          for (final song in trending) {
+            if (!seenIds.contains(song.id) && song.id != seedSong.id) {
+              seenIds.add(song.id);
+              recommendations.add(song);
+              if (recommendations.length >= limit) break;
+            }
           }
         }
       } catch (_) {}
     }
 
-    if (recommendations.length < limit) {
+    if (recommendations.length < limit && !isOldClassic) {
       try {
         final top50 = await fetchIndiaTop50();
         for (final song in top50) {

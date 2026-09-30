@@ -492,9 +492,10 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _infillSmartQueue(Song seedSong) async {
+  Future<void> _infillSmartQueue(Song seedSong, {int targetQueueSize = 55}) async {
     if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_lastInfilledSongId == seedSong.id && _queue.length >= 30) return;
+    if (_queue.length >= targetQueueSize) return;
+    if (_lastInfilledSongId == seedSong.id && _queue.length >= 45) return;
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
@@ -508,11 +509,15 @@ class MusicPlayerManager extends ChangeNotifier {
             freshTracks.where((s) => !existingQueueIds.contains(s.id)).toList();
 
         if (newTracks.isNotEmpty) {
-          _queue.addAll(newTracks);
+          final int remainingSlots = targetQueueSize - _queue.length;
+          final tracksToAdd = remainingSlots > 0 ? newTracks.take(remainingSlots).toList() : <Song>[];
+          if (tracksToAdd.isNotEmpty) {
+            _queue.addAll(tracksToAdd);
+          }
 
           // Add to allSongs as well
           final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
-          for (final track in newTracks) {
+          for (final track in tracksToAdd) {
             if (!allIds.contains(track.id)) {
               _allSongs.add(track);
             }
@@ -525,44 +530,18 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Plays a song selected from Search and automatically builds a smart,
-  /// personalized radio queue based on user's feed, playlists, listening history,
-  /// favorites and live genre/artist recommendations (instead of raw search keyword matches).
+  /// Plays a song selected from Search and automatically builds a focused,
+  /// 50-song smart queue tailored strictly to that song's era, artist, and genre.
   Future<void> playSongFromSearch(Song song) async {
-    final personalizedQueue = <Song>[song];
-    final Set<String> seenIds = {song.id};
+    // Start with a clean queue containing the selected song
+    _queue = [song];
+    _currentIndex = 0;
 
-    // 1. Add user's recently played & favorite tracks
-    for (final s in [..._recentlyPlayed, ...favoriteSongs]) {
-      if (!seenIds.contains(s.id)) {
-        seenIds.add(s.id);
-        personalizedQueue.add(s);
-      }
-    }
+    // Play with focused queue
+    await playSong(song, newQueue: [song]);
 
-    // 2. Add songs from user's custom & curated playlists
-    for (final p in _playlists) {
-      for (final s in p.songs) {
-        if (!seenIds.contains(s.id)) {
-          seenIds.add(s.id);
-          personalizedQueue.add(s);
-        }
-      }
-    }
-
-    // 3. Add songs from home feed / online trending / general library
-    for (final s in [..._onlineTrending, ..._allSongs]) {
-      if (!seenIds.contains(s.id)) {
-        seenIds.add(s.id);
-        personalizedQueue.add(s);
-      }
-    }
-
-    // Play with personalized queue
-    await playSong(song, newQueue: personalizedQueue);
-
-    // 4. Fetch smart similar artist & style recommendations in the background
-    _infillSmartQueue(song);
+    // Asynchronously infill 50-55 strictly matching songs (e.g., Purane Gaane only for old songs)
+    _infillSmartQueue(song, targetQueueSize: 55);
   }
 
   Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
@@ -578,7 +557,19 @@ class MusicPlayerManager extends ChangeNotifier {
     if (queueToUse != null && queueToUse.isNotEmpty) {
       _queue = List.from(queueToUse);
     } else if (_queue.isEmpty || !_queue.any((s) => s.id == song.id)) {
-      _queue = List.from(_allSongs);
+      _queue = [song];
+    }
+
+    // Keep queue focused around 50-60 songs max
+    if (_queue.length > 60) {
+      final currentIdxInQueue = _queue.indexWhere((s) => s.id == song.id);
+      if (currentIdxInQueue != -1) {
+        final start = (currentIdxInQueue - 5).clamp(0, _queue.length);
+        final end = (start + 55).clamp(0, _queue.length);
+        _queue = _queue.sublist(start, end);
+      } else {
+        _queue = _queue.take(55).toList();
+      }
     }
 
     final index = _queue.indexWhere((s) => s.id == song.id);
@@ -591,8 +582,8 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Dynamic library generation & Smart queue infill
     _updateDynamicLibrary(song);
-    if (_autoplay) {
-      _infillSmartQueue(song);
+    if (_autoplay && _queue.length < 40) {
+      _infillSmartQueue(song, targetQueueSize: 55);
     }
 
     _isPlaying = true;

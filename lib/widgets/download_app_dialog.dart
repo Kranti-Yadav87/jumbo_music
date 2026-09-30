@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/pwa_install_helper.dart';
-import '../services/web_download_helper.dart';
 
 /// Shows the Download & Install App modal dialog or bottom sheet
 Future<void> showDownloadAppDialog(BuildContext context) {
@@ -102,23 +101,6 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
         setState(() => _isInstalling = false);
       }
     }
-  }
-
-  void _handleApkDownload() {
-    triggerBrowserDownload('app-release.apk', 'jumbo_music.apk');
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        content: Row(
-          children: [
-            Icon(Icons.download_done_rounded, color: Colors.white),
-            SizedBox(width: 10),
-            Text('Downloading Android APK...'),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -233,7 +215,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
             // Direct 1-Tap Install Button
             Container(
               width: double.infinity,
-              height: 48,
+              height: 50,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
@@ -268,9 +250,9 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Icon(Icons.download_rounded, size: 20),
+                    : const Icon(Icons.install_mobile_rounded, size: 22),
                 label: Text(
-                  _isInstalling ? 'Installing...' : 'Install App on Device',
+                  _isInstalling ? 'Installing Jumbo Music...' : '1-Tap Install Jumbo Music',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -280,34 +262,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
               ),
             ),
 
-            const SizedBox(height: 10),
-
-            // Optional direct APK action for Android users
-            SizedBox(
-              width: double.infinity,
-              height: 42,
-              child: OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF10B981),
-                  side: BorderSide(color: const Color(0xFF10B981).withOpacity(0.4)),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  backgroundColor: const Color(0xFF10B981).withOpacity(0.06),
-                ),
-                onPressed: _handleApkDownload,
-                icon: const Icon(Icons.android_rounded, size: 19),
-                label: const Text(
-                  'Download Android APK (Direct)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
             // Platform Instruction Cards (matching REC MedAssist style)
             _buildPlatformCard(
