@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/download_service.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/mini_player.dart';
 
 class DownloadedSongsScreen extends StatelessWidget {
   const DownloadedSongsScreen({super.key});
@@ -69,7 +70,9 @@ class DownloadedSongsScreen extends StatelessWidget {
                 ),
             ],
           ),
-          body: items.isEmpty
+          body: Stack(
+            children: [
+              items.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -253,15 +256,56 @@ class DownloadedSongsScreen extends StatelessWidget {
                                 TrackOptionsSheet.show(context, item.song);
                               },
                             ),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () {
+                                  if (isCurrent) {
+                                    playerManager.togglePlay();
+                                  } else {
+                                    playerManager.playSong(item.song, newQueue: songs);
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    isCurrent && isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_fill,
+                                    color: isCurrent
+                                        ? const Color(0xFF818CF8)
+                                        : Colors.grey.shade400,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         onTap: () {
-                          playerManager.playSong(item.song, newQueue: songs);
+                          if (isCurrent) {
+                            playerManager.togglePlay();
+                          } else {
+                            playerManager.playSong(item.song, newQueue: songs);
+                          }
                         },
                       ),
                     );
                   },
                 ),
+              if (playerManager.currentSong != null)
+                const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: SafeArea(
+                    top: false,
+                    child: MiniPlayer(),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

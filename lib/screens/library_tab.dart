@@ -626,7 +626,14 @@ class _LibraryTabState extends State<LibraryTab> {
                               ),
                               onPressed: () => TrackOptionsSheet.show(context, song),
                             ),
-                            onTap: () => manager.playSong(song, newQueue: manager.allSongs),
+                            onTap: () {
+                              final isCurrent = manager.currentSong?.id == song.id;
+                              if (isCurrent) {
+                                manager.togglePlay();
+                              } else {
+                                manager.playSong(song, newQueue: manager.allSongs);
+                              }
+                            },
                           ),
                         );
                       },

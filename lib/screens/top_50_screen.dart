@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/mini_player.dart';
 
 class Top50Screen extends StatelessWidget {
   const Top50Screen({super.key});
@@ -17,9 +18,11 @@ class Top50Screen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: const Color(0xFF000000),
-          body: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          body: Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
               // Top App Bar
               SliverAppBar(
                 backgroundColor: const Color(0xFF0D0D12),
@@ -339,7 +342,11 @@ class Top50Screen extends StatelessWidget {
                           ],
                         ),
                         onTap: () {
-                          manager.playSong(song, newQueue: top50);
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: top50);
+                          }
                         },
                       ),
                     );
@@ -348,11 +355,23 @@ class Top50Screen extends StatelessWidget {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 140)),
+              const SliverToBoxAdapter(child: SizedBox(height: 110)),
             ],
           ),
-        );
-      },
+          if (manager.currentSong != null)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: MiniPlayer(),
+              ),
+            ),
+        ],
+      ),
     );
+  },
+);
   }
 }

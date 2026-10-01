@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/music_api_service.dart';
 import '../widgets/song_tile.dart';
+import '../widgets/mini_player.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -128,9 +129,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
         return Scaffold(
           backgroundColor: const Color(0xFF0C0C14),
-          body: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          body: Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
               // Sliver App Bar with Playlist Cover
               SliverAppBar(
                 expandedHeight: 300,
@@ -331,12 +334,24 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
 
               // Padding at the bottom for floating miniplayer
               const SliverToBoxAdapter(
-                child: SizedBox(height: 100),
+                child: SizedBox(height: 110),
               ),
             ],
           ),
-        );
-      },
+          if (manager.currentSong != null)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: MiniPlayer(),
+              ),
+            ),
+        ],
+      ),
     );
+  },
+);
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/mini_player.dart';
 
 class CachedOfflineScreen extends StatelessWidget {
   const CachedOfflineScreen({super.key});
@@ -38,8 +39,10 @@ class CachedOfflineScreen extends StatelessWidget {
               ),
             ),
           ),
-          body: SafeArea(
-            child: Column(
+          body: Stack(
+            children: [
+              SafeArea(
+                child: Column(
               children: [
                 // Airplane / Offline Banner
                 Container(
@@ -192,15 +195,51 @@ class CachedOfflineScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                trailing: IconButton(
-                                  icon: Icon(
-                                    Icons.more_vert_rounded,
-                                    color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                    size: 20,
-                                  ),
-                                  onPressed: () => TrackOptionsSheet.show(context, song),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.more_vert_rounded,
+                                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                        size: 20,
+                                      ),
+                                      onPressed: () => TrackOptionsSheet.show(context, song),
+                                    ),
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        customBorder: const CircleBorder(),
+                                        onTap: () {
+                                          if (isCurrent) {
+                                            manager.togglePlay();
+                                          } else {
+                                            manager.playSong(song, newQueue: offlineSongs);
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(4),
+                                          child: Icon(
+                                            isCurrent && manager.isPlaying
+                                                ? Icons.pause_circle_filled
+                                                : Icons.play_circle_fill,
+                                            color: isCurrent
+                                                ? const Color(0xFF0EA5E9)
+                                                : Colors.grey.shade400,
+                                            size: 28,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                onTap: () => manager.playSong(song, newQueue: offlineSongs),
+                                onTap: () {
+                                  if (isCurrent) {
+                                    manager.togglePlay();
+                                  } else {
+                                    manager.playSong(song, newQueue: offlineSongs);
+                                  }
+                                },
                               ),
                             );
                           },
@@ -209,8 +248,20 @@ class CachedOfflineScreen extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
+          if (manager.currentSong != null)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: MiniPlayer(),
+              ),
+            ),
+        ],
+      ),
     );
+  },
+);
   }
 }

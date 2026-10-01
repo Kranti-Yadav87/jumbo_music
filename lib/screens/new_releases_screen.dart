@@ -3,6 +3,7 @@ import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/mini_player.dart';
 
 class NewReleasesScreen extends StatelessWidget {
   const NewReleasesScreen({super.key});
@@ -18,9 +19,11 @@ class NewReleasesScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: const Color(0xFF000000),
-          body: CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
+          body: Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
               // App Bar
               SliverAppBar(
                 backgroundColor: const Color(0xFF0D0D12),
@@ -218,7 +221,13 @@ class NewReleasesScreen extends StatelessWidget {
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        onTap: () => manager.playSong(song, newQueue: newReleases),
+                        onTap: () {
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: newReleases);
+                          }
+                        },
                         leading: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Stack(
@@ -297,6 +306,31 @@ class NewReleasesScreen extends StatelessWidget {
                                 );
                               },
                             ),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () {
+                                  if (isCurrent) {
+                                    manager.togglePlay();
+                                  } else {
+                                    manager.playSong(song, newQueue: newReleases);
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    isCurrent && manager.isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_fill,
+                                    color: isCurrent
+                                        ? const Color(0xFF818CF8)
+                                        : Colors.grey.shade400,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -307,12 +341,24 @@ class NewReleasesScreen extends StatelessWidget {
               ),
 
               const SliverToBoxAdapter(
-                child: SizedBox(height: 140),
+                child: SizedBox(height: 110),
               ),
             ],
           ),
-        );
-      },
+          if (manager.currentSong != null)
+            const Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SafeArea(
+                top: false,
+                child: MiniPlayer(),
+              ),
+            ),
+        ],
+      ),
     );
+  },
+);
   }
 }

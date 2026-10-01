@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../data/music_repository.dart';
 import '../models/playlist.dart';
 import '../services/music_api_service.dart';
+import '../services/music_player_manager.dart';
+import '../widgets/mini_player.dart';
 import 'playlist_detail_screen.dart';
 
 class ArtistsScreen extends StatefulWidget {
@@ -148,11 +150,18 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
           normalizedKeywords.contains(normalizedQuery);
     }).toList();
 
-    return Scaffold(
-      backgroundColor: const Color(0xFF000000),
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
+    final manager = MusicPlayerManager();
+
+    return AnimatedBuilder(
+      animation: manager,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: const Color(0xFF000000),
+          body: Stack(
+            children: [
+              CustomScrollView(
+                physics: const BouncingScrollPhysics(),
+                slivers: [
           // App Bar
           SliverAppBar(
             backgroundColor: const Color(0xFF0D0D12),
@@ -422,10 +431,24 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
             ),
 
           const SliverToBoxAdapter(
-            child: SizedBox(height: 140),
+            child: SizedBox(height: 110),
           ),
         ],
       ),
-    );
-  }
+      if (manager.currentSong != null)
+        const Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            top: false,
+            child: MiniPlayer(),
+          ),
+        ),
+    ],
+  ),
+);
+},
+);
+}
 }

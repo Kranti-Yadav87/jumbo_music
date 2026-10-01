@@ -49,10 +49,14 @@ class SongTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               onTap: onTap ??
                   () {
-                    playerManager.playSong(
-                      song,
-                      newQueue: playlistContext,
-                    );
+                    if (isCurrent) {
+                      playerManager.togglePlay();
+                    } else {
+                      playerManager.playSong(
+                        song,
+                        newQueue: playlistContext,
+                      );
+                    }
                   },
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -159,14 +163,33 @@ class SongTile extends StatelessWidget {
                         TrackOptionsSheet.show(context, song);
                       },
                     ),
-                    Icon(
-                      isCurrent && isPlaying
-                          ? Icons.pause_circle_filled
-                          : Icons.play_circle_fill,
-                      color: isCurrent
-                          ? const Color(0xFF818CF8)
-                          : Colors.grey.shade400,
-                      size: 28,
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        customBorder: const CircleBorder(),
+                        onTap: () {
+                          if (isCurrent) {
+                            playerManager.togglePlay();
+                          } else {
+                            playerManager.playSong(
+                              song,
+                              newQueue: playlistContext,
+                            );
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            isCurrent && isPlaying
+                                ? Icons.pause_circle_filled
+                                : Icons.play_circle_fill,
+                            color: isCurrent
+                                ? const Color(0xFF818CF8)
+                                : Colors.grey.shade400,
+                            size: 28,
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ),

@@ -443,7 +443,13 @@ class _HomeTabState extends State<HomeTab> {
                       final isCurrent = manager.currentSong?.id == song.id;
 
                       return GestureDetector(
-                        onTap: () => manager.playSong(song, newQueue: top50),
+                        onTap: () {
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: top50);
+                          }
+                        },
                         child: Container(
                           width: 140,
                           margin: const EdgeInsets.only(right: 14),
@@ -593,7 +599,13 @@ class _HomeTabState extends State<HomeTab> {
                       final isCurrent = manager.currentSong?.id == song.id;
 
                       return GestureDetector(
-                        onTap: () => manager.playSong(song, newQueue: newReleases),
+                        onTap: () {
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: newReleases);
+                          }
+                        },
                         child: Container(
                           width: 140,
                           margin: const EdgeInsets.only(right: 14),
