@@ -176,7 +176,7 @@ class DatabaseService extends ChangeNotifier {
       description: description.trim(),
       coverUrl: coverUrl.trim().isNotEmpty
           ? coverUrl.trim()
-          : 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+          : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
       songIds: [],
       songs: [],
       type: PlaylistType.custom,
@@ -276,7 +276,13 @@ class DatabaseService extends ChangeNotifier {
         _downloadsMap.clear();
         for (final item in list) {
           if (item is Map<String, dynamic> && item['songId'] != null) {
-            _downloadsMap[item['songId'].toString()] = item;
+            final songId = item['songId'].toString();
+            final songData = item['song'] as Map<String, dynamic>?;
+            final title = songData?['title']?.toString() ?? '';
+            if (songId == 'dl_1' || songId == 'dl_2' || songId.startsWith('sample_') || title == 'Kesariya Sukoon' || title == 'Midnight Lo-Fi Chill') {
+              continue;
+            }
+            _downloadsMap[songId] = item;
           }
         }
       }
@@ -575,7 +581,7 @@ class DatabaseService extends ChangeNotifier {
             currentSongTitle: 'You',
             currentSongArtist: 'Armaan Malik',
             currentSongId: '1',
-            currentSongCover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+            currentSongCover: 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
             isOnline: true,
             isListening: true,
           ),
@@ -587,7 +593,7 @@ class DatabaseService extends ChangeNotifier {
             currentSongTitle: 'Tumhein Apna Banane Ki',
             currentSongArtist: 'Kumar Sanu',
             currentSongId: '2',
-            currentSongCover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80',
+            currentSongCover: 'https://c.saavncdn.com/editorial/charts_PunjabiTopSongs_500x500.jpg',
             isOnline: true,
             isListening: true,
           ),
@@ -624,7 +630,7 @@ class DatabaseService extends ChangeNotifier {
       currentSongTitle: 'Kahani Suno 2.0',
       currentSongArtist: 'Kaifi Khalil',
       currentSongId: '3',
-      currentSongCover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&auto=format&fit=crop&q=80',
+      currentSongCover: 'https://c.saavncdn.com/editorial/BestOfIndieHindi_20230324103126_500x500.jpg',
       isOnline: true,
       isListening: true,
     );
@@ -697,7 +703,7 @@ class DatabaseService extends ChangeNotifier {
           ? starterSongs.first.coverUrl
           : (friend.currentSongCover.isNotEmpty
               ? friend.currentSongCover
-              : 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=80'),
+              : 'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg'),
       songIds: starterSongs.map((s) => s.id).toList(),
       songs: starterSongs,
       type: PlaylistType.sharedBlend,

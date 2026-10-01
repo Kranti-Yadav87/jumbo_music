@@ -32,10 +32,16 @@ class DownloadService extends ChangeNotifier {
     final db = DatabaseService.instance;
     final savedDownloads = db.rawDownloads;
 
+    _downloadedItems.clear();
     if (savedDownloads.isNotEmpty) {
       for (final item in savedDownloads) {
         if (item['song'] != null && item['song'] is Map<String, dynamic>) {
           final song = Song.fromJson(item['song'] as Map<String, dynamic>);
+          // Filter out and remove any old mock sample songs
+          if (song.id == 'dl_1' || song.id == 'dl_2' || song.id.startsWith('sample_') || song.title == 'Kesariya Sukoon' || song.title == 'Midnight Lo-Fi Chill') {
+            db.removeDownload(song.id);
+            continue;
+          }
           final dAt = item['downloadedAt'] != null
               ? DateTime.tryParse(item['downloadedAt'] as String) ?? DateTime.now()
               : DateTime.now();
@@ -47,61 +53,7 @@ class DownloadService extends ChangeNotifier {
           );
         }
       }
-    } else {
-      _initSampleDownloads();
     }
-  }
-
-  void _initSampleDownloads() {
-    final sample1 = Song(
-      id: 'dl_1',
-      title: 'Kesariya Sukoon',
-      artist: 'Arijit & Jumbo Crew',
-      album: 'Bollywood Melodies',
-      genre: 'Bollywood',
-      duration: const Duration(minutes: 4, seconds: 28),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
-      quality: '320 kbps Studio HD',
-    );
-
-    final sample2 = Song(
-      id: 'dl_2',
-      title: 'Midnight Lo-Fi Chill',
-      artist: 'Kranti Beats',
-      album: 'Lofi Study Session Vol. 1',
-      genre: 'Lo-Fi',
-      duration: const Duration(minutes: 7, seconds: 5),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      coverUrl: 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=80',
-      quality: '320 kbps Studio HD',
-    );
-
-    _downloadedItems[sample1.id] = DownloadItem(
-      song: sample1,
-      fileSize: '10.2 MB',
-      downloadedAt: DateTime.now().subtract(const Duration(hours: 3)),
-      localPath: 'offline_storage/dl_1.mp3',
-    );
-
-    _downloadedItems[sample2.id] = DownloadItem(
-      song: sample2,
-      fileSize: '16.4 MB',
-      downloadedAt: DateTime.now().subtract(const Duration(days: 1)),
-      localPath: 'offline_storage/dl_2.mp3',
-    );
-
-    // Save to DatabaseService
-    DatabaseService.instance.saveDownload(
-      song: sample1,
-      fileSize: '10.2 MB',
-      localPath: 'offline_storage/dl_1.mp3',
-    );
-    DatabaseService.instance.saveDownload(
-      song: sample2,
-      fileSize: '16.4 MB',
-      localPath: 'offline_storage/dl_2.mp3',
-    );
   }
 
   List<Song> get downloadedSongs =>

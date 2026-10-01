@@ -129,7 +129,7 @@ class MusicApiService {
         audioUrl: audioUrl,
         coverUrl: coverUrl.isNotEmpty
             ? coverUrl
-            : 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=600&auto=format&fit=crop&q=80',
+            : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
         genre: normalizedLang == 'Hindi' ? 'Hindi & Bollywood' : normalizedLang,
         language: normalizedLang,
         releaseYear: year,
@@ -304,7 +304,7 @@ Audio Stream: 320 kbps Original Master
               audioUrl: previewUrl,
               coverUrl: hdCover.isNotEmpty
                   ? hdCover
-                  : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+                  : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
               genre: genre,
               language: 'Hindi',
               releaseYear: year,

@@ -163,7 +163,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         title: friend.currentSongTitle.isNotEmpty ? friend.currentSongTitle : 'You',
                         artist: friend.currentSongArtist.isNotEmpty ? friend.currentSongArtist : 'Armaan Malik',
                         audioUrl: manager.allSongs.isNotEmpty ? manager.allSongs.first.audioUrl : '',
-                        coverUrl: friend.currentSongCover.isNotEmpty ? friend.currentSongCover : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
+                        coverUrl: friend.currentSongCover.isNotEmpty ? friend.currentSongCover : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
                         duration: const Duration(seconds: 210),
                       ),
                     );

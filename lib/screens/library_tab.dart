@@ -437,7 +437,7 @@ class _LibraryTabState extends State<LibraryTab> {
                               description: 'Your favorite collection',
                               coverUrl: favSongs.isNotEmpty
                                   ? favSongs.first.coverUrl
-                                  : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
+                                  : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
                               songIds: manager.favoriteIds.toList(),
                               songs: favSongs,
                               type: PlaylistType.favorites,
