@@ -3,6 +3,7 @@ import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/app_top_header.dart';
 import '../widgets/edit_profile_dialog.dart';
+import '../widgets/auth_dialog.dart';
 import '../screens/playlist_detail_screen.dart';
 import '../screens/downloaded_songs_screen.dart';
 import '../screens/privacy_security_screen.dart';
@@ -38,14 +39,17 @@ class ProfileScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Signed out successfully.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              await DatabaseService.instance.logout();
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Signed out successfully.'),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             child: const Text('Log Out', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
@@ -207,7 +211,7 @@ class ProfileScreen extends StatelessWidget {
 
                           const SizedBox(height: 16),
 
-                          // Display Name ("Ayush")
+                          // Display Name
                           Text(
                             db.userName,
                             style: TextStyle(
@@ -219,7 +223,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
 
-                          // Email ("ayushmishra7235@gmail.com")
+                          // Email
                           Text(
                             db.userEmail,
                             style: TextStyle(
@@ -227,28 +231,88 @@ class ProfileScreen extends StatelessWidget {
                               color: isDark ? Colors.white60 : const Color(0xFF64748B),
                             ),
                           ),
+                          const SizedBox(height: 8),
+
+                          // Jumbo User ID Badge
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF6366F1).withOpacity(0.35),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.verified_user_rounded, size: 14, color: Color(0xFF818CF8)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'ID: ${db.userId}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF818CF8),
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                           const SizedBox(height: 16),
 
-                          // "Edit Profile" Coral Pill Button (Screenshot 1)
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFFF5E3A),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 11),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(22),
+                          // "Edit Profile" and "Sign In / Switch" Buttons
+                          Wrap(
+                            spacing: 10,
+                            runSpacing: 10,
+                            alignment: WrapAlignment.center,
+                            children: [
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFF5E3A),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                  elevation: 2,
+                                ),
+                                icon: const Icon(Icons.edit_outlined, size: 15),
+                                label: const Text(
+                                  'Edit Profile',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () => EditProfileDialog.show(context),
                               ),
-                              elevation: 2,
-                            ),
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            label: const Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.bold,
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  side: BorderSide(
+                                    color: isDark ? Colors.white24 : const Color(0xFFCBD5E1),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(22),
+                                  ),
+                                ),
+                                icon: Icon(
+                                  db.isLoggedIn ? Icons.swap_horiz_rounded : Icons.login_rounded,
+                                  size: 16,
+                                ),
+                                label: Text(
+                                  db.isLoggedIn ? 'Switch ID' : 'Sign In / Register',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () => AuthDialog.show(context),
                               ),
-                            ),
-                            onPressed: () => EditProfileDialog.show(context),
+                            ],
                           ),
                         ],
                       ),

@@ -25,7 +25,9 @@ class DatabaseService extends ChangeNotifier {
   final List<Friend> _friends = [];
   final List<Map<String, dynamic>> _notifications = [];
   
-  // User Profile
+  // User Profile & Authentication
+  bool _isLoggedIn = false;
+  String _userId = '';
   String _userName = 'User';
   String _userEmail = 'user@jumbomusic.app';
   String _userAvatarUrl = '';
@@ -425,8 +427,10 @@ class DatabaseService extends ChangeNotifier {
   Future<void> saveSetting(String key, dynamic value) => updateSetting(key, value);
 
   // -------------------------------------------------------------
-  // 7. USER PROFILE STORE
+  // 7. USER PROFILE & AUTHENTICATION STORE
   // -------------------------------------------------------------
+  bool get isLoggedIn => _isLoggedIn;
+  String get userId => _userId.isNotEmpty ? _userId : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get userAvatarUrl => _userAvatarUrl;
@@ -448,6 +452,8 @@ class DatabaseService extends ChangeNotifier {
       final raw = await StorageEngine.getItem(_keyProfile);
       if (raw != null && raw.isNotEmpty) {
         final Map<String, dynamic> data = jsonDecode(raw);
+        _isLoggedIn = data['isLoggedIn'] as bool? ?? false;
+        _userId = data['userId'] as String? ?? '';
         _userName = data['name'] as String? ?? 'User';
         _userEmail = data['email'] as String? ?? 'user@jumbomusic.app';
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
@@ -459,6 +465,8 @@ class DatabaseService extends ChangeNotifier {
   Future<void> _flushProfile() async {
     try {
       final map = {
+        'isLoggedIn': _isLoggedIn,
+        'userId': _userId,
         'name': _userName,
         'email': _userEmail,
         'avatarUrl': _userAvatarUrl,
@@ -466,6 +474,29 @@ class DatabaseService extends ChangeNotifier {
       };
       await StorageEngine.setItem(_keyProfile, jsonEncode(map));
     } catch (_) {}
+  }
+
+  Future<void> login({
+    required String email,
+    required String name,
+    String? password,
+    String? userId,
+  }) async {
+    _isLoggedIn = true;
+    _userEmail = email.trim();
+    _userName = name.trim().isNotEmpty ? name.trim() : email.split('@').first;
+    _userId = userId ?? 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
+    notifyListeners();
+    await _flushProfile();
+  }
+
+  Future<void> logout() async {
+    _isLoggedIn = false;
+    _userName = 'User';
+    _userEmail = 'user@jumbomusic.app';
+    _userId = '';
+    notifyListeners();
+    await _flushProfile();
   }
 
   Future<void> updateProfile({

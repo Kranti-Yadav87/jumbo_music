@@ -9,7 +9,8 @@ import '../widgets/track_options_sheet.dart';
 import '../widgets/now_playing_screen.dart';
 
 class SearchTab extends StatefulWidget {
-  const SearchTab({super.key});
+  final VoidCallback? onBack;
+  const SearchTab({super.key, this.onBack});
 
   @override
   State<SearchTab> createState() => _SearchTabState();
@@ -164,10 +165,11 @@ class _SearchTabState extends State<SearchTab> {
                           size: 24,
                         ),
                         onPressed: () {
-                          if (Navigator.canPop(context)) {
+                          FocusScope.of(context).unfocus();
+                          if (widget.onBack != null) {
+                            widget.onBack!();
+                          } else if (Navigator.canPop(context)) {
                             Navigator.pop(context);
-                          } else {
-                            FocusScope.of(context).unfocus();
                           }
                         },
                       ),

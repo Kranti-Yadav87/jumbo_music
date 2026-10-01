@@ -76,16 +76,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       });
 
       String query = widget.playlist.title;
-      if (widget.playlist.id == 'p_90s_tamil') {
-        query = '90s Tamil Hits';
-      } else if (widget.playlist.id == 'p_90s_chill') {
-        query = '90s Bollywood Hits';
-      } else if (widget.playlist.id == 'p_90s_pop') {
-        query = '90s Indian Pop';
-      } else if (widget.playlist.id == 'p1') {
-        query = 'Lo-Fi Chill Hindi';
-      } else if (widget.playlist.id == 'p2') {
-        query = 'Bollywood Sukoon Arijit';
+      if (widget.playlist.id == 'p_hindi') {
+        query = 'Hindi Top Bollywood Hits 2026';
+      } else if (widget.playlist.id == 'p_punjabi') {
+        query = 'Punjabi Superhits Karan Aujla Diljit';
+      } else if (widget.playlist.id == 'p_bhojpuri') {
+        query = 'Bhojpuri Hits Pawan Singh';
+      } else if (widget.playlist.id == 'p_haryanvi') {
+        query = 'Haryanvi Top Hits';
+      } else if (widget.playlist.id == 'p_english') {
+        query = 'English Global Pop Hits';
+      } else if (widget.playlist.id == 'p_south') {
+        query = 'Tamil Telugu Top Hits Anirudh';
+      } else if (widget.playlist.id == 'p_indie') {
+        query = 'Indie Hindi Hits Prateek Kuhad';
+      } else if (widget.playlist.id == 'p_sufi') {
+        query = 'Sufi Qawwali Hits Nusrat';
       }
 
       final songs = await MusicApiService.searchLiveSongs(query, limit: 30);

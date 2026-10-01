@@ -24,7 +24,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _tabs = [
       HomeTab(onProfileTap: () => setState(() => _currentIndex = 3)),
-      const SearchTab(),
+      SearchTab(onBack: () => setState(() => _currentIndex = 0)),
       const LibraryTab(),
       const ProfileScreen(showHeader: false),
     ];
