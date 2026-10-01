@@ -302,27 +302,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   // App Brand Logo & Name
                   Center(
                     child: Container(
-                      width: 72,
-                      height: 72,
+                      width: 84,
+                      height: 84,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFFF4B2B), Color(0xFFFF416C)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(22),
+                        borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFFF4B2B).withOpacity(0.4),
+                            color: const Color(0xFFFF5E3A).withOpacity(0.4),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.music_note_rounded,
-                        color: Colors.white,
-                        size: 40,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Image.asset(
+                          'assets/images/app_logo.png',
+                          width: 84,
+                          height: 84,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),

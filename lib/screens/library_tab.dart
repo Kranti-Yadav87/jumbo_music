@@ -179,19 +179,13 @@ class _LibraryTabState extends State<LibraryTab> {
                     child: Row(
                       children: [
                         // App Logo Glyph
-                        Container(
-                          width: 32,
-                          height: 32,
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.play_arrow_rounded,
-                              color: Color(0xFF081220),
-                              size: 22,
-                            ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.asset(
+                            'assets/images/app_logo.png',
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
                           ),
                         ),
                         const SizedBox(width: 8),

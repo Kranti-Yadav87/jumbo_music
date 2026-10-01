@@ -1,13 +1,42 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'firebase_options.dart';
+import 'config/app_config.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
+import 'services/connectivity_service.dart';
 import 'screens/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Set up global crash & error logging boundary
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    debugPrint('Global Flutter Error: ${details.exceptionAsString()}');
+  };
+
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Global Platform Error: $error\n$stack');
+    return true;
+  };
+
+  // Initialize native background audio notification controls
+  if (!kIsWeb) {
+    try {
+      await JustAudioBackground.init(
+        androidNotificationChannelId: AppConfig.audioNotificationChannelId,
+        androidNotificationChannelName: AppConfig.audioNotificationChannelName,
+        androidNotificationOngoing: true,
+        androidShowNotificationBadge: true,
+      );
+    } catch (e) {
+      debugPrint('JustAudioBackground init note: $e');
+    }
+  }
 
   // Initialize Firebase
   try {
@@ -18,8 +47,9 @@ void main() async {
     debugPrint('Firebase initialization note: $e');
   }
 
-  // Initialize persistent database engine
+  // Initialize persistent database engine & network observer
   await DatabaseService.instance.init();
+  ConnectivityService.instance; // warm-up connectivity listener
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

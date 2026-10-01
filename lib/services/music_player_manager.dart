@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -734,9 +735,21 @@ class MusicPlayerManager extends ChangeNotifier {
         await _audioPlayer.stop();
       } catch (_) {}
 
-      // 2. Set new audio source with preload
+      // 2. Set new audio source with preload & native lock screen metadata
+      final mediaItem = MediaItem(
+        id: song.id,
+        album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
+        title: song.title,
+        artist: song.artist,
+        artUri: song.coverUrl.isNotEmpty ? Uri.tryParse(song.coverUrl) : null,
+        duration: song.duration.inSeconds > 0 ? song.duration : null,
+      );
+
       await _audioPlayer.setAudioSource(
-        AudioSource.uri(Uri.parse(song.audioUrl)),
+        AudioSource.uri(
+          Uri.parse(song.audioUrl),
+          tag: mediaItem,
+        ),
         preload: true,
       );
       await _audioPlayer.seek(Duration.zero);

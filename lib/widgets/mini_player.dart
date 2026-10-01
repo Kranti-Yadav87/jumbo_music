@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/music_player_manager.dart';
 import 'now_playing_screen.dart';
+import 'app_cached_image.dart';
 
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -67,20 +68,12 @@ class MiniPlayer extends StatelessWidget {
                     },
                     child: Row(
                       children: [
-                        ClipRRect(
+                        AppCachedImage(
+                          imageUrl: song.coverUrl,
+                          width: 44,
+                          height: 44,
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            song.coverUrl,
-                            width: 44,
-                            height: 44,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 44,
-                              height: 44,
-                              color: const Color(0xFF2C2C2E),
-                              child: const Icon(Icons.music_note, color: Colors.white54),
-                            ),
-                          ),
+                          fit: BoxFit.cover,
                         ),
                         const SizedBox(width: 10),
                         Expanded(

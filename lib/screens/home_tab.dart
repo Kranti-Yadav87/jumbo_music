@@ -5,6 +5,7 @@ import '../services/download_service.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/app_footer.dart';
 import '../widgets/app_top_header.dart';
+import '../widgets/app_cached_image.dart';
 import 'playlist_detail_screen.dart';
 import 'top_50_screen.dart';
 import 'new_releases_screen.dart';
@@ -354,17 +355,11 @@ class _HomeTabState extends State<HomeTab> {
                                 borderRadius: BorderRadius.circular(16),
                                 child: Stack(
                                   children: [
-                                    Image.network(
-                                      playlist.coverUrl,
+                                    AppCachedImage(
+                                      imageUrl: playlist.coverUrl,
                                       width: 145,
                                       height: 145,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 145,
-                                        height: 145,
-                                        color: const Color(0xFF18181B),
-                                        child: const Icon(Icons.music_note_rounded, color: Colors.white38, size: 40),
-                                      ),
                                     ),
                                     Positioned(
                                       bottom: 8,
@@ -460,17 +455,11 @@ class _HomeTabState extends State<HomeTab> {
                                 borderRadius: BorderRadius.circular(16),
                                 child: Stack(
                                   children: [
-                                    Image.network(
-                                      song.coverUrl,
+                                    AppCachedImage(
+                                      imageUrl: song.coverUrl,
                                       width: 140,
                                       height: 140,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 140,
-                                        height: 140,
-                                        color: const Color(0xFF18181B),
-                                        child: const Icon(Icons.music_note_rounded, color: Colors.white38),
-                                      ),
                                     ),
                                     // Rank Badge
                                     Positioned(
@@ -616,17 +605,11 @@ class _HomeTabState extends State<HomeTab> {
                                 borderRadius: BorderRadius.circular(16),
                                 child: Stack(
                                   children: [
-                                    Image.network(
-                                      song.coverUrl,
+                                    AppCachedImage(
+                                      imageUrl: song.coverUrl,
                                       width: 140,
                                       height: 140,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 140,
-                                        height: 140,
-                                        color: const Color(0xFF18181B),
-                                        child: const Icon(Icons.album_rounded, color: Colors.white38),
-                                      ),
                                     ),
                                     if (isCurrent && manager.isPlaying)
                                       Positioned.fill(
@@ -742,22 +725,12 @@ class _HomeTabState extends State<HomeTab> {
                                 ),
                                 padding: const EdgeInsets.all(2.5),
                                 child: ClipOval(
-                                  child: Image.network(
-                                    artist['imageUrl']!,
+                                  child: AppCachedImage(
+                                    imageUrl: artist['imageUrl'] ?? '',
+                                    width: 80,
+                                    height: 80,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      color: const Color(0xFF1E1E2D),
-                                      child: Center(
-                                        child: Text(
-                                          artist['name']![0],
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                    fallbackIcon: Icons.person_rounded,
                                   ),
                                 ),
                               ),

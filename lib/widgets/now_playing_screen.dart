@@ -5,6 +5,8 @@ import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
+import '../services/lrc_parser.dart';
+import 'app_cached_image.dart';
 import 'equalizer_bars.dart';
 import 'track_options_sheet.dart';
 
@@ -217,17 +219,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               children: [
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(
-                                    song.coverUrl,
+                                  child: AppCachedImage(
+                                    imageUrl: song.coverUrl,
                                     width: 44,
                                     height: 44,
                                     fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => Container(
-                                      width: 44,
-                                      height: 44,
-                                      color: const Color(0xFF1C1C1E),
-                                      child: const Icon(Icons.music_note, color: Colors.white30),
-                                    ),
                                   ),
                                 ),
                                 Container(
@@ -294,17 +290,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  item.coverUrl,
+                                child: AppCachedImage(
+                                  imageUrl: item.coverUrl,
                                   width: 44,
                                   height: 44,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
-                                    width: 44,
-                                    height: 44,
-                                    color: const Color(0xFF1C1C1E),
-                                    child: const Icon(Icons.music_note, color: Colors.white30),
-                                  ),
                                 ),
                               ),
                               title: Text(
@@ -526,20 +516,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   ),
                                 ],
                               ),
-                              child: ClipRRect(
+                              child: AppCachedImage(
+                                imageUrl: song.coverUrl,
                                 borderRadius: BorderRadius.circular(20),
-                                child: Image.network(
-                                  song.coverUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => Container(
-                                    color: const Color(0xFF131F38),
-                                    child: const Icon(
-                                      Icons.music_note_rounded,
-                                      color: Colors.white30,
-                                      size: 70,
-                                    ),
-                                  ),
-                                ),
+                                fit: BoxFit.cover,
                               ),
                             ),
                           ),
@@ -904,41 +884,39 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     Duration currentPos,
     Duration totalDur,
   ) {
-    final rawLyrics = song.lyrics.trim();
-    final lines = rawLyrics.isNotEmpty
-        ? rawLyrics.split('\n').where((l) => l.trim().isNotEmpty).toList()
-        : <String>[
-            '♪ Instrumental intro ♪',
-            song.title,
-            'Performed by ${song.artist}',
-            '320 kbps Studio Master',
-            'Live synchronized playback active',
-            '♪ Melodic transition ♪',
-            'Offline Audio Cache Enabled',
-            'Tap any line to seek track',
-          ];
+    final lrcLines = LrcParser.parse(song.lyrics, totalDuration: totalDur);
+    final activeIndex = LrcParser.findActiveIndex(lrcLines, currentPos);
 
-    final progress = totalDur.inMilliseconds > 0
-        ? (currentPos.inMilliseconds / totalDur.inMilliseconds).clamp(0.0, 1.0)
-        : 0.0;
-
-    final activeIndex = (progress * lines.length).floor().clamp(0, lines.length - 1);
+    if (lrcLines.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(
+            child: Text(
+              'No lyrics available for this track',
+              style: TextStyle(color: Colors.white54, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
 
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       sliver: SliverList(
         delegate: SliverChildBuilderDelegate(
           (context, index) {
-            final line = lines[index];
+            final line = lrcLines[index];
             final isCurrent = index == activeIndex;
             final isPast = index < activeIndex;
+
+            final timeStr =
+                '${line.timestamp.inMinutes}:${(line.timestamp.inSeconds % 60).toString().padLeft(2, '0')}';
 
             return InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () {
-                final targetFraction = index / lines.length;
-                final targetMs = (targetFraction * totalDur.inMilliseconds).toInt();
-                manager.seek(Duration(milliseconds: targetMs));
+                manager.seek(line.timestamp);
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 250),
@@ -962,10 +940,20 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                         height: 14,
                       ),
                       const SizedBox(width: 10),
+                    ] else ...[
+                      Text(
+                        timeStr,
+                        style: TextStyle(
+                          color: isPast ? Colors.white30 : Colors.white24,
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
                     ],
                     Expanded(
                       child: Text(
-                        line,
+                        line.text,
                         style: TextStyle(
                           color: isCurrent
                               ? const Color(0xFF38BDF8)
@@ -983,7 +971,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
               ),
             );
           },
-          childCount: lines.length,
+          childCount: lrcLines.length,
         ),
       ),
     );

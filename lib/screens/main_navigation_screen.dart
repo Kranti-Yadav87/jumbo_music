@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
+import '../services/connectivity_service.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/now_playing_screen.dart';
 import 'home_tab.dart';
@@ -65,6 +66,52 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           IndexedStack(
             index: _currentIndex,
             children: _tabs,
+          ),
+
+          // Offline Status Banner
+          AnimatedBuilder(
+            animation: ConnectivityService.instance,
+            builder: (context, _) {
+              if (!ConnectivityService.instance.isOffline) return const SizedBox.shrink();
+              return Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: SafeArea(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE11D48),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Offline Mode • Playing from downloaded & cached music',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
 
           // Docked MiniPlayer above bottom navigation

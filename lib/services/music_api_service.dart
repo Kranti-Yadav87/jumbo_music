@@ -1,18 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
+import '../config/app_config.dart';
 
 class MusicApiService {
-  static const String _endpoint =
-      'https://uwvsyladvvvjqlgnqppq.supabase.co/functions/v1/spotify';
-  static const String _anonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3dnN5bGFkdnZ2anFsZ25xcHBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyNDY3NDEsImV4cCI6MjA4NzgyMjc0MX0.ibwH6IntJjky3uZKxFplDkVGW9bSH0RrwT0cVrd94hI';
-
-  static Map<String, String> get _headers => {
-        'apikey': _anonKey,
-        'Authorization': 'Bearer $_anonKey',
-        'Content-Type': 'application/json',
-      };
+  static String get _endpoint => AppConfig.supabaseEndpoint;
+  static Map<String, String> get _headers => AppConfig.apiHeaders;
 
   static String _unescape(String? input) {
     if (input == null) return '';

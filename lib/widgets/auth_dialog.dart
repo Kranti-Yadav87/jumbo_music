@@ -192,16 +192,14 @@ class _AuthDialogState extends State<AuthDialog> {
               // Header with Brand Logo & Close button
               Row(
                 children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFFFF4B2B), Color(0xFFFF416C)],
-                      ),
-                      borderRadius: BorderRadius.circular(12),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.asset(
+                      'assets/images/app_logo.png',
+                      width: 40,
+                      height: 40,
+                      fit: BoxFit.cover,
                     ),
-                    child: const Icon(Icons.music_note_rounded, color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

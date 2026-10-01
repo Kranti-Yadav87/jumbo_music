@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/music_player_manager.dart';
+import 'app_cached_image.dart';
 import 'equalizer_bars.dart';
 import 'track_options_sheet.dart';
 
@@ -83,21 +84,11 @@ class SongTile extends StatelessWidget {
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          Image.network(
-                            song.coverUrl,
+                          AppCachedImage(
+                            imageUrl: song.coverUrl,
                             width: 50,
                             height: 50,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              width: 50,
-                              height: 50,
-                              color: const Color(0xFF262638),
-                              child: const Icon(
-                                Icons.music_note,
-                                color: Colors.white54,
-                              ),
-                            ),
                           ),
                           if (isCurrent)
                             Container(
