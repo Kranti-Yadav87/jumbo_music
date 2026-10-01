@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/music_player_manager.dart';
 import 'now_playing_screen.dart';
 
@@ -136,7 +137,10 @@ class MiniPlayer extends StatelessWidget {
                   color: Colors.transparent,
                   child: InkWell(
                     customBorder: const CircleBorder(),
-                    onTap: () => manager.togglePlay(),
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      manager.togglePlay();
+                    },
                     child: Container(
                       width: 40,
                       height: 40,
@@ -154,24 +158,30 @@ class MiniPlayer extends StatelessWidget {
                         ],
                       ),
                       child: Center(
-                        child: (manager.isBuffering && !manager.isPlaying)
-                            ? SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    isDark ? Colors.black : Colors.white,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 150),
+                          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                          child: (manager.isBuffering && !manager.isPlaying)
+                              ? SizedBox(
+                                  key: const ValueKey('mini_buffering'),
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isDark ? Colors.black : Colors.white,
+                                    ),
                                   ),
+                                )
+                              : Icon(
+                                  manager.isPlaying
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  key: ValueKey(manager.isPlaying ? 'mini_pause' : 'mini_play'),
+                                  color: isDark ? Colors.black : Colors.white,
+                                  size: 24,
                                 ),
-                              )
-                            : Icon(
-                                manager.isPlaying
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                color: isDark ? Colors.black : Colors.white,
-                                size: 24,
-                              ),
+                        ),
                       ),
                     ),
                   ),

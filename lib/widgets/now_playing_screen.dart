@@ -732,7 +732,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   color: Colors.transparent,
                                   child: InkWell(
                                     customBorder: const CircleBorder(),
-                                    onTap: () => manager.togglePlay(),
+                                    onTap: () {
+                                      HapticFeedback.lightImpact();
+                                      manager.togglePlay();
+                                    },
                                     child: Container(
                                       width: 68,
                                       height: 68,
@@ -752,22 +755,28 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         ],
                                       ),
                                       child: Center(
-                                        child: (manager.isBuffering && !manager.isPlaying)
-                                            ? const SizedBox(
-                                                width: 26,
-                                                height: 26,
-                                                child: CircularProgressIndicator(
-                                                  strokeWidth: 2.8,
-                                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(milliseconds: 150),
+                                          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                                          child: (manager.isBuffering && !manager.isPlaying)
+                                              ? const SizedBox(
+                                                  key: ValueKey('buffering'),
+                                                  width: 26,
+                                                  height: 26,
+                                                  child: CircularProgressIndicator(
+                                                    strokeWidth: 2.8,
+                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                  ),
+                                                )
+                                              : Icon(
+                                                  manager.isPlaying
+                                                      ? Icons.pause_rounded
+                                                      : Icons.play_arrow_rounded,
+                                                  key: ValueKey(manager.isPlaying ? 'pause' : 'play'),
+                                                  color: Colors.white,
+                                                  size: 38,
                                                 ),
-                                              )
-                                            : Icon(
-                                                manager.isPlaying
-                                                    ? Icons.pause_rounded
-                                                    : Icons.play_arrow_rounded,
-                                                color: Colors.white,
-                                                size: 38,
-                                              ),
+                                        ),
                                       ),
                                     ),
                                   ),

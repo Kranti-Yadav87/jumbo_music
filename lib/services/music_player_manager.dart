@@ -21,6 +21,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   bool _isPlaying = false;
   bool _isBuffering = false;
+  bool _isToggling = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   Duration _bufferedPosition = Duration.zero;
@@ -185,7 +186,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
-      if (!_isTransitioning) {
+      if (!_isTransitioning && !_isToggling) {
         _isPlaying = state.playing;
         _isBuffering = (state.processingState == ProcessingState.buffering ||
                 state.processingState == ProcessingState.loading) &&
@@ -657,6 +658,7 @@ class MusicPlayerManager extends ChangeNotifier {
     final targetPlaying = !_isPlaying;
     _isPlaying = targetPlaying;
     _isBuffering = false;
+    _isToggling = true;
     notifyListeners();
 
     try {
@@ -671,6 +673,11 @@ class MusicPlayerManager extends ChangeNotifier {
     } catch (_) {
       _isPlaying = _audioPlayer.playing;
       notifyListeners();
+    } finally {
+      // Keep _isToggling protected for 400ms so delayed audio stream events don't flicker UI
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _isToggling = false;
+      });
     }
   }
 
