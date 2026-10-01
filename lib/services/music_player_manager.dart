@@ -499,6 +499,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   Future<void> _infillSmartQueue(Song seedSong, {int targetQueueSize = 60}) async {
     if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
+    if (_lastInfilledSongId == seedSong.id && _queue.length >= targetQueueSize) return;
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
