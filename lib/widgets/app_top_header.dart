@@ -17,7 +17,7 @@ class AppTopHeader extends StatelessWidget {
     super.key,
     this.onProfileTap,
     this.onSearchTap,
-    this.title = 'KanaKö',
+    this.title = 'Jumbo Music',
   });
 
   void _showSettingsSheet(BuildContext context, MusicPlayerManager manager) {
@@ -207,10 +207,10 @@ class AppTopHeader extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color: const Color(0xFFFF5E3A),
-                        fontSize: 21,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.2,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.4,
                       ),
                     ),
                   ],

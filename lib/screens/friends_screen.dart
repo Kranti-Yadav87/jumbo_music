@@ -357,7 +357,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 // Top App Header
                 if (widget.showHeader)
                   const SliverToBoxAdapter(
-                    child: AppTopHeader(title: 'KanaKö'),
+                    child: AppTopHeader(title: 'Jumbo Music'),
                   ),
 
                 // Screen Title "Friends" (Screenshot 2)

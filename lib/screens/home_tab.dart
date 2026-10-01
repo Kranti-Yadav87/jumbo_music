@@ -72,7 +72,7 @@ class _HomeTabState extends State<HomeTab> {
               // 1. Unified App Top Header (Search, Notification, Setting, Profile Avatar)
               SliverToBoxAdapter(
                 child: AppTopHeader(
-                  title: 'KanaKö',
+                  title: 'Jumbo Music',
                   onProfileTap: widget.onProfileTap,
                 ),
               ),

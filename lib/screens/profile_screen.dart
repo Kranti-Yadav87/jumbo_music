@@ -102,13 +102,16 @@ class ProfileScreen extends StatelessWidget {
               // Main Scrollable Content
               SafeArea(
                 bottom: false,
-                child: CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
                     // Top App Header
                     if (showHeader)
                       const SliverToBoxAdapter(
-                        child: AppTopHeader(title: 'KanaKö'),
+                        child: AppTopHeader(title: 'Jumbo Music'),
                       ),
 
                     const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -499,9 +502,11 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-            ],
+            ),
           ),
-        );
+        ],
+      ),
+    );
       },
     );
   }

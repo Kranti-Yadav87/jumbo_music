@@ -197,11 +197,10 @@ class _LibraryTabState extends State<LibraryTab> {
                         const SizedBox(width: 8),
                         // App Brand Title
                         Text(
-                          'Chill Ratna',
+                          'Jumbo Music',
                           style: TextStyle(
                             color: isDark ? Colors.white : const Color(0xFF0F172A),
                             fontSize: 22,
-                            fontStyle: FontStyle.italic,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),

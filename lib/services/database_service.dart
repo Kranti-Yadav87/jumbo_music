@@ -26,8 +26,8 @@ class DatabaseService extends ChangeNotifier {
   final List<Map<String, dynamic>> _notifications = [];
   
   // User Profile
-  String _userName = 'Ayush';
-  String _userEmail = 'ayushmishra7235@gmail.com';
+  String _userName = 'User';
+  String _userEmail = 'user@jumbomusic.app';
   String _userAvatarUrl = '';
   String _userBio = 'Music Lover • Jumbo Pro';
 
@@ -435,12 +435,12 @@ class DatabaseService extends ChangeNotifier {
   String get userInitials {
     if (_userName.trim().isNotEmpty) {
       final parts = _userName.trim().split(' ');
-      if (parts.length >= 2) {
+      if (parts.length >= 2 && parts[1].isNotEmpty) {
         return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
       }
       return _userName.trim()[0].toUpperCase();
     }
-    return 'AY';
+    return 'U';
   }
 
   Future<void> _loadProfile() async {
@@ -448,8 +448,8 @@ class DatabaseService extends ChangeNotifier {
       final raw = await StorageEngine.getItem(_keyProfile);
       if (raw != null && raw.isNotEmpty) {
         final Map<String, dynamic> data = jsonDecode(raw);
-        _userName = data['name'] as String? ?? 'Ayush';
-        _userEmail = data['email'] as String? ?? 'ayushmishra7235@gmail.com';
+        _userName = data['name'] as String? ?? 'User';
+        _userEmail = data['email'] as String? ?? 'user@jumbomusic.app';
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
         _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
       }
@@ -780,8 +780,8 @@ class DatabaseService extends ChangeNotifier {
     _searchHistory.clear();
     _friends.clear();
     _notifications.clear();
-    _userName = 'Ayush';
-    _userEmail = 'ayushmishra7235@gmail.com';
+    _userName = 'User';
+    _userEmail = 'user@jumbomusic.app';
 
     await Future.wait([
       StorageEngine.removeItem(_keyFavorites),

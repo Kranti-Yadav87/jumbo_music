@@ -187,8 +187,9 @@ class MusicPlayerManager extends ChangeNotifier {
     _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
       if (!_isTransitioning) {
         _isPlaying = state.playing;
-        _isBuffering = state.processingState == ProcessingState.buffering ||
-            state.processingState == ProcessingState.loading;
+        _isBuffering = (state.processingState == ProcessingState.buffering ||
+                state.processingState == ProcessingState.loading) &&
+            !state.playing;
       }
 
       MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
@@ -208,6 +209,9 @@ class MusicPlayerManager extends ChangeNotifier {
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
       _position = pos;
+      if (_isBuffering && (_isPlaying || pos.inMilliseconds > 0)) {
+        _isBuffering = false;
+      }
       final dur = _duration.inSeconds > 0
           ? _duration.inSeconds.toDouble()
           : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
@@ -650,13 +654,23 @@ class MusicPlayerManager extends ChangeNotifier {
       return;
     }
 
-    if (_isPlaying) {
-      await _audioPlayer.pause();
-    } else {
-      if (_position >= _duration && _duration > Duration.zero) {
-        await _audioPlayer.seek(Duration.zero);
+    final targetPlaying = !_isPlaying;
+    _isPlaying = targetPlaying;
+    _isBuffering = false;
+    notifyListeners();
+
+    try {
+      if (!targetPlaying) {
+        await _audioPlayer.pause();
+      } else {
+        if (_position >= _duration && _duration > Duration.zero) {
+          await _audioPlayer.seek(Duration.zero);
+        }
+        await _audioPlayer.play();
       }
-      await _audioPlayer.play();
+    } catch (_) {
+      _isPlaying = _audioPlayer.playing;
+      notifyListeners();
     }
   }
 

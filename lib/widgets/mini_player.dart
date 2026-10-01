@@ -154,7 +154,7 @@ class MiniPlayer extends StatelessWidget {
                         ],
                       ),
                       child: Center(
-                        child: manager.isBuffering
+                        child: (manager.isBuffering && !manager.isPlaying)
                             ? SizedBox(
                                 width: 18,
                                 height: 18,

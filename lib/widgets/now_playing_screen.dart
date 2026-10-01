@@ -752,7 +752,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         ],
                                       ),
                                       child: Center(
-                                        child: manager.isBuffering
+                                        child: (manager.isBuffering && !manager.isPlaying)
                                             ? const SizedBox(
                                                 width: 26,
                                                 height: 26,
