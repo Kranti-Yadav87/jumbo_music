@@ -300,28 +300,19 @@ Genre: $genre
     return [];
   }
 
-  /// Discovers 50-60 related, diverse songs matching the seed song's artist,
-  /// style and mood for endless "Continue Playing - Autoplaying similar music".
-  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 55}) async {
-    final List<Song> recommendations = [];
-    final Set<String> seenIds = {seedSong.id};
-    final Set<String> seenTitles = {seedSong.title.toLowerCase().trim()};
+  /// Checks if a song belongs to the 50s-70s Golden Era, 80s Retro, or 90s Melodies
+  static bool isOldClassicSong(Song song) {
+    final artistLower = song.artist.toLowerCase();
+    final genreLower = song.genre.toLowerCase();
+    final titleLower = song.title.toLowerCase();
 
-    final rawArtist = seedSong.artist
-        .split(',')
-        .first
-        .split('&')
-        .first
-        .split('feat.')
-        .first
-        .trim();
+    // Release Year Check
+    final year = int.tryParse(song.releaseYear);
+    if (year != null && year >= 1940 && year < 2000) {
+      return true;
+    }
 
-    final List<String> discoveryQueries = [];
-    final artistLower = seedSong.artist.toLowerCase();
-    final genreLower = seedSong.genre.toLowerCase();
-    final titleLower = seedSong.title.toLowerCase();
-
-    final isOldClassic = artistLower.contains('asha bhosle') ||
+    return artistLower.contains('asha bhosle') ||
         artistLower.contains('lata mangeshkar') ||
         artistLower.contains('kishore kumar') ||
         artistLower.contains('mohammed rafi') ||
@@ -339,6 +330,7 @@ Genre: $genre
         artistLower.contains('jagjit singh') ||
         artistLower.contains('kalyanji') ||
         artistLower.contains('laxmikant') ||
+        artistLower.contains('pyarelal') ||
         artistLower.contains('anuradha paudwal') ||
         artistLower.contains('kumar sanu') ||
         artistLower.contains('alka yagnik') ||
@@ -349,6 +341,16 @@ Genre: $genre
         artistLower.contains('salil chowdhury') ||
         artistLower.contains('naushad') ||
         artistLower.contains('mubarak begum') ||
+        artistLower.contains('sadhana sargam') ||
+        artistLower.contains('kavita krishnamurthy') ||
+        artistLower.contains('hariharan') ||
+        artistLower.contains('bappi lahiri') ||
+        artistLower.contains('roop kumar rathod') ||
+        artistLower.contains('mahendra kapoor') ||
+        artistLower.contains('shankar jaikishan') ||
+        artistLower.contains('madan mohan') ||
+        artistLower.contains('khayyam') ||
+        artistLower.contains('o.p. nayyar') ||
         titleLower.contains('sajna hai mujhe') ||
         titleLower.contains('lag ja gale') ||
         titleLower.contains('pal pal dil') ||
@@ -357,164 +359,176 @@ Genre: $genre
         titleLower.contains('mere sapno ki') ||
         titleLower.contains('pyar kiya to') ||
         titleLower.contains('tere bina zindagi') ||
+        titleLower.contains('ek ajnabee haseena') ||
+        titleLower.contains('gulabi aankhen') ||
+        titleLower.contains('chaudhvin ka chand') ||
+        titleLower.contains('chura liya') ||
+        titleLower.contains('yeh dosti') ||
         genreLower.contains('retro') ||
         genreLower.contains('classic') ||
         genreLower.contains('old') ||
+        genreLower.contains('60s') ||
         genreLower.contains('70s') ||
         genreLower.contains('80s') ||
         genreLower.contains('90s') ||
         genreLower.contains('evergreen') ||
         genreLower.contains('ghazal') ||
+        genreLower.contains('purane') ||
         genreLower.contains('golden');
+  }
 
-    if (isOldClassic) {
-      // STRICT PURANE GAANE (Evergreen 60s, 70s, 80s, 90s Golden Era Classics Only)
-      discoveryQueries.addAll([
-        'Kishore Kumar Evergreen Hits',
-        'Lata Mangeshkar Golden Hits',
-        'Mohammed Rafi Classic Romantic',
-        'Asha Bhosle Retro Hits',
-        'Mukesh Bollywood Classics',
-        'RD Burman 70s Superhits',
-        'Kalyanji Anandji Superhits',
-        'Laxmikant Pyarelal Hits',
-        'Golden Era Bollywood 70s',
-        '80s Romantic Hindi Classics',
-        'Purane Gane Superhits',
-        '90s Melodies Kumar Sanu Alka',
-        'Lata Kishore Duets',
-        'Asha Kishore Duets',
-        'Rafi Asha Bhosle Duets',
-        'Jagjit Singh Ghazals',
-        'Manna Dey Classic Hits',
-        'Evergreen 70s Bollywood Melodies',
-        'Mohammed Rafi Sad Songs',
-        'Kishore Kumar Romantic Hits',
-      ]);
-    } else if (artistLower.contains('king') ||
-        titleLower.contains('teri ho na saki') ||
-        titleLower.contains('maan meri jaan') ||
-        titleLower.contains('tu aake dekhle') ||
+  /// Checks if a song belongs to the 2000s-2010s Bollywood Soulful / Emraan Hashmi Era
+  static bool is2000sSong(Song song) {
+    final artistLower = song.artist.toLowerCase();
+    final titleLower = song.title.toLowerCase();
+
+    return artistLower.contains('kk') ||
+        artistLower.contains('krishnakumar') ||
+        artistLower.contains('mohit chauhan') ||
+        artistLower.contains('atif aslam') ||
+        artistLower.contains('himesh reshammiya') ||
+        artistLower.contains('lucky ali') ||
+        artistLower.contains('rahat fateh') ||
+        artistLower.contains('shafqat') ||
+        artistLower.contains('kunal ganjawala') ||
+        artistLower.contains('zubeen garg') ||
+        artistLower.contains('mustafa zahid') ||
+        artistLower.contains('jal') ||
+        artistLower.contains('roxen') ||
+        artistLower.contains('euphoria') ||
+        artistLower.contains('strings') ||
+        artistLower.contains('adnan sami') ||
+        artistLower.contains('kailash kher') ||
+        titleLower.contains('woh lamhe') ||
+        titleLower.contains('tu hi meri shab') ||
+        titleLower.contains('labon ko') ||
+        titleLower.contains('kya mujhe pyar hai') ||
+        titleLower.contains('zara sa') ||
+        titleLower.contains('peehloon') ||
+        titleLower.contains('saibo') ||
+        titleLower.contains('mitwa') ||
+        titleLower.contains('alvida') ||
+        titleLower.contains('aadat');
+  }
+
+  /// Checks if a song belongs to Punjabi / Desi Hip Hop
+  static bool isPunjabiOrHipHopSong(Song song) {
+    final artistLower = song.artist.toLowerCase();
+    final genreLower = song.genre.toLowerCase();
+
+    return artistLower.contains('karan aujla') ||
+        artistLower.contains('diljit') ||
+        artistLower.contains('sidhu moose') ||
+        artistLower.contains('shubh') ||
+        artistLower.contains('ap dhillon') ||
+        artistLower.contains('bohemia') ||
         artistLower.contains('talwiinder') ||
-        artistLower.contains('mitraz') ||
-        artistLower.contains('hustle') ||
+        artistLower.contains('king') ||
         artistLower.contains('seedhe maut') ||
         artistLower.contains('kr\$na') ||
+        artistLower.contains('divine') ||
+        artistLower.contains('raftaar') ||
+        artistLower.contains('mc stan') ||
+        artistLower.contains('hanumankind') ||
+        artistLower.contains('honey singh') ||
+        artistLower.contains('badshah') ||
+        artistLower.contains('guru randhawa') ||
+        artistLower.contains('b praak') ||
+        artistLower.contains('jassie gill') ||
+        artistLower.contains('harrdy sandhu') ||
+        artistLower.contains('ammy virk') ||
+        artistLower.contains('parmish verma') ||
+        genreLower.contains('punjabi') ||
+        genreLower.contains('hip hop') ||
+        genreLower.contains('rap');
+  }
+
+  /// Checks if a song belongs to Indie / Acoustic / Sukoon
+  static bool isIndieOrSukoonSong(Song song) {
+    final artistLower = song.artist.toLowerCase();
+    final genreLower = song.genre.toLowerCase();
+
+    return artistLower.contains('anuv jain') ||
+        artistLower.contains('prateek kuhad') ||
+        artistLower.contains('jasleen royal') ||
         artistLower.contains('aditya a') ||
-        artistLower.contains('aur')) {
-      discoveryQueries.addAll([
-        'KING Maan Meri Jaan',
-        'Talwiinder Dhundhala',
-        'KING Tu Aake Dekhle',
-        'Talwiinder Khayaal',
-        'Karan Aujla Tauba Tauba',
-        'AP Dhillon With You',
-        'Shubh Cheques',
-        'Mitraz Akhiyaan',
-        'Tu Hai Kahan AUR',
-        'Sitaare Arijit',
-        'Anuv Jain Husn',
-        'Starstruck UR DEBUT',
-        'Pal Pal Afusic',
-        'Ishq Faheem Abdullah',
-        'Diljit Dosanjh Lover',
-        'Hass Hass Diljit Sia',
-        'Winning Speech Karan Aujla',
-        'Jasleen Royal Heeriye',
-        'Chaand Baaliyan Aditya A',
-        'Legends KING',
-      ]);
-    } else if (artistLower.contains('quratulain') ||
-        artistLower.contains('balouch') ||
-        artistLower.contains('kaifi') ||
-        artistLower.contains('afusic') ||
+        artistLower.contains('mitraz') ||
+        artistLower.contains('aur') ||
+        artistLower.contains('kaifi khalil') ||
+        artistLower.contains('faheem abdullah') ||
         artistLower.contains('kushagra') ||
-        artistLower.contains('faheem') ||
-        artistLower.contains('bhoomi') ||
-        artistLower.contains('sufi') ||
+        artistLower.contains('bharat chauhan') ||
+        artistLower.contains('local train') ||
+        artistLower.contains('coke studio') ||
         genreLower.contains('indie') ||
         genreLower.contains('acoustic') ||
-        genreLower.contains('romantic') ||
-        genreLower.contains('bollywood') ||
-        artistLower.contains('arijit') ||
-        artistLower.contains('sukoon')) {
-      discoveryQueries.addAll([
-        'Jaane Na Tu',
-        'Sitaare Arijit',
-        'Pal Pal Afusic',
-        'Ishq Faheem Abdullah',
-        'Pyar Se Kushagra',
-        'Starstruck UR DEBUT',
-        'Kahani Suno Kaifi',
-        'Suniyan Suniyan Juss',
-        'Ve Haaniyaan',
-        'Mohit Chauhan Hits',
-        'Atif Aslam Sukoon',
-        'Shreya Ghoshal Hits',
-        'KK Hindi Hits',
-        'Arijit Singh Romantic',
-        'Jubin Nautiyal Sukoon',
-        'Coke Studio Hits',
-      ]);
-    } else if (artistLower.contains('diljit') ||
-        artistLower.contains('sidhu') ||
-        artistLower.contains('karan') ||
-        artistLower.contains('shubh') ||
-        genreLower.contains('punjabi')) {
-      discoveryQueries.addAll([
-        'Diljit Dosanjh Hits',
-        'Karan Aujla New',
-        'AP Dhillon Hits',
-        'Sidhu Moosewala Hits',
-        'Suniyan Suniyan Juss',
-        'Ve Haaniyaan',
-        'Shubh Punjabi Hits',
-        'Amrinder Gill Hits',
-      ]);
-    } else if (genreLower.contains('lo-fi') || genreLower.contains('chill')) {
-      discoveryQueries.addAll([
-        'Lo-Fi Hindi Sukoon',
-        'Chillhop beats',
-        'Midnight Lo-Fi',
-        'Anuv Jain Hits',
-        'Jasleen Royal Acoustic',
-        'Prateek Kuhad Melodies',
-      ]);
-    } else if (genreLower.contains('edm') || genreLower.contains('dance')) {
-      discoveryQueries.addAll([
-        'Nucleya Bass',
-        'Ritviz Hits',
-        'Desi Party Hits',
-        'Club Dance Bollywood',
-      ]);
-    } else {
-      discoveryQueries.addAll([
-        'Trending Hindi Songs',
-        'Top Bollywood Melodies',
-        'India Top 50 Hits',
-        'Viral Spotify India',
-      ]);
-    }
+        genreLower.contains('sukoon') ||
+        genreLower.contains('lo-fi') ||
+        genreLower.contains('chill');
+  }
 
-    discoveryQueries.shuffle();
-    final selectedQueries = discoveryQueries.take(4).toList();
+  /// Discovers 50-60 related, era-pure songs matching the seed song's era, artist,
+  /// style and mood for uninterrupted "Continue Playing".
+  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 55}) async {
+    final List<Song> recommendations = [];
+    final Set<String> seenIds = {seedSong.id};
+    final Set<String> seenTitles = {seedSong.title.toLowerCase().trim()};
 
-    // Parallel fetch tasks: Artist songs, selected queries, and fallback playlist
+    final rawArtist = seedSong.artist
+        .split(',')
+        .first
+        .split('&')
+        .first
+        .split('feat.')
+        .first
+        .trim();
+
+    final isOld = isOldClassicSong(seedSong);
+    final is2000s = !isOld && is2000sSong(seedSong);
+    final isPunjabi = !isOld && !is2000s && isPunjabiOrHipHopSong(seedSong);
+    final isIndie = !isOld && !is2000s && !isPunjabi && isIndieOrSukoonSong(seedSong);
+
     final List<Future<List<Song>>> futures = [];
 
     if (rawArtist.isNotEmpty &&
         rawArtist.toLowerCase() != 'unknown artist' &&
         rawArtist.toLowerCase() != 'music') {
-      futures.add(searchLiveSongs(rawArtist, limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('$rawArtist hits', limit: 15).catchError((_) => <Song>[]));
     }
 
-    for (final q in selectedQueries) {
-      futures.add(searchLiveSongs(q, limit: 15).catchError((_) => <Song>[]));
-    }
-
-    if (isOldClassic) {
+    if (isOld) {
+      // STRICT PURANE GAANE (Evergreen 60s, 70s, 80s, 90s Golden Era Classics Only)
+      futures.add(searchLiveSongs('Kishore Kumar Evergreen Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Lata Mangeshkar Golden Era Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Mohammed Rafi Classic Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('RD Burman 70s 80s Superhits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('90s Melodies Kumar Sanu Alka Yagnik Udit Narayan', limit: 15).catchError((_) => <Song>[]));
       futures.add(fetch90sDuets().catchError((_) => <Song>[]));
+    } else if (is2000s) {
+      // 2000s - 2010s Bollywood Nostalgia / Emraan Hashmi Era / Soulful Hits
+      futures.add(searchLiveSongs('2000s Bollywood Romantic Nostalgia', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('KK Best Soulful Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Atif Aslam 2000s Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Mohit Chauhan Soulful Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Emraan Hashmi Era Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+    } else if (isPunjabi) {
+      // Punjabi Hits & Desi Hip Hop
+      futures.add(searchLiveSongs('Karan Aujla New Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Diljit Dosanjh Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('AP Dhillon Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Sidhu Moosewala Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Top Punjabi Chartbusters', limit: 15).catchError((_) => <Song>[]));
+    } else if (isIndie) {
+      // Indie & Sukoon Hits
+      futures.add(searchLiveSongs('Indie India Sukoon Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Anuv Jain Prateek Kuhad Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Acoustic Hindi Sukoon Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Coke Studio Soulful Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(fetchBestOfIndie().catchError((_) => <Song>[]));
     } else {
+      // Modern Bollywood & Top 50 Chartbusters
+      futures.add(searchLiveSongs('Trending Bollywood Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Top Bollywood Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(fetchTrendingToday().catchError((_) => <Song>[]));
       futures.add(fetchIndiaTop50().catchError((_) => <Song>[]));
     }
@@ -524,6 +538,12 @@ Genre: $genre
       for (final songList in results) {
         for (final song in songList) {
           final lowerTitle = song.title.toLowerCase().trim();
+
+          // If old classic was requested, strictly exclude modern hip-hop / modern drill
+          if (isOld && isPunjabiOrHipHopSong(song)) {
+            continue;
+          }
+
           if (!seenIds.contains(song.id) &&
               !seenTitles.contains(lowerTitle) &&
               !lowerTitle.contains(seedSong.title.toLowerCase()) &&

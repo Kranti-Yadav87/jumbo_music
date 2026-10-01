@@ -6,6 +6,8 @@ import '../widgets/app_footer.dart';
 import '../widgets/app_top_header.dart';
 import 'playlist_detail_screen.dart';
 import 'top_50_screen.dart';
+import 'new_releases_screen.dart';
+import 'artists_screen.dart';
 
 import '../data/music_repository.dart';
 import '../services/music_api_service.dart';
@@ -61,27 +63,37 @@ class _HomeTabState extends State<HomeTab> {
     final textColor = AppThemeManager.textPrimary(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 26, 14, 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: textColor,
-              letterSpacing: -0.3,
-            ),
+      child: InkWell(
+        onTap: onArrowTap,
+        borderRadius: BorderRadius.circular(14),
+        splashColor: Colors.white.withOpacity(0.08),
+        highlightColor: Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              if (onArrowTap != null)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.06),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.arrow_forward_rounded, color: textColor, size: 20),
+                ),
+            ],
           ),
-          if (onArrowTap != null)
-            IconButton(
-              icon: Icon(Icons.arrow_forward_rounded, color: textColor, size: 22),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              splashRadius: 20,
-              onPressed: onArrowTap,
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -468,15 +480,16 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
-              // 3. NEW RELEASES: Exact Match to Screenshot (Mero Mann, AUJLA SZN 1, Ghostface, etc.)
+              // 3. NEW RELEASES: Dedicated Carousel & Navigation to NewReleasesScreen
               SliverToBoxAdapter(
                 child: _buildSectionHeader(
                   context,
                   title: 'New releases',
                   onArrowTap: () {
-                    if (newReleases.isNotEmpty) {
-                      manager.playSong(newReleases.first, newQueue: newReleases);
-                    }
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const NewReleasesScreen()),
+                    );
                   },
                 ),
               ),
@@ -586,7 +599,12 @@ class _HomeTabState extends State<HomeTab> {
                 child: _buildSectionHeader(
                   context,
                   title: 'Popular Artists & Singers',
-                  onArrowTap: () {},
+                  onArrowTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ArtistsScreen()),
+                    );
+                  },
                 ),
               ),
 

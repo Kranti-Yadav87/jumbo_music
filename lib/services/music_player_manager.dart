@@ -506,15 +506,26 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. First immediately seed from local _allSongs if queue has fewer than targetQueueSize items
+      final isOld = MusicApiService.isOldClassicSong(seedSong);
+      final is2000s = !isOld && MusicApiService.is2000sSong(seedSong);
+      final isPunjabi = !isOld && !is2000s && MusicApiService.isPunjabiOrHipHopSong(seedSong);
+      final isIndie = !isOld && !is2000s && !isPunjabi && MusicApiService.isIndieOrSukoonSong(seedSong);
+
+      // 1. First immediately seed from local _allSongs strictly matching the song's era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
         final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-        final localCandidates = _allSongs.where((s) => !currentQueueIds.contains(s.id)).toList();
+        final localCandidates = _allSongs.where((s) {
+          if (currentQueueIds.contains(s.id)) return false;
+          if (isOld) return MusicApiService.isOldClassicSong(s);
+          if (is2000s) return MusicApiService.is2000sSong(s);
+          if (isPunjabi) return MusicApiService.isPunjabiOrHipHopSong(s);
+          if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
+          return !MusicApiService.isOldClassicSong(s);
+        }).toList();
         
-        // Prioritize songs from same genre, artist or high quality
         localCandidates.sort((a, b) {
-          int scoreA = (a.artist == seedSong.artist ? 2 : 0) + (a.genre == seedSong.genre ? 1 : 0);
-          int scoreB = (b.artist == seedSong.artist ? 2 : 0) + (b.genre == seedSong.genre ? 1 : 0);
+          int scoreA = (a.artist == seedSong.artist ? 3 : 0) + (a.genre == seedSong.genre ? 1 : 0);
+          int scoreB = (b.artist == seedSong.artist ? 3 : 0) + (b.genre == seedSong.genre ? 1 : 0);
           return scoreB.compareTo(scoreA);
         });
 
@@ -525,7 +536,7 @@ class MusicPlayerManager extends ChangeNotifier {
         }
       }
 
-      // 2. Fetch fresh smart recommendations concurrently
+      // 2. Fetch fresh smart recommendations concurrently matching the exact era
       final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 55);
       if (freshTracks.isNotEmpty) {
         final Set<String> playedIds = _queue.take(_currentIndex + 1).map((s) => s.id).toSet();
@@ -537,7 +548,11 @@ class MusicPlayerManager extends ChangeNotifier {
           final upcomingPart = _queue.sublist(_currentIndex + 1);
           
           final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
-          final remainingUpcoming = upcomingPart.where((s) => !freshIds.contains(s.id)).toList();
+          final remainingUpcoming = upcomingPart.where((s) {
+            if (freshIds.contains(s.id)) return false;
+            if (isOld) return MusicApiService.isOldClassicSong(s);
+            return true;
+          }).toList();
           
           _queue = [...playedPart, ...newTracks, ...remainingUpcoming].take(targetQueueSize).toList();
 
@@ -579,13 +594,26 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue = [song];
     }
 
-    // Immediately ensure queue is populated with 50-60 songs if autoplay is active
+    final isOld = MusicApiService.isOldClassicSong(song);
+    final is2000s = !isOld && MusicApiService.is2000sSong(song);
+    final isPunjabi = !isOld && !is2000s && MusicApiService.isPunjabiOrHipHopSong(song);
+    final isIndie = !isOld && !is2000s && !isPunjabi && MusicApiService.isIndieOrSukoonSong(song);
+
+    // Immediately ensure queue is populated with era-matched songs if autoplay is active
     if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
       final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-      final localCandidates = _allSongs.where((s) => !currentQueueIds.contains(s.id)).toList();
+      final localCandidates = _allSongs.where((s) {
+        if (currentQueueIds.contains(s.id)) return false;
+        if (isOld) return MusicApiService.isOldClassicSong(s);
+        if (is2000s) return MusicApiService.is2000sSong(s);
+        if (isPunjabi) return MusicApiService.isPunjabiOrHipHopSong(s);
+        if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
+        return !MusicApiService.isOldClassicSong(s);
+      }).toList();
+
       localCandidates.sort((a, b) {
-        int scoreA = (a.artist == song.artist ? 2 : 0) + (a.genre == song.genre ? 1 : 0);
-        int scoreB = (b.artist == song.artist ? 2 : 0) + (b.genre == song.genre ? 1 : 0);
+        int scoreA = (a.artist == song.artist ? 3 : 0) + (a.genre == song.genre ? 1 : 0);
+        int scoreB = (b.artist == song.artist ? 3 : 0) + (b.genre == song.genre ? 1 : 0);
         return scoreB.compareTo(scoreA);
       });
       _queue.addAll(localCandidates.take(60 - _queue.length));
