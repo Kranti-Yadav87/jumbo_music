@@ -62,6 +62,7 @@ class MusicPlayerManager extends ChangeNotifier {
   final List<Song> _recentlyPlayed = [];
   List<Playlist> _playlists = [];
   List<Song> _onlineTrending = [];
+  List<Song> _newReleases = [];
   bool _isLoadingTrending = false;
 
   String? _errorMessage;
@@ -142,7 +143,7 @@ class MusicPlayerManager extends ChangeNotifier {
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   List<Song> get top50Songs => _allSongs.take(50).toList();
-  List<Song> get newReleases => MusicRepository.newReleases;
+  List<Song> get newReleases => _newReleases.isNotEmpty ? _newReleases : _onlineTrending.take(20).toList();
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
 
@@ -151,7 +152,6 @@ class MusicPlayerManager extends ChangeNotifier {
     final initialOffline = [
       ...db.downloadedSongs,
       ...db.favoriteSongs,
-      ...MusicRepository.newReleases,
     ];
 
     final Set<String> seenIds = {};
@@ -329,6 +329,14 @@ class MusicPlayerManager extends ChangeNotifier {
 
       final duetsResult = await MusicApiService.fetchPlaylist('159470188');
       final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
+
+      // Fetch live fresh studio new releases (2024-2025 Bollywood / Indian pop)
+      try {
+        final newReleasesResult = await MusicApiService.searchLiveSongs('Latest Bollywood Hindi New 2024 2025', limit: 30);
+        if (newReleasesResult.isNotEmpty) {
+          _newReleases = newReleasesResult;
+        }
+      } catch (_) {}
 
       final List<Playlist> livePlaylists = [];
       if (indiaSongs.isNotEmpty) {
@@ -533,10 +541,12 @@ class MusicPlayerManager extends ChangeNotifier {
 
     try {
       final songLang = MusicApiService.detectSongLanguage(seedSong);
-      final isVintage = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
-      final is90s = songLang == 'Hindi' && !isVintage && MusicApiService.is90sMelodyEra(seedSong);
-      final is2000s = songLang == 'Hindi' && !isVintage && !is90s && MusicApiService.is2000sSong(seedSong);
-      final isIndie = songLang == 'Hindi' && !isVintage && !is90s && !is2000s && MusicApiService.isIndieOrSukoonSong(seedSong);
+      final is70s = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
+      final is80s = songLang == 'Hindi' && !is70s && MusicApiService.is80sEra(seedSong);
+      final is90s = songLang == 'Hindi' && !is70s && !is80s && MusicApiService.is90sMelodyEra(seedSong);
+      final is2000s = songLang == 'Hindi' && !is70s && !is80s && !is90s && MusicApiService.is2000sSong(seedSong);
+      final is2010s = songLang == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && MusicApiService.is2010sSong(seedSong);
+      final isIndie = songLang == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && !is2010s && MusicApiService.isIndieOrSukoonSong(seedSong);
 
       // 1. First immediately seed from local _allSongs strictly matching language & era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
@@ -547,11 +557,13 @@ class MusicPlayerManager extends ChangeNotifier {
           if (candLang != songLang) return false;
 
           if (songLang == 'Hindi') {
-            if (isVintage) return MusicApiService.isVintageGoldenEra(s);
-            if (is90s) return MusicApiService.is90sMelodyEra(s);
-            if (is2000s) return MusicApiService.is2000sSong(s);
+            if (is70s) return MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
+            if (is80s) return MusicApiService.is80sEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+            if (is90s) return MusicApiService.is90sMelodyEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s);
+            if (is2000s) return MusicApiService.is2000sSong(s) && !MusicApiService.is90sMelodyEra(s);
+            if (is2010s) return MusicApiService.is2010sSong(s);
             if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-            return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+            return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
           }
           return true;
         }).toList();
@@ -585,8 +597,15 @@ class MusicPlayerManager extends ChangeNotifier {
             if (freshIds.contains(s.id)) return false;
             final candLang = MusicApiService.detectSongLanguage(s);
             if (candLang != songLang) return false;
-            if (isVintage) return MusicApiService.isVintageGoldenEra(s);
-            if (is90s) return MusicApiService.is90sMelodyEra(s);
+            if (songLang == 'Hindi') {
+              if (is70s) return MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
+              if (is80s) return MusicApiService.is80sEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+              if (is90s) return MusicApiService.is90sMelodyEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s);
+              if (is2000s) return MusicApiService.is2000sSong(s) && !MusicApiService.is90sMelodyEra(s);
+              if (is2010s) return MusicApiService.is2010sSong(s);
+              if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
+              return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
+            }
             return true;
           }).toList();
           

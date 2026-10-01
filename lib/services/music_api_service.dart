@@ -30,15 +30,45 @@ class MusicApiService {
 
   static String _extractImage(dynamic imageObj) {
     if (imageObj == null) return '';
-    if (imageObj is String) return imageObj;
-    if (imageObj is List && imageObj.isNotEmpty) {
-      // Pick highest quality (500x500 is usually at the end)
-      final last = imageObj.last;
-      if (last is Map) {
-        return (last['url'] as String?) ?? (last['link'] as String?) ?? '';
+    String result = '';
+    if (imageObj is String) {
+      result = imageObj;
+    } else if (imageObj is List && imageObj.isNotEmpty) {
+      for (final item in imageObj.reversed) {
+        if (item is Map) {
+          final url = (item['url'] as String?) ?? (item['link'] as String?) ?? '';
+          if (url.isNotEmpty) {
+            result = url;
+            break;
+          }
+        } else if (item is String && item.isNotEmpty) {
+          result = item;
+          break;
+        }
       }
+      if (result.isEmpty && imageObj.first is Map) {
+        result = (imageObj.first['url'] as String?) ?? (imageObj.first['link'] as String?) ?? '';
+      }
+    } else if (imageObj is Map) {
+      result = (imageObj['url'] as String?) ?? (imageObj['link'] as String?) ?? '';
     }
-    return '';
+
+    result = result.trim();
+    if (result.isEmpty) return '';
+
+    // Always ensure secure HTTPS for web browser compatibility
+    if (result.startsWith('http://')) {
+      result = result.replaceFirst('http://', 'https://');
+    }
+
+    // Upgrade low resolution thumbnails to crisp 500x500
+    if (result.contains('150x150')) {
+      result = result.replaceAll('150x150', '500x500');
+    } else if (result.contains('50x50')) {
+      result = result.replaceAll('50x50', '500x500');
+    }
+
+    return result;
   }
 
   static String _extractAudioUrl(dynamic downloadUrlObj) {
@@ -408,7 +438,7 @@ Genre: $genre
     return 'Hindi';
   }
 
-  /// Checks if a song belongs to the 1950s - 1970s Vintage Golden Era (Purane Evergreen Gaane)
+  /// Checks if a song belongs to the 1950s - 1970s Vintage Golden Era
   static bool isVintageGoldenEra(Song song) {
     final artistLower = song.artist.toLowerCase();
     final titleLower = song.title.toLowerCase();
@@ -420,23 +450,20 @@ Genre: $genre
       return true;
     }
 
-    // Vintage movies & titles
+    // Iconic 50s-70s film & track titles
     if (albumLower.contains('baharon ke sapne') ||
-        albumLower.contains('guide') ||
-        albumLower.contains('madhumati') ||
-        albumLower.contains('mughal-e-azam') ||
-        albumLower.contains('pakeezah') ||
         albumLower.contains('aradhana') ||
+        albumLower.contains('anand') ||
+        albumLower.contains('sholay') ||
         albumLower.contains('kati patang') ||
         albumLower.contains('amar prem') ||
-        albumLower.contains('anand') ||
-        albumLower.contains('chupke chupke') ||
-        albumLower.contains('abhimaan') ||
-        albumLower.contains('sholay') ||
-        albumLower.contains('bobby') ||
-        albumLower.contains('kati patang') ||
-        albumLower.contains('woh kaun thi') ||
-        titleLower.contains('aaja piya tohe pyar doon') ||
+        albumLower.contains('pakeezah') ||
+        albumLower.contains('mughal-e-azam') ||
+        albumLower.contains('guide') ||
+        albumLower.contains('hum kisise kum naheen') ||
+        albumLower.contains('kabhie kabhie') ||
+        albumLower.contains('silsila') ||
+        titleLower.contains('aaja piya tohe') ||
         titleLower.contains('lag ja gale') ||
         titleLower.contains('pal pal dil') ||
         titleLower.contains('roop tera mastana') ||
@@ -451,7 +478,7 @@ Genre: $genre
       return true;
     }
 
-    // Exclusive Vintage Legends
+    // Exclusive Vintage Legends (before 1980)
     final isClassicSinger = artistLower.contains('kishore kumar') ||
         artistLower.contains('mohammed rafi') ||
         artistLower.contains('mohd rafi') ||
@@ -468,7 +495,11 @@ Genre: $genre
         artistLower.contains('salil chowdhury') ||
         artistLower.contains('khayyam');
 
-    if (isClassicSinger) return true;
+    if (isClassicSinger) {
+      if (year == null || year < 1980 || year >= 2024) {
+        return true;
+      }
+    }
 
     // Lata Mangeshkar / Asha Bhosle vintage check
     if ((artistLower.contains('lata mangeshkar') || artistLower.contains('asha bhosle')) &&
@@ -496,8 +527,8 @@ Genre: $genre
         genreLower.contains('70s');
   }
 
-  /// Checks if a song belongs to the 80s - 90s Melodies Era (Kumar Sanu, Alka Yagnik, Udit Narayan, DDLJ, Saajan)
-  static bool is90sMelodyEra(Song song) {
+  /// Checks if a song belongs to the 1980s Era (Bappi Lahiri, Disco, Chandni, Tezaab, QSQT)
+  static bool is80sEra(Song song) {
     if (isVintageGoldenEra(song)) return false;
 
     final artistLower = song.artist.toLowerCase();
@@ -506,7 +537,52 @@ Genre: $genre
     final genreLower = song.genre.toLowerCase();
 
     final year = int.tryParse(song.releaseYear);
-    if (year != null && year >= 1980 && year < 2000) {
+    if (year != null && year >= 1980 && year < 1990) {
+      return true;
+    }
+
+    return artistLower.contains('bappi lahiri') ||
+        artistLower.contains('amit kumar') ||
+        artistLower.contains('shabbir kumar') ||
+        artistLower.contains('mohammed aziz') ||
+        artistLower.contains('salma agha') ||
+        artistLower.contains('nazia hassan') ||
+        artistLower.contains('alisha chinai') ||
+        albumLower.contains('disco dancer') ||
+        albumLower.contains('chandni') ||
+        albumLower.contains('tezaab') ||
+        albumLower.contains('qayamat se qayamat tak') ||
+        albumLower.contains('mr. india') ||
+        albumLower.contains('mr india') ||
+        albumLower.contains('himmatwala') ||
+        albumLower.contains('karz') ||
+        albumLower.contains('hero (1983)') ||
+        albumLower.contains('maine pyar kiya') ||
+        albumLower.contains('tridev') ||
+        albumLower.contains('ram lakhan') ||
+        titleLower.contains('i am a disco dancer') ||
+        titleLower.contains('jimmy jimmy') ||
+        titleLower.contains('ek do teen') ||
+        titleLower.contains('mere haathon mein') ||
+        titleLower.contains('papa kehte hain') ||
+        titleLower.contains('gazab ka hai din') ||
+        titleLower.contains('hawa hawai') ||
+        titleLower.contains('dil deewana') ||
+        titleLower.contains('kabootar ja ja') ||
+        genreLower.contains('80s');
+  }
+
+  /// Checks if a song belongs to the 1990s Melodies Era (Kumar Sanu, Alka Yagnik, Udit Narayan, DDLJ, Saajan)
+  static bool is90sMelodyEra(Song song) {
+    if (isVintageGoldenEra(song) || is80sEra(song)) return false;
+
+    final artistLower = song.artist.toLowerCase();
+    final titleLower = song.title.toLowerCase();
+    final albumLower = song.album.toLowerCase();
+    final genreLower = song.genre.toLowerCase();
+
+    final year = int.tryParse(song.releaseYear);
+    if (year != null && year >= 1990 && year < 2000) {
       return true;
     }
 
@@ -518,7 +594,6 @@ Genre: $genre
         artistLower.contains('kavita krishnamurthy') ||
         artistLower.contains('abhijeet') ||
         artistLower.contains('pankaj udhas') ||
-        artistLower.contains('bappi lahiri') ||
         artistLower.contains('roop kumar rathod') ||
         artistLower.contains('nadeem') ||
         artistLower.contains('shravan') ||
@@ -531,6 +606,10 @@ Genre: $genre
         albumLower.contains('raja hindustani') ||
         albumLower.contains('baazigar') ||
         albumLower.contains('hum aapke hain koun') ||
+        albumLower.contains('pardes') ||
+        albumLower.contains('mohra') ||
+        albumLower.contains('border') ||
+        albumLower.contains('kaho naa... pyaar hai') ||
         titleLower.contains('dil to pagal hai') ||
         titleLower.contains('tujhe dekha to') ||
         titleLower.contains('chura ke dil mera') ||
@@ -545,43 +624,77 @@ Genre: $genre
         genreLower.contains('90s');
   }
 
-  /// Checks if a song belongs to the 2000s - 2014 Bollywood Soulful / Emraan Hashmi Era
+  /// Checks if a song belongs to the 2000s - 2009 Bollywood Soulful / Emraan Hashmi Era / KK
   static bool is2000sSong(Song song) {
-    if (isVintageGoldenEra(song) || is90sMelodyEra(song)) return false;
+    if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song)) return false;
 
     final artistLower = song.artist.toLowerCase();
     final titleLower = song.title.toLowerCase();
+    final albumLower = song.album.toLowerCase();
     final year = int.tryParse(song.releaseYear);
-    if (year != null && year >= 2000 && year < 2015) {
+    if (year != null && year >= 2000 && year < 2010) {
       return true;
     }
 
     return artistLower.contains('kk') ||
         artistLower.contains('krishnakumar') ||
-        artistLower.contains('mohit chauhan') ||
-        artistLower.contains('atif aslam') ||
-        artistLower.contains('himesh reshammiya') ||
+        artistLower.contains('shaan') ||
         artistLower.contains('lucky ali') ||
-        artistLower.contains('rahat fateh') ||
-        artistLower.contains('shafqat') ||
-        artistLower.contains('kunal ganjawala') ||
+        artistLower.contains('himesh reshammiya') ||
+        artistLower.contains('kailash kher') ||
+        artistLower.contains('adnan sami') ||
         artistLower.contains('zubeen garg') ||
+        artistLower.contains('kunal ganjawala') ||
         artistLower.contains('mustafa zahid') ||
         artistLower.contains('jal') ||
         artistLower.contains('roxen') ||
         artistLower.contains('strings') ||
-        artistLower.contains('adnan sami') ||
-        artistLower.contains('kailash kher') ||
+        albumLower.contains('tere naam') ||
+        albumLower.contains('kal ho naa ho') ||
+        albumLower.contains('main hoon na') ||
+        albumLower.contains('veer-zaara') ||
+        albumLower.contains('jab we met') ||
+        albumLower.contains('fanaa') ||
+        albumLower.contains('jannat') ||
+        albumLower.contains('gangster') ||
+        albumLower.contains('murder') ||
+        albumLower.contains('awarapan') ||
         titleLower.contains('woh lamhe') ||
         titleLower.contains('tu hi meri shab') ||
         titleLower.contains('labon ko') ||
         titleLower.contains('kya mujhe pyar hai') ||
         titleLower.contains('zara sa') ||
         titleLower.contains('peehloon') ||
-        titleLower.contains('saibo') ||
         titleLower.contains('mitwa') ||
         titleLower.contains('alvida') ||
         titleLower.contains('aadat');
+  }
+
+  /// Checks if a song belongs to the 2010s (2010 - 2019) Arijit Singh / Modern Romantic Era
+  static bool is2010sSong(Song song) {
+    if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2000sSong(song)) return false;
+
+    final year = int.tryParse(song.releaseYear);
+    if (year != null && year >= 2010 && year < 2020) {
+      return true;
+    }
+
+    final titleLower = song.title.toLowerCase();
+    final albumLower = song.album.toLowerCase();
+
+    return albumLower.contains('aashiqui 2') ||
+        albumLower.contains('kabir singh') ||
+        albumLower.contains('yeh jawaani hai deewani') ||
+        albumLower.contains('rockstar') ||
+        albumLower.contains('sanam re') ||
+        albumLower.contains('ae dil hai mushkil') ||
+        albumLower.contains('raabta') ||
+        titleLower.contains('tum hi ho') ||
+        titleLower.contains('channa mereya') ||
+        titleLower.contains('gerua') ||
+        titleLower.contains('bekhayali') ||
+        titleLower.contains('shayad') ||
+        titleLower.contains('hawayein');
   }
 
   /// Checks if a song belongs to Indie / Acoustic / Sukoon
@@ -605,7 +718,7 @@ Genre: $genre
         genreLower.contains('lo-fi');
   }
 
-  /// Discovers 50-60 related, era-pure and language-pure songs matching the seed song's
+  /// Discovers 50-60 related, strictly era-pure and language-pure songs matching the seed song's
   /// era, language, artist, and mood for uninterrupted "Continue Playing".
   static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 55}) async {
     final List<Song> recommendations = [];
@@ -622,21 +735,29 @@ Genre: $genre
         .trim();
 
     final songLanguage = detectSongLanguage(seedSong);
-    final isVintage = songLanguage == 'Hindi' && isVintageGoldenEra(seedSong);
-    final is90s = songLanguage == 'Hindi' && !isVintage && is90sMelodyEra(seedSong);
-    final is2000s = songLanguage == 'Hindi' && !isVintage && !is90s && is2000sSong(seedSong);
-    final isIndie = songLanguage == 'Hindi' && !isVintage && !is90s && !is2000s && isIndieOrSukoonSong(seedSong);
+    final is70s = songLanguage == 'Hindi' && isVintageGoldenEra(seedSong);
+    final is80s = songLanguage == 'Hindi' && !is70s && is80sEra(seedSong);
+    final is90s = songLanguage == 'Hindi' && !is70s && !is80s && is90sMelodyEra(seedSong);
+    final is2000s = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && is2000sSong(seedSong);
+    final is2010s = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && is2010sSong(seedSong);
+    final isIndie = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && !is2010s && isIndieOrSukoonSong(seedSong);
 
     final List<Future<List<Song>>> futures = [];
 
-    // 1. Artist-specific query
+    // 1. Artist-specific query tailored by era
     if (rawArtist.isNotEmpty &&
         rawArtist.toLowerCase() != 'unknown artist' &&
         rawArtist.toLowerCase() != 'music') {
-      if (isVintage) {
+      if (is70s) {
         futures.add(searchLiveSongs('$rawArtist 60s 70s golden hits', limit: 15).catchError((_) => <Song>[]));
+      } else if (is80s) {
+        futures.add(searchLiveSongs('$rawArtist 80s disco romantic hits', limit: 15).catchError((_) => <Song>[]));
       } else if (is90s) {
         futures.add(searchLiveSongs('$rawArtist 90s romantic melodies', limit: 15).catchError((_) => <Song>[]));
+      } else if (is2000s) {
+        futures.add(searchLiveSongs('$rawArtist 2000s romantic hits', limit: 15).catchError((_) => <Song>[]));
+      } else if (is2010s) {
+        futures.add(searchLiveSongs('$rawArtist romantic hits', limit: 15).catchError((_) => <Song>[]));
       } else if (songLanguage == 'Punjabi') {
         futures.add(searchLiveSongs('$rawArtist Punjabi hits', limit: 15).catchError((_) => <Song>[]));
       } else if (songLanguage == 'South') {
@@ -672,29 +793,44 @@ Genre: $genre
       // STRICT HARYANVI
       futures.add(searchLiveSongs('Gulzaar Chhaniwala Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Top Haryanvi Chartbusters', limit: 15).catchError((_) => <Song>[]));
-    } else if (isVintage) {
+    } else if (is70s) {
       // STRICT 50s-70s GOLDEN ERA (Kishore, Lata Vintage, Rafi, Mukesh, SD/RD Burman)
-      // Strictly NO 90s, 2000s, or Modern Dance/Pop!
+      // Strictly NO 80s, NO 90s, NO 2000s!
       futures.add(searchLiveSongs('Kishore Kumar 70s Evergreen Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Lata Mangeshkar 60s 70s Golden Era Classics', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Mohammed Rafi 60s 70s Classic Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Mukesh Golden Era Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('RD Burman SD Burman 60s 70s Superhits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Vintage Bollywood Golden Classics 60s 70s', limit: 15).catchError((_) => <Song>[]));
+    } else if (is80s) {
+      // STRICT 80s BOLLYWOOD (Bappi Lahiri, Disco Dancer, Tezaab, Chandni, QSQT)
+      // Strictly NO 70s, NO 90s!
+      futures.add(searchLiveSongs('80s Bollywood Disco Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Bappi Lahiri 80s Superhits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('80s Bollywood Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Amit Kumar 80s Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Chandni Tezaab QSQT 80s Songs', limit: 15).catchError((_) => <Song>[]));
     } else if (is90s) {
       // STRICT 90s BOLLYWOOD MELODIES (Kumar Sanu, Alka Yagnik, Udit Narayan, DDLJ, Saajan)
+      // Strictly NO 70s, NO 80s, NO 2000s!
       futures.add(searchLiveSongs('Kumar Sanu Alka Yagnik 90s Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Udit Narayan 90s Evergreen Melodies', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Nadeem Shravan 90s Magic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('90s Bollywood Evergreen Romantic Songs', limit: 15).catchError((_) => <Song>[]));
       futures.add(fetch90sDuets().catchError((_) => <Song>[]));
     } else if (is2000s) {
-      // 2000s - 2014 BOLLYWOOD NOSTALGIA / EMRAAN HASHMI ERA / KK
+      // STRICT 2000s BOLLYWOOD NOSTALGIA / EMRAAN HASHMI ERA / KK
       futures.add(searchLiveSongs('2000s Bollywood Romantic Nostalgia', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('KK Best Soulful Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Atif Aslam 2000s Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Mohit Chauhan Soulful Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Mohit Chauhan 2000s Soulful Melodies', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Emraan Hashmi Era Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+    } else if (is2010s) {
+      // STRICT 2010s BOLLYWOOD (Arijit Singh, Aashiqui 2, Kabir Singh, Armaan Malik)
+      futures.add(searchLiveSongs('Arijit Singh 2010s Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Aashiqui 2 Kabir Singh Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('2010s Bollywood Superhit Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Armaan Malik Jubin Nautiyal Romantic Hits', limit: 15).catchError((_) => <Song>[]));
     } else if (isIndie) {
       // INDIE & SUKOON
       futures.add(searchLiveSongs('Indie India Sukoon Hits', limit: 15).catchError((_) => <Song>[]));
@@ -702,7 +838,7 @@ Genre: $genre
       futures.add(searchLiveSongs('Acoustic Hindi Sukoon Melodies', limit: 15).catchError((_) => <Song>[]));
       futures.add(fetchBestOfIndie().catchError((_) => <Song>[]));
     } else {
-      // MODERN BOLLYWOOD (2015+ Arijit, Darshan Raval, Jubin Nautiyal, etc.)
+      // MODERN BOLLYWOOD / 2020+ RELEASES
       futures.add(searchLiveSongs('Darshan Raval Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Arijit Singh Modern Romantic Hits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Trending Bollywood Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
@@ -722,17 +858,26 @@ Genre: $genre
             continue;
           }
 
-          // 2. Era matching filter for Hindi
+          // 2. Strict Era matching filter for Hindi
           if (songLanguage == 'Hindi') {
-            if (isVintage) {
-              // Strictly must be vintage golden era (60s/70s)
-              // EXCLUDE: 90s songs like Dil To Pagal Hai, Tujhe Dekha To, 2000s, or Modern
-              if (!isVintageGoldenEra(song) || is90sMelodyEra(song) || is2000sSong(song)) {
+            if (is70s) {
+              // Strictly 70s golden era
+              if (!isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2000sSong(song) || is2010sSong(song)) {
+                continue;
+              }
+            } else if (is80s) {
+              // Strictly 80s
+              if (isVintageGoldenEra(song) || is90sMelodyEra(song) || is2000sSong(song) || is2010sSong(song)) {
                 continue;
               }
             } else if (is90s) {
               // Strictly 90s melodies
-              if (isVintageGoldenEra(song) || is2000sSong(song)) {
+              if (isVintageGoldenEra(song) || is80sEra(song) || is2000sSong(song) || is2010sSong(song)) {
+                continue;
+              }
+            } else if (is2000s) {
+              // Strictly 2000s
+              if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2010sSong(song)) {
                 continue;
               }
             }

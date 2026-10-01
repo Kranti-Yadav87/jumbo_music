@@ -4,68 +4,7 @@ import '../models/playlist.dart';
 class MusicRepository {
   static const List<Song> sampleSongs = [];
 
-  static final List<Song> newReleases = [
-    Song(
-      id: 'nr_1',
-      title: 'Mero Mann',
-      artist: 'B Praak, Mir Desai',
-      album: 'Mero Mann - Single',
-      genre: 'Devotional',
-      duration: const Duration(minutes: 3, seconds: 52),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
-      coverUrl: 'https://c.saavncdn.com/264/Mero-Mann-Hindi-2024-20240904053248-500x500.jpg',
-    ),
-    Song(
-      id: 'nr_2',
-      title: 'AUJLA SZN 1',
-      artist: 'Karan Aujla',
-      album: 'AUJLA SZN 1',
-      genre: 'Desi hip-hop',
-      duration: const Duration(minutes: 3, seconds: 18),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
-      coverUrl: 'https://c.saavncdn.com/artists/Karan_Aujla_004_20230609071019_500x500.jpg',
-    ),
-    Song(
-      id: 'nr_3',
-      title: 'Ghostface',
-      artist: 'Sidhu Moose Wala, Mxrci',
-      album: 'Ghostface',
-      genre: 'Desi hip-hop',
-      duration: const Duration(minutes: 4, seconds: 10),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-12.mp3',
-      coverUrl: 'https://c.saavncdn.com/artists/Sidhu_Moose_Wala_004_20230607074218_500x500.jpg',
-    ),
-    Song(
-      id: 'nr_4',
-      title: 'Illuminati',
-      artist: 'Sushin Shyam, Dabzee',
-      album: 'Aavesham',
-      genre: 'Dance & electronic',
-      duration: const Duration(minutes: 3, seconds: 14),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
-      coverUrl: 'https://c.saavncdn.com/511/Illuminati-From-Aavesham-Malayalam-2024-20240328141014-500x500.jpg',
-    ),
-    Song(
-      id: 'nr_5',
-      title: 'Tauba Tauba',
-      artist: 'Karan Aujla',
-      album: 'Bad Newz',
-      genre: 'Pop',
-      duration: const Duration(minutes: 3, seconds: 26),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
-      coverUrl: 'https://c.saavncdn.com/393/Tauba-Tauba-From-Bad-Newz-Hindi-2024-20240702053112-500x500.jpg',
-    ),
-    Song(
-      id: 'nr_6',
-      title: 'Big Dawgs',
-      artist: 'Hanumankind, Kalmi',
-      album: 'Big Dawgs',
-      genre: 'Desi hip-hop',
-      duration: const Duration(minutes: 3, seconds: 40),
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
-      coverUrl: 'https://c.saavncdn.com/269/Big-Dawgs-English-2024-20240710170020-500x500.jpg',
-    ),
-  ];
+  static final List<Song> newReleases = [];
 
   static final List<Playlist> samplePlaylists = [
     Playlist(
