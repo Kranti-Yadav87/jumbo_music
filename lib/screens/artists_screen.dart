@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import '../data/music_repository.dart';
 import '../models/playlist.dart';
 import '../services/music_api_service.dart';
-import '../services/music_player_manager.dart';
-import '../services/theme_service.dart';
 import 'playlist_detail_screen.dart';
 
 class ArtistsScreen extends StatefulWidget {
