@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
-import 'screens/main_navigation_screen.dart';
+import 'screens/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase initialization note: $e');
+  }
 
   // Initialize persistent database engine
   await DatabaseService.instance.init();
@@ -37,7 +48,7 @@ class JumboMusicApp extends StatelessWidget {
           theme: AppThemeManager.lightTheme,
           darkTheme: AppThemeManager.darkTheme,
           themeMode: themeManager.themeMode,
-          home: const MainNavigationScreen(),
+          home: const AuthGate(),
         );
       },
     );

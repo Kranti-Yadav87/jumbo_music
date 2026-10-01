@@ -147,9 +147,21 @@ class MusicPlayerManager extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   void _init() {
-    _allSongs = [
+    final db = DatabaseService.instance;
+    final initialOffline = [
+      ...db.downloadedSongs,
+      ...db.favoriteSongs,
       ...MusicRepository.newReleases,
     ];
+
+    final Set<String> seenIds = {};
+    _allSongs = [];
+    for (final s in initialOffline) {
+      if (seenIds.add(s.id)) {
+        _allSongs.add(s);
+      }
+    }
+
     _playlists = List.from(MusicRepository.samplePlaylists);
     _queue = List.from(_allSongs);
 
@@ -252,7 +264,7 @@ class MusicPlayerManager extends ChangeNotifier {
       notifyListeners();
     });
 
-    // Asynchronously fetch online trending songs
+    // Asynchronously fetch online trending songs with fallback
     fetchOnlineTrending();
   }
 
@@ -283,6 +295,20 @@ class MusicPlayerManager extends ChangeNotifier {
         if (item['song'] != null && item['song'] is Map<String, dynamic>) {
           _recentlyPlayed.add(Song.fromJson(item['song'] as Map<String, dynamic>));
         }
+      }
+    }
+
+    // Ensure all downloaded songs are part of _allSongs on startup for offline playback
+    final downloaded = db.downloadedSongs;
+    if (downloaded.isNotEmpty) {
+      final Set<String> ids = _allSongs.map((s) => s.id).toSet();
+      for (final dl in downloaded) {
+        if (!ids.contains(dl.id)) {
+          _allSongs.insert(0, dl);
+        }
+      }
+      if (_queue.isEmpty) {
+        _queue = List.from(_allSongs);
       }
     }
   }
@@ -506,21 +532,28 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final isOld = MusicApiService.isOldClassicSong(seedSong);
-      final is2000s = !isOld && MusicApiService.is2000sSong(seedSong);
-      final isPunjabi = !isOld && !is2000s && MusicApiService.isPunjabiOrHipHopSong(seedSong);
-      final isIndie = !isOld && !is2000s && !isPunjabi && MusicApiService.isIndieOrSukoonSong(seedSong);
+      final songLang = MusicApiService.detectSongLanguage(seedSong);
+      final isVintage = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
+      final is90s = songLang == 'Hindi' && !isVintage && MusicApiService.is90sMelodyEra(seedSong);
+      final is2000s = songLang == 'Hindi' && !isVintage && !is90s && MusicApiService.is2000sSong(seedSong);
+      final isIndie = songLang == 'Hindi' && !isVintage && !is90s && !is2000s && MusicApiService.isIndieOrSukoonSong(seedSong);
 
-      // 1. First immediately seed from local _allSongs strictly matching the song's era
+      // 1. First immediately seed from local _allSongs strictly matching language & era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
         final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
         final localCandidates = _allSongs.where((s) {
           if (currentQueueIds.contains(s.id)) return false;
-          if (isOld) return MusicApiService.isOldClassicSong(s);
-          if (is2000s) return MusicApiService.is2000sSong(s);
-          if (isPunjabi) return MusicApiService.isPunjabiOrHipHopSong(s);
-          if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-          return !MusicApiService.isOldClassicSong(s);
+          final candLang = MusicApiService.detectSongLanguage(s);
+          if (candLang != songLang) return false;
+
+          if (songLang == 'Hindi') {
+            if (isVintage) return MusicApiService.isVintageGoldenEra(s);
+            if (is90s) return MusicApiService.is90sMelodyEra(s);
+            if (is2000s) return MusicApiService.is2000sSong(s);
+            if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
+            return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+          }
+          return true;
         }).toList();
         
         localCandidates.sort((a, b) {
@@ -536,7 +569,7 @@ class MusicPlayerManager extends ChangeNotifier {
         }
       }
 
-      // 2. Fetch fresh smart recommendations concurrently matching the exact era
+      // 2. Fetch fresh smart recommendations concurrently matching exact era and language
       final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 55);
       if (freshTracks.isNotEmpty) {
         final Set<String> playedIds = _queue.take(_currentIndex + 1).map((s) => s.id).toSet();
@@ -550,7 +583,10 @@ class MusicPlayerManager extends ChangeNotifier {
           final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
           final remainingUpcoming = upcomingPart.where((s) {
             if (freshIds.contains(s.id)) return false;
-            if (isOld) return MusicApiService.isOldClassicSong(s);
+            final candLang = MusicApiService.detectSongLanguage(s);
+            if (candLang != songLang) return false;
+            if (isVintage) return MusicApiService.isVintageGoldenEra(s);
+            if (is90s) return MusicApiService.is90sMelodyEra(s);
             return true;
           }).toList();
           
@@ -594,21 +630,28 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue = [song];
     }
 
-    final isOld = MusicApiService.isOldClassicSong(song);
-    final is2000s = !isOld && MusicApiService.is2000sSong(song);
-    final isPunjabi = !isOld && !is2000s && MusicApiService.isPunjabiOrHipHopSong(song);
-    final isIndie = !isOld && !is2000s && !isPunjabi && MusicApiService.isIndieOrSukoonSong(song);
+    final songLang = MusicApiService.detectSongLanguage(song);
+    final isVintage = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(song);
+    final is90s = songLang == 'Hindi' && !isVintage && MusicApiService.is90sMelodyEra(song);
+    final is2000s = songLang == 'Hindi' && !isVintage && !is90s && MusicApiService.is2000sSong(song);
+    final isIndie = songLang == 'Hindi' && !isVintage && !is90s && !is2000s && MusicApiService.isIndieOrSukoonSong(song);
 
-    // Immediately ensure queue is populated with era-matched songs if autoplay is active
+    // Immediately ensure queue is populated with era & language matched songs if autoplay is active
     if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
       final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
       final localCandidates = _allSongs.where((s) {
         if (currentQueueIds.contains(s.id)) return false;
-        if (isOld) return MusicApiService.isOldClassicSong(s);
-        if (is2000s) return MusicApiService.is2000sSong(s);
-        if (isPunjabi) return MusicApiService.isPunjabiOrHipHopSong(s);
-        if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-        return !MusicApiService.isOldClassicSong(s);
+        final candLang = MusicApiService.detectSongLanguage(s);
+        if (candLang != songLang) return false;
+
+        if (songLang == 'Hindi') {
+          if (isVintage) return MusicApiService.isVintageGoldenEra(s);
+          if (is90s) return MusicApiService.is90sMelodyEra(s);
+          if (is2000s) return MusicApiService.is2000sSong(s);
+          if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
+          return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+        }
+        return true;
       }).toList();
 
       localCandidates.sort((a, b) {

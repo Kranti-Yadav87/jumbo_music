@@ -50,3 +50,5 @@ local.properties
 # Vercel / CI cloned Flutter SDK
 flutter/
 _flutter/
+.firebase/
+

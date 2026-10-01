@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/app_top_header.dart';
@@ -41,7 +42,7 @@ class ProfileScreen extends StatelessWidget {
             ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await DatabaseService.instance.logout();
+              await AuthService.instance.signOut();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -255,6 +256,29 @@ class ProfileScreen extends StatelessWidget {
                                     fontWeight: FontWeight.bold,
                                     color: Color(0xFF818CF8),
                                     letterSpacing: 0.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.cloud_done_rounded, size: 12, color: Color(0xFF10B981)),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Cloud Sync',
+                                        style: TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF10B981),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

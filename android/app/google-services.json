@@ -12,7 +12,20 @@
           "package_name": "com.jumbomusic.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "375294688779-i2eramsar8jp1mubnatn212nn6gq1pgu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.jumbomusic.app",
+            "certificate_hash": "9c1b06531b9e5cc08d67da94a54c1aa7f0cd0957"
+          }
+        },
+        {
+          "client_id": "375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBkbvsBLTCg7aurTS46uwTBr4t7G-HODOw"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "375294688779-hfdg0m38kgnmlf8p2m6rtigsc2c07aft.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.jumbomusic.app"
+              }
+            }
+          ]
         }
       }
     }

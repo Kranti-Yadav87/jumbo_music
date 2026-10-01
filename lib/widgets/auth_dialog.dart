@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
+import '../services/auth_service.dart';
 
 class AuthDialog extends StatefulWidget {
   final bool isSignUp;
@@ -54,8 +55,8 @@ class _AuthDialogState extends State<AuthDialog> {
       return;
     }
 
-    if (password.length < 4) {
-      setState(() => _error = 'Password must be at least 4 characters');
+    if (password.length < 6) {
+      setState(() => _error = 'Password must be at least 6 characters');
       return;
     }
 
@@ -64,25 +65,87 @@ class _AuthDialogState extends State<AuthDialog> {
       _error = null;
     });
 
-    await Future.delayed(const Duration(milliseconds: 400));
+    try {
+      if (_isSignUp) {
+        await AuthService.instance.signUpWithEmail(
+          name: name,
+          email: email,
+          password: password,
+        );
+      } else {
+        await AuthService.instance.signInWithEmail(
+          email: email,
+          password: password,
+        );
+      }
 
-    final db = DatabaseService.instance;
-    final userName = _isSignUp ? name : (db.userName != 'User' ? db.userName : email.split('@').first);
-    await db.login(
-      email: email,
-      name: userName,
-      password: password,
-    );
-
-    if (mounted) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Welcome back, $userName! (ID: ${db.userId}) 🎉'),
-          backgroundColor: const Color(0xFF10B981),
-          behavior: SnackBarBehavior.floating,
-        ),
+      if (mounted) {
+        Navigator.of(context).pop();
+        final db = DatabaseService.instance;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome, ${db.userName}! (ID: ${db.userId}) 🎉'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      // Fallback to local login if Firebase Auth is not configured or offline
+      final db = DatabaseService.instance;
+      final userName = _isSignUp ? name : (db.userName != 'User' ? db.userName : email.split('@').first);
+      await db.login(
+        email: email,
+        name: userName,
+        password: password,
       );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome back, $userName! (ID: ${db.userId}) 🎉'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final userCred = await AuthService.instance.signInWithGoogle();
+      if (userCred != null && mounted) {
+        Navigator.of(context).pop();
+        final db = DatabaseService.instance;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Signed in with Google as ${db.userName}! 🚀'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Google Sign-In error: ${e.toString().split(']').last.trim()}';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -262,20 +325,41 @@ class _AuthDialogState extends State<AuthDialog> {
               ),
               const SizedBox(height: 12),
 
-              // Quick 1-Tap Demo / Guest Login
+              // Google Sign-In Button
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  backgroundColor: isDark ? const Color(0xFF1E1E2D) : const Color(0xFFF8FAFC),
+                ),
+                icon: const Icon(Icons.g_mobiledata_rounded, color: Color(0xFF4285F4), size: 28),
+                label: Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+              ),
+              const SizedBox(height: 10),
+
+              // Quick 1-Tap Demo / Guest Login
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
                 icon: const Icon(Icons.bolt_rounded, color: Color(0xFFF59E0B), size: 18),
                 label: Text(
                   '1-Tap Fast Sign In',
                   style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : const Color(0xFF64748B),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
                 onPressed: _isLoading ? null : _quickGuestLogin,

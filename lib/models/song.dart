@@ -7,6 +7,7 @@ class Song {
   final String audioUrl;
   final String coverUrl;
   final String genre;
+  final String language;
   final String lyrics;
   final bool isFavorite;
   final String releaseYear;
@@ -22,6 +23,7 @@ class Song {
     required this.audioUrl,
     required this.coverUrl,
     this.genre = 'Pop',
+    this.language = 'Hindi',
     this.lyrics = '',
     this.isFavorite = false,
     this.releaseYear = '2026',
@@ -38,6 +40,7 @@ class Song {
     String? audioUrl,
     String? coverUrl,
     String? genre,
+    String? language,
     String? lyrics,
     bool? isFavorite,
     String? releaseYear,
@@ -53,6 +56,7 @@ class Song {
       audioUrl: audioUrl ?? this.audioUrl,
       coverUrl: coverUrl ?? this.coverUrl,
       genre: genre ?? this.genre,
+      language: language ?? this.language,
       lyrics: lyrics ?? this.lyrics,
       isFavorite: isFavorite ?? this.isFavorite,
       releaseYear: releaseYear ?? this.releaseYear,
@@ -77,6 +81,7 @@ class Song {
       'audioUrl': audioUrl,
       'coverUrl': coverUrl,
       'genre': genre,
+      'language': language,
       'lyrics': lyrics,
       'isFavorite': isFavorite,
       'releaseYear': releaseYear,
@@ -95,6 +100,7 @@ class Song {
       audioUrl: json['audioUrl'] as String? ?? '',
       coverUrl: json['coverUrl'] as String? ?? '',
       genre: json['genre'] as String? ?? 'Pop',
+      language: json['language'] as String? ?? 'Hindi',
       lyrics: json['lyrics'] as String? ?? '',
       isFavorite: json['isFavorite'] as bool? ?? false,
       releaseYear: json['releaseYear'] as String? ?? '2026',

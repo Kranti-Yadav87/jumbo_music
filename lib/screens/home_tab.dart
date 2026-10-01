@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import '../services/theme_service.dart';
+import '../services/download_service.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/app_footer.dart';
 import '../widgets/app_top_header.dart';
@@ -8,6 +9,7 @@ import 'playlist_detail_screen.dart';
 import 'top_50_screen.dart';
 import 'new_releases_screen.dart';
 import 'artists_screen.dart';
+import 'downloaded_songs_screen.dart';
 
 import '../data/music_repository.dart';
 import '../services/music_api_service.dart';
@@ -101,13 +103,16 @@ class _HomeTabState extends State<HomeTab> {
   @override
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
+    final downloadService = DownloadService();
+    final downloadedSongs = downloadService.downloadedSongs;
 
     return AnimatedBuilder(
-      animation: manager,
+      animation: Listenable.merge([manager, downloadService]),
       builder: (context, _) {
         final playlists = manager.playlists;
         final top50 = manager.top50Songs;
         final newReleases = manager.newReleases;
+        final isOffline = manager.onlineTrending.isEmpty && !manager.isLoadingTrending;
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -121,6 +126,87 @@ class _HomeTabState extends State<HomeTab> {
                   onProfileTap: widget.onProfileTap,
                 ),
               ),
+
+              // Offline Banner if offline or if downloads are available
+              if (isOffline || downloadedSongs.isNotEmpty)
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isOffline
+                            ? [const Color(0xFF1E1B4B), const Color(0xFF0F172A)]
+                            : [const Color(0xFF064E3B), const Color(0xFF0F172A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: isOffline
+                            ? const Color(0xFF6366F1).withOpacity(0.4)
+                            : const Color(0xFF10B981).withOpacity(0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: (isOffline ? const Color(0xFF6366F1) : const Color(0xFF10B981)).withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isOffline ? Icons.flight_takeoff_rounded : Icons.offline_pin_rounded,
+                            color: isOffline ? const Color(0xFF818CF8) : const Color(0xFF34D399),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isOffline ? 'Offline Mode Active ✈️' : 'Downloaded Songs Ready ⚡',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${downloadedSongs.length} downloaded tracks ready for offline listening without internet.',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isOffline ? const Color(0xFF6366F1) : const Color(0xFF10B981),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const DownloadedSongsScreen()),
+                            );
+                          },
+                          child: const Text('Open', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // 2. Greeting & Quick Filter / Autoplay Pill Bar
               SliverToBoxAdapter(

@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../models/playlist.dart';
 import '../models/friend.dart';
 import 'storage/storage_engine.dart';
+import 'firestore_sync_service.dart';
 
 class DatabaseService extends ChangeNotifier {
   static final DatabaseService _instance = DatabaseService._internal();
@@ -111,7 +112,7 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<bool> toggleFavorite(Song song) async {
+  Future<bool> toggleFavorite(Song song, {bool syncToCloud = true}) async {
     final willFavorite = !_favoriteIds.contains(song.id);
     if (willFavorite) {
       _favoriteIds.add(song.id);
@@ -122,6 +123,10 @@ class DatabaseService extends ChangeNotifier {
     }
     notifyListeners();
     await _flushFavorites();
+
+    if (syncToCloud) {
+      FirestoreSyncService.instance.pushFavoriteToCloud(song, willFavorite);
+    }
     return willFavorite;
   }
 
@@ -152,7 +157,18 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<Playlist> createPlaylist(String title, {String description = '', String coverUrl = ''}) async {
+  Future<void> addCustomPlaylist(Playlist playlist, {bool syncToCloud = true}) async {
+    _customPlaylists.removeWhere((p) => p.id == playlist.id);
+    _customPlaylists.insert(0, playlist);
+    notifyListeners();
+    await _flushPlaylists();
+
+    if (syncToCloud) {
+      FirestoreSyncService.instance.pushPlaylistToCloud(playlist);
+    }
+  }
+
+  Future<Playlist> createPlaylist(String title, {String description = '', String coverUrl = '', bool syncToCloud = true}) async {
     final newId = 'pl_${DateTime.now().millisecondsSinceEpoch}';
     final playlist = Playlist(
       id: newId,
@@ -169,13 +185,21 @@ class DatabaseService extends ChangeNotifier {
     _customPlaylists.insert(0, playlist);
     notifyListeners();
     await _flushPlaylists();
+
+    if (syncToCloud) {
+      FirestoreSyncService.instance.pushPlaylistToCloud(playlist);
+    }
     return playlist;
   }
 
-  Future<void> deletePlaylist(String playlistId) async {
+  Future<void> deletePlaylist(String playlistId, {bool syncToCloud = true}) async {
     _customPlaylists.removeWhere((p) => p.id == playlistId);
     notifyListeners();
     await _flushPlaylists();
+
+    if (syncToCloud) {
+      FirestoreSyncService.instance.deletePlaylistFromCloud(playlistId);
+    }
   }
 
   Future<bool> addSongToPlaylist(String playlistId, Song song) async {
@@ -314,7 +338,7 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<void> addHistory(Song song) async {
+  Future<void> addHistory(Song song, {bool syncToCloud = true}) async {
     // Respect Incognito Mode
     if (getSetting('incognitoMode', false) == true) {
       return;
@@ -333,7 +357,14 @@ class DatabaseService extends ChangeNotifier {
 
     notifyListeners();
     await _flushHistory();
+
+    if (syncToCloud) {
+      FirestoreSyncService.instance.pushHistoryToCloud(song);
+    }
   }
+
+  Future<void> addToHistory(Song song, {bool syncToCloud = true}) =>
+      addHistory(song, syncToCloud: syncToCloud);
 
   Future<void> clearHistory() async {
     _historyList.clear();
