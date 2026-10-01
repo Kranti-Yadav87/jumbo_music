@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
+import '../models/friend.dart';
 import 'storage/storage_engine.dart';
 
 class DatabaseService extends ChangeNotifier {
@@ -21,6 +22,15 @@ class DatabaseService extends ChangeNotifier {
   final Map<String, Map<String, dynamic>> _downloadsMap = {};
   final List<Map<String, dynamic>> _historyList = [];
   final List<String> _searchHistory = [];
+  final List<Friend> _friends = [];
+  final List<Map<String, dynamic>> _notifications = [];
+  
+  // User Profile
+  String _userName = 'Ayush';
+  String _userEmail = 'ayushmishra7235@gmail.com';
+  String _userAvatarUrl = '';
+  String _userBio = 'Music Lover • Jumbo Pro';
+
   final Map<String, dynamic> _settings = {
     'autoplay': true,
     'soundPreset': 'Normal',
@@ -38,6 +48,9 @@ class DatabaseService extends ChangeNotifier {
   static const String _keyHistory = 'jumbo_db_history';
   static const String _keySearchHistory = 'jumbo_db_search_history';
   static const String _keySettings = 'jumbo_db_settings';
+  static const String _keyProfile = 'jumbo_db_profile';
+  static const String _keyFriends = 'jumbo_db_friends';
+  static const String _keyNotifications = 'jumbo_db_notifications';
 
   /// Initialize database and load all stores into memory
   Future<void> init() async {
@@ -51,6 +64,9 @@ class DatabaseService extends ChangeNotifier {
         _loadHistory(),
         _loadSearchHistory(),
         _loadSettings(),
+        _loadProfile(),
+        _loadFriends(),
+        _loadNotifications(),
       ]);
     } catch (e) {
       debugPrint('DatabaseService init error: $e');
@@ -409,12 +425,342 @@ class DatabaseService extends ChangeNotifier {
   Future<void> saveSetting(String key, dynamic value) => updateSetting(key, value);
 
   // -------------------------------------------------------------
-  // 7. GDPR DATA EXPORT & TOTAL WIPE
+  // 7. USER PROFILE STORE
+  // -------------------------------------------------------------
+  String get userName => _userName;
+  String get userEmail => _userEmail;
+  String get userAvatarUrl => _userAvatarUrl;
+  String get userBio => _userBio;
+
+  String get userInitials {
+    if (_userName.trim().isNotEmpty) {
+      final parts = _userName.trim().split(' ');
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      return _userName.trim()[0].toUpperCase();
+    }
+    return 'AY';
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final raw = await StorageEngine.getItem(_keyProfile);
+      if (raw != null && raw.isNotEmpty) {
+        final Map<String, dynamic> data = jsonDecode(raw);
+        _userName = data['name'] as String? ?? 'Ayush';
+        _userEmail = data['email'] as String? ?? 'ayushmishra7235@gmail.com';
+        _userAvatarUrl = data['avatarUrl'] as String? ?? '';
+        _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _flushProfile() async {
+    try {
+      final map = {
+        'name': _userName,
+        'email': _userEmail,
+        'avatarUrl': _userAvatarUrl,
+        'bio': _userBio,
+      };
+      await StorageEngine.setItem(_keyProfile, jsonEncode(map));
+    } catch (_) {}
+  }
+
+  Future<void> updateProfile({
+    String? name,
+    String? email,
+    String? avatarUrl,
+    String? bio,
+  }) async {
+    if (name != null) _userName = name.trim();
+    if (email != null) _userEmail = email.trim();
+    if (avatarUrl != null) _userAvatarUrl = avatarUrl.trim();
+    if (bio != null) _userBio = bio.trim();
+
+    notifyListeners();
+    await _flushProfile();
+  }
+
+  // -------------------------------------------------------------
+  // 8. FRIENDS & SOCIAL LISTENING STORE
+  // -------------------------------------------------------------
+  List<Friend> get friends => List.unmodifiable(_friends);
+  List<Friend> get friendsListening => _friends.where((f) => f.isListening).toList();
+
+  Future<void> _loadFriends() async {
+    try {
+      final raw = await StorageEngine.getItem(_keyFriends);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(raw);
+        _friends.clear();
+        for (final item in list) {
+          if (item is Map<String, dynamic>) {
+            _friends.add(Friend.fromJson(item));
+          }
+        }
+      }
+      
+      // Default seeded friend matching Screenshot 2 if empty
+      if (_friends.isEmpty) {
+        _friends.addAll([
+          Friend(
+            id: 'friend_unknown',
+            name: 'Unknown',
+            email: 'friend@email.com',
+            avatarInitials: 'U',
+            currentSongTitle: 'You',
+            currentSongArtist: 'Armaan Malik',
+            currentSongId: '1',
+            currentSongCover: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+            isOnline: true,
+            isListening: true,
+          ),
+          Friend(
+            id: 'friend_aarav',
+            name: 'Aarav Sharma',
+            email: 'aarav.sharma@gmail.com',
+            avatarInitials: 'AS',
+            currentSongTitle: 'Tumhein Apna Banane Ki',
+            currentSongArtist: 'Kumar Sanu',
+            currentSongId: '2',
+            currentSongCover: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&auto=format&fit=crop&q=80',
+            isOnline: true,
+            isListening: true,
+          ),
+        ]);
+        await _flushFriends();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _flushFriends() async {
+    try {
+      final list = _friends.map((f) => f.toJson()).toList();
+      await StorageEngine.setItem(_keyFriends, jsonEncode(list));
+    } catch (_) {}
+  }
+
+  Future<Friend> addFriend(String email, {String? name}) async {
+    final cleanEmail = email.trim();
+    String displayName = name?.trim() ?? '';
+    if (displayName.isEmpty) {
+      displayName = cleanEmail.split('@').first;
+      if (displayName.isNotEmpty) {
+        displayName = displayName[0].toUpperCase() + displayName.substring(1);
+      } else {
+        displayName = 'Friend';
+      }
+    }
+
+    final newFriend = Friend(
+      id: 'f_${DateTime.now().millisecondsSinceEpoch}',
+      name: displayName,
+      email: cleanEmail,
+      avatarInitials: displayName.isNotEmpty ? displayName[0].toUpperCase() : 'F',
+      currentSongTitle: 'Kahani Suno 2.0',
+      currentSongArtist: 'Kaifi Khalil',
+      currentSongId: '3',
+      currentSongCover: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&auto=format&fit=crop&q=80',
+      isOnline: true,
+      isListening: true,
+    );
+
+    // Remove existing if duplicate email
+    _friends.removeWhere((f) => f.email.toLowerCase() == cleanEmail.toLowerCase());
+    _friends.insert(0, newFriend);
+
+    // Add a notification about new friend connection
+    addNotification(
+      title: 'New Friend Added',
+      message: '$displayName ($cleanEmail) is now connected with you.',
+      type: 'friend',
+    );
+
+    notifyListeners();
+    await _flushFriends();
+    return newFriend;
+  }
+
+  Future<void> removeFriend(String friendId) async {
+    _friends.removeWhere((f) => f.id == friendId);
+    notifyListeners();
+    await _flushFriends();
+  }
+
+  Future<void> updateFriendListening(
+    String friendId, {
+    required String songTitle,
+    required String songArtist,
+    String? songId,
+    String? coverUrl,
+  }) async {
+    final idx = _friends.indexWhere((f) => f.id == friendId);
+    if (idx != -1) {
+      _friends[idx] = _friends[idx].copyWith(
+        currentSongTitle: songTitle,
+        currentSongArtist: songArtist,
+        currentSongId: songId ?? _friends[idx].currentSongId,
+        currentSongCover: coverUrl ?? _friends[idx].currentSongCover,
+        isListening: true,
+        isOnline: true,
+      );
+      notifyListeners();
+      await _flushFriends();
+    }
+  }
+
+  // -------------------------------------------------------------
+  // 9. SHARED & COLLABORATIVE PLAYLISTS (Friend Blend)
+  // -------------------------------------------------------------
+  List<Playlist> get sharedPlaylists =>
+      _customPlaylists.where((p) => p.isCollaborative || p.type == PlaylistType.sharedBlend).toList();
+
+  Future<Playlist> createSharedBlendPlaylist({
+    required String title,
+    required Friend friend,
+    List<Song> starterSongs = const [],
+  }) async {
+    final newId = 'blend_${DateTime.now().millisecondsSinceEpoch}';
+    final playlistTitle = title.trim().isNotEmpty
+        ? title.trim()
+        : '$_userName + ${friend.name} Blend';
+
+    final playlist = Playlist(
+      id: newId,
+      title: playlistTitle,
+      description: 'Shared Blend with ${friend.name} (${friend.email})',
+      coverUrl: starterSongs.isNotEmpty
+          ? starterSongs.first.coverUrl
+          : (friend.currentSongCover.isNotEmpty
+              ? friend.currentSongCover
+              : 'https://images.unsplash.com/photo-1518609878373-06d740f60d8b?w=600&auto=format&fit=crop&q=80'),
+      songIds: starterSongs.map((s) => s.id).toList(),
+      songs: starterSongs,
+      type: PlaylistType.sharedBlend,
+      isCollaborative: true,
+      collaboratorNames: [_userName, friend.name],
+      friendEmail: friend.email,
+    );
+
+    _customPlaylists.insert(0, playlist);
+
+    addNotification(
+      title: 'Shared Playlist Created',
+      message: 'You and ${friend.name} can now add and listen to songs together in "$playlistTitle"!',
+      type: 'playlist',
+    );
+
+    notifyListeners();
+    await _flushPlaylists();
+    return playlist;
+  }
+
+  // -------------------------------------------------------------
+  // 10. NOTIFICATIONS STORE
+  // -------------------------------------------------------------
+  List<Map<String, dynamic>> get notifications => List.unmodifiable(_notifications);
+
+  Future<void> _loadNotifications() async {
+    try {
+      final raw = await StorageEngine.getItem(_keyNotifications);
+      if (raw != null && raw.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(raw);
+        _notifications.clear();
+        for (final item in list) {
+          if (item is Map<String, dynamic>) {
+            _notifications.add(item);
+          }
+        }
+      }
+
+      if (_notifications.isEmpty) {
+        _notifications.addAll([
+          {
+            'id': 'n_1',
+            'title': 'Friend Activity',
+            'message': 'Unknown is currently listening to "You" by Armaan Malik.',
+            'type': 'friend',
+            'timestamp': DateTime.now().subtract(const Duration(minutes: 5)).toIso8601String(),
+            'isRead': false,
+          },
+          {
+            'id': 'n_2',
+            'title': 'Shared Blend Ready',
+            'message': 'Invite friends by email to create collaborative playlists and listen together!',
+            'type': 'invite',
+            'timestamp': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+            'isRead': false,
+          },
+          {
+            'id': 'n_3',
+            'title': 'High Fidelity Audio',
+            'message': 'Lossless 320kbps streaming & offline caching active.',
+            'type': 'system',
+            'timestamp': DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
+            'isRead': true,
+          },
+        ]);
+        await _flushNotifications();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _flushNotifications() async {
+    try {
+      await StorageEngine.setItem(_keyNotifications, jsonEncode(_notifications));
+    } catch (_) {}
+  }
+
+  Future<void> addNotification({
+    required String title,
+    required String message,
+    String type = 'system',
+  }) async {
+    final notif = {
+      'id': 'n_${DateTime.now().millisecondsSinceEpoch}',
+      'title': title,
+      'message': message,
+      'type': type,
+      'timestamp': DateTime.now().toIso8601String(),
+      'isRead': false,
+    };
+    _notifications.insert(0, notif);
+    if (_notifications.length > 50) {
+      _notifications.removeRange(50, _notifications.length);
+    }
+    notifyListeners();
+    await _flushNotifications();
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    for (int i = 0; i < _notifications.length; i++) {
+      _notifications[i]['isRead'] = true;
+    }
+    notifyListeners();
+    await _flushNotifications();
+  }
+
+  Future<void> clearNotifications() async {
+    _notifications.clear();
+    notifyListeners();
+    await _flushNotifications();
+  }
+
+  // -------------------------------------------------------------
+  // 11. GDPR DATA EXPORT & TOTAL WIPE
   // -------------------------------------------------------------
   Future<String> exportAllDataJson() async {
     final export = {
       'app': 'Jumbo Music',
       'exportedAt': DateTime.now().toIso8601String(),
+      'profile': {
+        'name': _userName,
+        'email': _userEmail,
+        'bio': _userBio,
+      },
+      'friends': _friends.map((f) => f.toJson()).toList(),
       'favorites': _favoriteSongsMap.values.map((s) => s.toJson()).toList(),
       'customPlaylists': _customPlaylists.map((p) => p.toJson()).toList(),
       'downloads': _downloadsMap.values.toList(),
@@ -432,6 +778,10 @@ class DatabaseService extends ChangeNotifier {
     _downloadsMap.clear();
     _historyList.clear();
     _searchHistory.clear();
+    _friends.clear();
+    _notifications.clear();
+    _userName = 'Ayush';
+    _userEmail = 'ayushmishra7235@gmail.com';
 
     await Future.wait([
       StorageEngine.removeItem(_keyFavorites),
@@ -439,6 +789,9 @@ class DatabaseService extends ChangeNotifier {
       StorageEngine.removeItem(_keyDownloads),
       StorageEngine.removeItem(_keyHistory),
       StorageEngine.removeItem(_keySearchHistory),
+      StorageEngine.removeItem(_keyFriends),
+      StorageEngine.removeItem(_keyNotifications),
+      StorageEngine.removeItem(_keyProfile),
     ]);
 
     notifyListeners();

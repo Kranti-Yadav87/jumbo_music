@@ -3,13 +3,16 @@ import '../services/music_player_manager.dart';
 import '../services/theme_service.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/app_footer.dart';
+import '../widgets/app_top_header.dart';
 import 'playlist_detail_screen.dart';
 import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
 import 'search_tab.dart';
 
 class HomeTab extends StatefulWidget {
-  const HomeTab({super.key});
+  final VoidCallback? onProfileTap;
+
+  const HomeTab({super.key, this.onProfileTap});
 
   @override
   State<HomeTab> createState() => _HomeTabState();
@@ -68,99 +71,44 @@ class _HomeTabState extends State<HomeTab> {
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // Top Header with Greeting, Brand & Sleep Timer
+              // 1. Unified App Top Header (Search, Notification, Setting, Profile Avatar)
               SliverToBoxAdapter(
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                      Expanded(
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF6366F1).withValues(alpha: 0.35),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: Image.asset(
-                                  'assets/logo.png',
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                child: AppTopHeader(
+                  title: 'KanaKö',
+                  onProfileTap: widget.onProfileTap,
+                ),
+              ),
+
+              // 2. Greeting & Quick Filter / Autoplay Pill Bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _getGreeting(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppThemeManager.textSecondary(context),
+                              fontWeight: FontWeight.w500,
                             ),
-                            const SizedBox(width: 10),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    _getGreeting(),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 11.5,
-                                      color: AppThemeManager.textSecondary(context),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 1),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          'JUMBO MUSIC',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: 0.8,
-                                            color: AppThemeManager.textPrimary(context),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: const Color(0xFF818CF8).withValues(alpha: 0.4)),
-                                        ),
-                                        child: const Text(
-                                          'PRO',
-                                          style: TextStyle(
-                                            fontSize: 8.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(0xFF818CF8),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            'Featured & Trending',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.2,
+                              color: AppThemeManager.textPrimary(context),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
@@ -170,17 +118,17 @@ class _HomeTabState extends State<HomeTab> {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () => manager.toggleAutoplay(),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
                                 color: manager.autoplay
-                                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                                    ? const Color(0xFFFF5E3A).withOpacity(0.15)
                                     : (AppThemeManager.instance.isDarkMode
-                                        ? Colors.white.withValues(alpha: 0.06)
-                                        : Colors.black.withValues(alpha: 0.04)),
+                                        ? Colors.white.withOpacity(0.06)
+                                        : Colors.black.withOpacity(0.04)),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: manager.autoplay
-                                      ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                                      ? const Color(0xFFFF5E3A).withOpacity(0.5)
                                       : (AppThemeManager.instance.isDarkMode ? Colors.white12 : const Color(0xFFE2E8F0)),
                                 ),
                               ),
@@ -189,19 +137,19 @@ class _HomeTabState extends State<HomeTab> {
                                 children: [
                                   Icon(
                                     Icons.all_inclusive_rounded,
-                                    size: 13,
+                                    size: 14,
                                     color: manager.autoplay
-                                        ? const Color(0xFF10B981)
+                                        ? const Color(0xFFFF5E3A)
                                         : AppThemeManager.textMuted(context),
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     manager.autoplay ? 'Radio' : 'Off',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: 11.5,
                                       fontWeight: FontWeight.bold,
                                       color: manager.autoplay
-                                          ? const Color(0xFF10B981)
+                                          ? const Color(0xFFFF5E3A)
                                           : AppThemeManager.textMuted(context),
                                     ),
                                   ),
@@ -214,10 +162,10 @@ class _HomeTabState extends State<HomeTab> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.2),
+                                color: const Color(0xFF6366F1).withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: const Color(0xFF818CF8).withValues(alpha: 0.4),
+                                  color: const Color(0xFF818CF8).withOpacity(0.4),
                                 ),
                               ),
                               child: Row(
@@ -240,59 +188,9 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             ),
                           ],
-                          const SizedBox(width: 6),
-                          // Lite / Dark Mode Quick Switch
-                          IconButton(
-                            padding: const EdgeInsets.all(6),
-                            constraints: const BoxConstraints(),
-                            icon: Icon(
-                              AppThemeManager.instance.isDarkMode
-                                  ? Icons.light_mode_rounded
-                                  : Icons.dark_mode_rounded,
-                              color: AppThemeManager.instance.isDarkMode
-                                  ? const Color(0xFFFBBF24)
-                                  : const Color(0xFF6366F1),
-                              size: 21,
-                            ),
-                            tooltip: AppThemeManager.instance.isDarkMode
-                                ? 'Switch to Lite Mode'
-                                : 'Switch to Dark Mode',
-                            onPressed: () => AppThemeManager.instance.toggleTheme(),
-                          ),
-                          const SizedBox(width: 6),
-                          // Prominent Live Search Button (in place of shield)
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const SearchTab()),
-                              );
-                            },
-                            borderRadius: BorderRadius.circular(14),
-                            child: Container(
-                              padding: const EdgeInsets.all(7),
-                              decoration: BoxDecoration(
-                                color: AppThemeManager.instance.isDarkMode
-                                    ? Colors.white.withValues(alpha: 0.08)
-                                    : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(
-                                  color: AppThemeManager.instance.isDarkMode
-                                      ? Colors.white12
-                                      : const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Icon(
-                                Icons.search_rounded,
-                                color: AppThemeManager.textPrimary(context),
-                                size: 21,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),

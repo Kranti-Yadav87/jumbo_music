@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/playlist.dart';
+import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
+import '../services/theme_service.dart';
 import 'downloaded_songs_screen.dart';
+import 'cached_offline_screen.dart';
 import 'playlist_detail_screen.dart';
+import 'history_tab.dart';
+import 'favorites_tab.dart';
 import 'search_tab.dart';
-import 'privacy_security_screen.dart';
-import 'top_50_screen.dart';
 import '../widgets/track_options_sheet.dart';
-import '../widgets/download_app_dialog.dart';
 
 class LibraryTab extends StatefulWidget {
   const LibraryTab({super.key});
@@ -19,8 +22,10 @@ class LibraryTab extends StatefulWidget {
 
 class _LibraryTabState extends State<LibraryTab> {
   String _selectedCategory = 'Playlists';
-  String _sortBy = 'Date added';
-  bool _isDescending = true;
+  bool _isAscending = true;
+  String _searchFilter = '';
+  bool _isSearchOpen = false;
+  final TextEditingController _searchController = TextEditingController();
 
   final List<String> _categories = [
     'Playlists',
@@ -29,111 +34,92 @@ class _LibraryTabState extends State<LibraryTab> {
     'Artists',
   ];
 
-  void _showSettingsDialog(BuildContext context, MusicPlayerManager manager) {
-    showModalBottomSheet(
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _showHelpDialog(BuildContext context) {
+    showDialog(
       context: context,
-      backgroundColor: const Color(0xFF141416),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Settings & Audio',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SwitchListTile.adaptive(
-                  value: manager.autoplay,
-                  activeColor: const Color(0xFFE5A5A5),
-                  title: const Text('Infinite Autoplay', style: TextStyle(color: Colors.white)),
-                  subtitle: const Text('Keep playing related music continuously', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  onChanged: (_) {
-                    manager.toggleAutoplay();
-                    Navigator.pop(ctx);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.equalizer_rounded, color: Color(0xFFE5A5A5)),
-                  title: const Text('Audio Quality Preset', style: TextStyle(color: Colors.white)),
-                  subtitle: Text(manager.soundPreset, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                  onTap: () => Navigator.pop(ctx),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.shield_rounded, color: Color(0xFF10B981)),
-                  title: const Text('Data Privacy & Security', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('100% Client-side. Incognito, vault, no tracking.', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white54),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
-                    );
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.install_mobile_rounded, color: Color(0xFF818CF8)),
-                  title: const Text('Download App (PWA & APK)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: const Text('Install on Android, iOS & PC for 1-tap playback', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white54),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    showDownloadAppDialog(context);
-                  },
-                ),
-              ],
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131D31),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: Color(0xFF38BDF8)),
+            SizedBox(width: 10),
+            Text('Library & Offline Guide', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('• Playlists: Create and organize custom and shared blends.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            SizedBox(height: 8),
+            Text('• Recently Played: Track all previously listened tracks.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            SizedBox(height: 8),
+            Text('• Favorites: One-tap access to all liked songs.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            SizedBox(height: 8),
+            Text('• Cached/Offline: Plays stored stream cache without internet.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            SizedBox(height: 8),
+            Text('• Downloads: 320 kbps offline master tracks saved permanently.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF38BDF8),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  void _shareApp(BuildContext context) {
+    Clipboard.setData(const ClipboardData(text: 'Listen to ad-free HD music and download songs offline on Jumbo Music!'));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('App share link copied to clipboard! ✨'),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
   void _showCreatePlaylistDialog(BuildContext context, MusicPlayerManager manager) {
     final titleController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
+          backgroundColor: isDark ? const Color(0xFF131D31) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
+          title: Text(
             'New Playlist',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: isDark ? Colors.white : const Color(0xFF0F172A),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           content: TextField(
             controller: titleController,
-            style: const TextStyle(color: Colors.white),
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'Playlist Name',
-              hintStyle: const TextStyle(color: Colors.white38),
+              hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.06),
+              fillColor: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
@@ -143,11 +129,11 @@ class _LibraryTabState extends State<LibraryTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE5A5A5),
+                backgroundColor: const Color(0xFF38BDF8),
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -170,109 +156,165 @@ class _LibraryTabState extends State<LibraryTab> {
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
     final downloadService = DownloadService();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final bgColor = isDark ? const Color(0xFF081220) : const Color(0xFFF8FAFC);
+    final cardColor = isDark ? const Color(0xFF1E2D4A) : Colors.white;
+    final cardBorder = isDark ? const Color(0xFF2B3E63) : const Color(0xFFE2E8F0);
 
     return AnimatedBuilder(
       animation: Listenable.merge([manager, downloadService]),
       builder: (context, _) {
         final favSongs = manager.favoriteSongs;
+        final historySongs = manager.recentlyPlayed;
         final downloadedCount = downloadService.totalDownloadedCount;
+        final cachedCount = historySongs.length + downloadedCount;
 
         return Scaffold(
-          backgroundColor: const Color(0xFF000000),
+          backgroundColor: bgColor,
           body: SafeArea(
             bottom: false,
             child: CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                // 1. Top Bar: Jumbo Brand Icon + Name, Search & Settings Icons
+                // 1. Top App Bar (Chill Ratna / Jumbo Brand Logo + Help ? + Share icon <) - Screenshot 1
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 14, 16, 12),
+                    padding: const EdgeInsets.fromLTRB(16, 12, 12, 8),
                     child: Row(
                       children: [
-                        // Stylized Logo Icon
+                        // App Logo Glyph
                         Container(
-                          width: 28,
-                          height: 28,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
+                          width: 32,
+                          height: 32,
+                          decoration: const BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
+                            shape: BoxShape.circle,
                           ),
                           child: const Center(
                             child: Icon(
                               Icons.play_arrow_rounded,
-                              color: Colors.black,
-                              size: 20,
+                              color: Color(0xFF081220),
+                              size: 22,
                             ),
                           ),
                         ),
-                        const Text(
-                          'Jumbo',
+                        const SizedBox(width: 8),
+                        // App Brand Title
+                        Text(
+                          'Chill Ratna',
                           style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            fontSize: 22,
+                            fontStyle: FontStyle.italic,
+                            fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
                           ),
                         ),
                         const Spacer(),
+                        // Help Icon (?)
                         IconButton(
-                          icon: const Icon(Icons.search_rounded, color: Colors.white, size: 26),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const SearchTab()),
-                            );
-                          },
+                          icon: Icon(
+                            Icons.help_outline_rounded,
+                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            size: 22,
+                          ),
+                          tooltip: 'Help & Info',
+                          onPressed: () => _showHelpDialog(context),
                         ),
+                        // Share Icon (<)
                         IconButton(
-                          icon: const Icon(Icons.file_download_outlined, color: Color(0xFF818CF8), size: 24),
-                          tooltip: 'Download App (PWA & APK)',
-                          onPressed: () => showDownloadAppDialog(context),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 24),
-                          onPressed: () => _showSettingsDialog(context, manager),
+                          icon: Icon(
+                            Icons.share_outlined,
+                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            size: 20,
+                          ),
+                          tooltip: 'Share App',
+                          onPressed: () => _shareApp(context),
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                // 2. Horizontal Category Filter Pills (Playlists, Songs, Albums, Artists)
+                // 2. "Library" Title & Round Plus (+) Button - Screenshot 1
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    padding: const EdgeInsets.fromLTRB(20, 8, 16, 14),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Library',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        // Circular Plus Button (+)
+                        GestureDetector(
+                          onTap: () => _showCreatePlaylistDialog(context, manager),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF263756) : const Color(0xFFE2E8F0),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.add_rounded,
+                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 3. Category Tabs: Playlists (with underline), Songs, Albums, Artists - Screenshot 1
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: _categories.map((cat) {
                         final isSelected = _selectedCategory == cat;
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20),
-                            onTap: () {
-                              setState(() {
-                                _selectedCategory = cat;
-                              });
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF2C2C2E)
-                                    : const Color(0xFF18181A),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                cat,
-                                style: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF8E8E93),
-                                  fontSize: 14,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        return InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedCategory = cat;
+                            });
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    color: isSelected
+                                        ? (isDark ? Colors.white : const Color(0xFF0F172A))
+                                        : (isDark ? Colors.white54 : const Color(0xFF94A3B8)),
+                                  ),
                                 ),
                               ),
-                            ),
+                              // Active White Underline Indicator
+                              Container(
+                                height: 2.5,
+                                width: 44,
+                                decoration: BoxDecoration(
+                                  color: isSelected ? (isDark ? Colors.white : const Color(0xFF0EA5E9)) : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(2),
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
@@ -280,169 +322,190 @@ class _LibraryTabState extends State<LibraryTab> {
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 10)),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                // 3. Subheader Sort & Control Bar (Date added ↓, lock, list icon)
+                // 4. Sub-bar: "4 items AZ" ↓ 📖 🔍 - Screenshot 1
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                     child: Row(
                       children: [
+                        Text(
+                          '${_selectedCategory == "Playlists" ? 4 : manager.allSongs.length} items',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // AZ sort badge
                         InkWell(
                           onTap: () {
                             setState(() {
-                              _isDescending = !_isDescending;
+                              _isAscending = !_isAscending;
                             });
                           },
                           child: Row(
                             children: [
                               Text(
-                                _sortBy,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
+                                _isAscending ? 'AZ' : 'ZA',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
                                 ),
                               ),
-                              const SizedBox(width: 4),
                               Icon(
-                                _isDescending
-                                    ? Icons.arrow_downward_rounded
-                                    : Icons.arrow_upward_rounded,
-                                color: Colors.white,
-                                size: 16,
+                                _isAscending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                size: 14,
+                                color: isDark ? Colors.white70 : const Color(0xFF475569),
                               ),
                             ],
                           ),
                         ),
                         const Spacer(),
-                        const Icon(Icons.lock_outline_rounded, color: Colors.white70, size: 20),
-                        const SizedBox(width: 18),
-                        const Icon(Icons.format_list_bulleted_rounded, color: Colors.white70, size: 22),
+                        // View mode book icon (📖)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            Icons.menu_book_rounded,
+                            size: 18,
+                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                          ),
+                          onPressed: () {},
+                        ),
+                        const SizedBox(width: 16),
+                        // Search icon (🔍)
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                          ),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SearchTab()),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 8)),
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
 
-                // 4. Quick Access Tiles (Screenshot 2: Liked, Downloaded, My top 50, Cached)
-                SliverToBoxAdapter(
-                  child: Padding(
+                // 5. THE 4 BIG SQUARE CARDS (2x2 GRID) - EXACT MATCH TO SCREENSHOT 1
+                if (_selectedCategory == 'Playlists') ...[
+                  SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
+                    sliver: SliverGrid.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 1.05,
                       children: [
-                        // Liked Tile
-                        _buildQuickAccessTile(
-                          icon: Icons.favorite_border_rounded,
-                          title: 'Liked',
-                          subtitle: '${favSongs.length} songs',
+                        // Card 1: Recently Played (Clock / History Icon)
+                        _buildBigSquareCard(
+                          context,
+                          icon: Icons.history_rounded,
+                          title: 'Recently Played',
+                          countText: '${historySongs.length} tracks',
+                          cardBg: cardColor,
+                          cardBorder: cardBorder,
+                          isDark: isDark,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const HistoryTab()),
+                            );
+                          },
+                        ),
+
+                        // Card 2: Favorites (Solid White Heart Icon)
+                        _buildBigSquareCard(
+                          context,
+                          icon: Icons.favorite_rounded,
+                          title: 'Favorites',
+                          countText: '${favSongs.length} songs',
+                          cardBg: cardColor,
+                          cardBorder: cardBorder,
+                          isDark: isDark,
                           onTap: () {
                             final favPlaylist = Playlist(
                               id: 'favs',
                               title: 'Liked Songs',
-                              description: 'Your personal collection of favorites',
+                              description: 'Your favorite collection',
                               coverUrl: favSongs.isNotEmpty
                                   ? favSongs.first.coverUrl
-                                  : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600&auto=format&fit=crop&q=80',
+                                  : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
                               songIds: manager.favoriteIds.toList(),
                               songs: favSongs,
                               type: PlaylistType.favorites,
                             );
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => PlaylistDetailScreen(playlist: favPlaylist),
-                              ),
+                              MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: favPlaylist)),
                             );
                           },
                         ),
-                        const SizedBox(height: 8),
 
-                        // Downloaded Tile (User explicit request)
-                        _buildQuickAccessTile(
-                          icon: Icons.check_circle_outline_rounded,
-                          title: 'Downloaded',
-                          subtitle: '$downloadedCount songs offline • 320 kbps',
+                        // Card 3: Cached/Offline (Airplane Icon ✈️)
+                        _buildBigSquareCard(
+                          context,
+                          icon: Icons.flight_rounded,
+                          title: 'Cached/Offline',
+                          countText: '$cachedCount offline streams',
+                          cardBg: cardColor,
+                          cardBorder: cardBorder,
+                          isDark: isDark,
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const DownloadedSongsScreen(),
-                              ),
+                              MaterialPageRoute(builder: (_) => const CachedOfflineScreen()),
                             );
                           },
                         ),
-                        const SizedBox(height: 8),
 
-                        // My top 50 Tile
-                        _buildQuickAccessTile(
-                          icon: Icons.trending_up_rounded,
-                          title: 'My top 50',
-                          subtitle: '${manager.top50Songs.length} chartbusters ranked',
+                        // Card 4: Downloads (Download Arrow Icon ⬇️)
+                        _buildBigSquareCard(
+                          context,
+                          icon: Icons.download_rounded,
+                          title: 'Downloads',
+                          countText: '$downloadedCount 320kbps songs',
+                          cardBg: cardColor,
+                          cardBorder: cardBorder,
+                          isDark: isDark,
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const Top50Screen(),
-                              ),
+                              MaterialPageRoute(builder: (_) => const DownloadedSongsScreen()),
                             );
                           },
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Cached Tile
-                        _buildQuickAccessTile(
-                          icon: Icons.cached_rounded,
-                          title: 'Cached',
-                          subtitle: 'High speed audio buffer',
-                          onTap: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Cache is optimal. All streams buffered in memory.'),
-                                duration: Duration(seconds: 2),
-                                behavior: SnackBarBehavior.floating,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Download App (PWA & APK) Tile
-                        _buildQuickAccessTile(
-                          icon: Icons.install_mobile_rounded,
-                          title: 'Download App (PWA & APK)',
-                          subtitle: 'Install on Android, iOS & PC for 1-tap playback',
-                          onTap: () => showDownloadAppDialog(context),
                         ),
                       ],
                     ),
                   ),
-                ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
-                // 5. Dynamic Content Section based on selected category pill
-                if (_selectedCategory == 'Playlists') ...[
+                  // Playlists List below the 4 cards
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Your Playlists & Mixes',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_rounded, color: Colors.white70, size: 24),
-                            onPressed: () => _showCreatePlaylistDialog(context, manager),
-                          ),
-                        ],
+                      child: Text(
+                        'MY PLAYLISTS & MIXES',
+                        style: TextStyle(
+                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
                       ),
                     ),
                   ),
@@ -453,9 +516,9 @@ class _LibraryTabState extends State<LibraryTab> {
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white.withOpacity(0.04)),
+                            border: Border.all(color: cardBorder),
                           ),
                           child: ListTile(
                             leading: ClipRRect(
@@ -468,69 +531,33 @@ class _LibraryTabState extends State<LibraryTab> {
                                 errorBuilder: (_, __, ___) => Container(
                                   width: 48,
                                   height: 48,
-                                  color: const Color(0xFF2C2C2E),
+                                  color: const Color(0xFF1E293B),
                                   child: const Icon(Icons.queue_music, color: Colors.white54),
                                 ),
                               ),
                             ),
                             title: Text(
                               pl.title,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                              style: TextStyle(
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14.5,
+                              ),
                             ),
                             subtitle: Text(
-                              pl.description,
+                              '${pl.songs.length} songs • ${pl.description}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                              style: TextStyle(
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                fontSize: 12,
+                              ),
                             ),
-                            trailing: pl.type == PlaylistType.custom
-                                ? PopupMenuButton<String>(
-                                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
-                                    color: const Color(0xFF1C1C1E),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                    onSelected: (val) {
-                                      if (val == 'play') {
-                                        final songs = pl.songs.isNotEmpty
-                                            ? pl.songs
-                                            : manager.allSongs.where((s) => pl.songIds.contains(s.id)).toList();
-                                        if (songs.isNotEmpty) {
-                                          manager.playPlaylist(songs);
-                                        } else {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Playlist is empty')),
-                                          );
-                                        }
-                                      } else if (val == 'delete') {
-                                        manager.deletePlaylist(pl.id);
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Deleted "${pl.title}"')),
-                                        );
-                                      }
-                                    },
-                                    itemBuilder: (_) => [
-                                      const PopupMenuItem(
-                                        value: 'play',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.play_arrow_rounded, color: Colors.white, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('Play All', style: TextStyle(color: Colors.white)),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'delete',
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
-                                            SizedBox(width: 8),
-                                            Text('Delete Playlist', style: TextStyle(color: Colors.redAccent)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white30, size: 14),
+                            trailing: Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                            ),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -546,6 +573,7 @@ class _LibraryTabState extends State<LibraryTab> {
                     ),
                   ),
                 ] else if (_selectedCategory == 'Songs') ...[
+                  // Songs List
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -555,8 +583,13 @@ class _LibraryTabState extends State<LibraryTab> {
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? const Color(0xFF38BDF8).withOpacity(0.5)
+                                  : cardBorder,
+                            ),
                           ),
                           child: ListTile(
                             leading: ClipRRect(
@@ -569,7 +602,7 @@ class _LibraryTabState extends State<LibraryTab> {
                                 errorBuilder: (_, __, ___) => Container(
                                   width: 48,
                                   height: 48,
-                                  color: const Color(0xFF2C2C2E),
+                                  color: const Color(0xFF1E293B),
                                   child: const Icon(Icons.music_note, color: Colors.white54),
                                 ),
                               ),
@@ -579,17 +612,24 @@ class _LibraryTabState extends State<LibraryTab> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: isCurrent ? const Color(0xFFE5A5A5) : Colors.white,
+                                color: isCurrent ? const Color(0xFF38BDF8) : (isDark ? Colors.white : const Color(0xFF0F172A)),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
                               ),
                             ),
                             subtitle: Text(
                               '${song.artist} • ${song.formattedDuration}',
-                              style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                              style: TextStyle(
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                fontSize: 12,
+                              ),
                             ),
                             trailing: IconButton(
-                              icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
+                              icon: Icon(
+                                Icons.more_vert_rounded,
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                size: 20,
+                              ),
                               onPressed: () => TrackOptionsSheet.show(context, song),
                             ),
                             onTap: () => manager.playSong(song, newQueue: manager.allSongs),
@@ -599,44 +639,8 @@ class _LibraryTabState extends State<LibraryTab> {
                       childCount: manager.allSongs.length,
                     ),
                   ),
-                ] else if (_selectedCategory == 'Artists') ...[
-                  SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final artistMix = manager.artistMixes[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              radius: 24,
-                              backgroundImage: NetworkImage(artistMix.coverUrl),
-                            ),
-                            title: Text(
-                              artistMix.title,
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                            ),
-                            subtitle: Text(
-                              artistMix.description,
-                              style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
-                            ),
-                            trailing: const Icon(Icons.play_circle_outline, color: Color(0xFFE5A5A5)),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: artistMix)),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: manager.artistMixes.length,
-                    ),
-                  ),
                 ] else if (_selectedCategory == 'Albums') ...[
+                  // Albums / Mixes List
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
                       (context, index) {
@@ -644,16 +648,29 @@ class _LibraryTabState extends State<LibraryTab> {
                         return Container(
                           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF141416),
+                            color: cardColor,
                             borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: cardBorder),
                           ),
                           child: ListTile(
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(10),
                               child: Image.network(pl.coverUrl, width: 48, height: 48, fit: BoxFit.cover),
                             ),
-                            title: Text(pl.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                            subtitle: Text(pl.description, style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12)),
+                            title: Text(
+                              pl.title,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              pl.description,
+                              style: TextStyle(
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                fontSize: 12,
+                              ),
+                            ),
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -664,6 +681,51 @@ class _LibraryTabState extends State<LibraryTab> {
                         );
                       },
                       childCount: manager.genreMixes.length,
+                    ),
+                  ),
+                ] else if (_selectedCategory == 'Artists') ...[
+                  // Artists List
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final artistMix = manager.artistMixes[index];
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: cardColor,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: cardBorder),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              radius: 24,
+                              backgroundImage: NetworkImage(artistMix.coverUrl),
+                            ),
+                            title: Text(
+                              artistMix.title,
+                              style: TextStyle(
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              artistMix.description,
+                              style: TextStyle(
+                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                fontSize: 12,
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: artistMix)),
+                              );
+                            },
+                          ),
+                        );
+                      },
+                      childCount: manager.artistMixes.length,
                     ),
                   ),
                 ],
@@ -677,57 +739,69 @@ class _LibraryTabState extends State<LibraryTab> {
     );
   }
 
-  Widget _buildQuickAccessTile({
+  // Helper Widget for the 4 Big Square Cards matching Screenshot 1
+  Widget _buildBigSquareCard(
+    BuildContext context, {
     required IconData icon,
     required String title,
-    required String subtitle,
+    required String countText,
+    required Color cardBg,
+    required Color cardBorder,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        child: Row(
-          children: [
-            // Dark rounded square container for icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Center(
-                child: Icon(
-                  icon,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: cardBorder, width: 1.2),
+          boxShadow: isDark
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFF8E8E93),
-                      fontSize: 12,
-                    ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.04),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Center Big Icon
+            Icon(
+              icon,
+              size: 40,
+              color: Colors.white,
+            ),
+            const SizedBox(height: 14),
+            // Title (Recently Played, Favorites, Cached/Offline, Downloads)
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                letterSpacing: -0.2,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              countText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
               ),
             ),
           ],

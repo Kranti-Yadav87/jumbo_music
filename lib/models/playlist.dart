@@ -7,6 +7,7 @@ enum PlaylistType {
   genreMix,
   favorites,
   recentlyPlayed,
+  sharedBlend,
 }
 
 class Playlist {
@@ -18,6 +19,9 @@ class Playlist {
   final List<Song> songs;
   final PlaylistType type;
   final DateTime createdAt;
+  final bool isCollaborative;
+  final List<String> collaboratorNames;
+  final String friendEmail;
 
   Playlist({
     required this.id,
@@ -28,6 +32,9 @@ class Playlist {
     this.songs = const [],
     this.type = PlaylistType.custom,
     DateTime? createdAt,
+    this.isCollaborative = false,
+    this.collaboratorNames = const [],
+    this.friendEmail = '',
   }) : createdAt = createdAt ?? DateTime.now();
 
   Playlist copyWith({
@@ -39,6 +46,9 @@ class Playlist {
     List<Song>? songs,
     PlaylistType? type,
     DateTime? createdAt,
+    bool? isCollaborative,
+    List<String>? collaboratorNames,
+    String? friendEmail,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -49,6 +59,9 @@ class Playlist {
       songs: songs ?? this.songs,
       type: type ?? this.type,
       createdAt: createdAt ?? this.createdAt,
+      isCollaborative: isCollaborative ?? this.isCollaborative,
+      collaboratorNames: collaboratorNames ?? this.collaboratorNames,
+      friendEmail: friendEmail ?? this.friendEmail,
     );
   }
 
@@ -62,6 +75,9 @@ class Playlist {
       'songs': songs.map((s) => s.toJson()).toList(),
       'type': type.name,
       'createdAt': createdAt.toIso8601String(),
+      'isCollaborative': isCollaborative,
+      'collaboratorNames': collaboratorNames,
+      'friendEmail': friendEmail,
     };
   }
 
@@ -95,6 +111,14 @@ class Playlist {
       }
     }
 
+    final rawCollabs = json['collaboratorNames'] as List?;
+    final List<String> collabs = [];
+    if (rawCollabs != null) {
+      for (final c in rawCollabs) {
+        if (c is String) collabs.add(c);
+      }
+    }
+
     return Playlist(
       id: json['id'] as String? ?? 'p_${DateTime.now().millisecondsSinceEpoch}',
       title: json['title'] as String? ?? 'Custom Playlist',
@@ -106,6 +130,9 @@ class Playlist {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
+      isCollaborative: json['isCollaborative'] as bool? ?? (pType == PlaylistType.sharedBlend),
+      collaboratorNames: collabs,
+      friendEmail: json['friendEmail'] as String? ?? '',
     );
   }
 }
