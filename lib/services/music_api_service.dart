@@ -362,21 +362,106 @@ Genre: $genre
 
   /// Detects language of a song (Hindi, Punjabi, South, English, Bhojpuri, Haryanvi)
   static String detectSongLanguage(Song song) {
-    final langLower = song.language.toLowerCase();
-    if (langLower.contains('punjabi')) return 'Punjabi';
-    if (langLower.contains('tamil') || langLower.contains('telugu') || langLower.contains('kannada') || langLower.contains('malayalam')) return 'South';
-    if (langLower.contains('english') || langLower.contains('western')) return 'English';
-    if (langLower.contains('bhojpuri')) return 'Bhojpuri';
-    if (langLower.contains('haryanvi')) return 'Haryanvi';
-
-    final artistLower = song.artist.toLowerCase();
-    final genreLower = song.genre.toLowerCase();
-    final albumLower = song.album.toLowerCase();
     final titleLower = song.title.toLowerCase();
+    final artistLower = song.artist.toLowerCase();
+    final albumLower = song.album.toLowerCase();
+    final genreLower = song.genre.toLowerCase();
+    final langLower = song.language.toLowerCase();
 
-    if (genreLower.contains('punjabi') ||
-        albumLower.contains('punjabi') ||
-        artistLower.contains('karan aujla') ||
+    // 1. Explicit Hindi words in title (Never treat as English if title has Hindi words)
+    final bool hasHindiWords = titleLower.contains('dil') ||
+        titleLower.contains('pyar') ||
+        titleLower.contains('pyaar') ||
+        titleLower.contains('ishq') ||
+        titleLower.contains('tere') ||
+        titleLower.contains('teri') ||
+        titleLower.contains('tera') ||
+        titleLower.contains('tum') ||
+        titleLower.contains('hum') ||
+        titleLower.contains('chalein') ||
+        titleLower.contains('aao') ||
+        titleLower.contains('kya') ||
+        titleLower.contains('hai') ||
+        titleLower.contains('hain') ||
+        titleLower.contains('zindagi') ||
+        titleLower.contains('sukoon') ||
+        titleLower.contains('mohabbat') ||
+        titleLower.contains('saath') ||
+        titleLower.contains('raatein') ||
+        titleLower.contains('baatein') ||
+        titleLower.contains('jaana') ||
+        titleLower.contains('deewana') ||
+        titleLower.contains('sanam') ||
+        titleLower.contains('chura') ||
+        titleLower.contains('aaja') ||
+        titleLower.contains('naina') ||
+        titleLower.contains('akhiyaan') ||
+        titleLower.contains('dholna') ||
+        titleLower.contains('rabba') ||
+        titleLower.contains('meri') ||
+        titleLower.contains('mera') ||
+        titleLower.contains('mere') ||
+        titleLower.contains('musafir') ||
+        titleLower.contains('dard') ||
+        titleLower.contains('intezaar');
+
+    if (hasHindiWords && !albumLower.contains('english')) {
+      return 'Hindi';
+    }
+
+    if (langLower.contains('punjabi') || genreLower.contains('punjabi') || albumLower.contains('punjabi')) return 'Punjabi';
+    if (langLower.contains('tamil') || langLower.contains('telugu') || langLower.contains('kannada') || langLower.contains('malayalam') || genreLower.contains('tamil') || genreLower.contains('telugu') || genreLower.contains('south')) return 'South';
+    if (langLower.contains('bhojpuri') || genreLower.contains('bhojpuri')) return 'Bhojpuri';
+    if (langLower.contains('haryanvi') || genreLower.contains('haryanvi')) return 'Haryanvi';
+
+    // 2. English Indicators
+    if (langLower.contains('english') ||
+        langLower.contains('western') ||
+        genreLower.contains('english') ||
+        albumLower.contains('english') ||
+        albumLower.contains('billboard') ||
+        albumLower.contains('global') ||
+        albumLower.contains('hollywood') ||
+        artistLower.contains('taylor swift') ||
+        artistLower.contains('the weeknd') ||
+        artistLower.contains('drake') ||
+        artistLower.contains('ed sheeran') ||
+        artistLower.contains('justin bieber') ||
+        artistLower.contains('dua lipa') ||
+        artistLower.contains('billie eilish') ||
+        artistLower.contains('bruno mars') ||
+        artistLower.contains('coldplay') ||
+        artistLower.contains('post malone') ||
+        artistLower.contains('maroon 5') ||
+        artistLower.contains('charlie puth') ||
+        artistLower.contains('shawn mendes') ||
+        artistLower.contains('selena gomez') ||
+        artistLower.contains('ariana grande') ||
+        artistLower.contains('eminem') ||
+        artistLower.contains('adele') ||
+        artistLower.contains('rihanna') ||
+        artistLower.contains('hanumankind') ||
+        artistLower.contains('parekh & singh') ||
+        artistLower.contains('when chai met toast') ||
+        artistLower.contains('raghav meattle') ||
+        artistLower.contains('tsumyoki')) {
+      return 'English';
+    }
+
+    // Check specific English track titles
+    if (titleLower == 'blush' ||
+        titleLower == 'co2' ||
+        titleLower.contains('mess') ||
+        titleLower.contains('doll') ||
+        titleLower.contains('unicorn') ||
+        titleLower.contains('pink blue') ||
+        titleLower.contains('when we feel young') ||
+        titleLower.contains('big dawgs')) {
+      return 'English';
+    }
+
+    // Punjabi Artists
+    if (artistLower.contains('karan aujla') ||
         artistLower.contains('diljit') ||
         artistLower.contains('sidhu moose') ||
         artistLower.contains('ap dhillon') ||
@@ -389,10 +474,8 @@ Genre: $genre
       return 'Punjabi';
     }
 
-    if (genreLower.contains('tamil') ||
-        genreLower.contains('telugu') ||
-        genreLower.contains('south') ||
-        artistLower.contains('anirudh') ||
+    // South Artists
+    if (artistLower.contains('anirudh') ||
         artistLower.contains('sid sriram') ||
         artistLower.contains('devi sri prasad') ||
         artistLower.contains('ilaiyaraaja') ||
@@ -405,22 +488,8 @@ Genre: $genre
       return 'South';
     }
 
-    if (genreLower.contains('english') ||
-        genreLower.contains('pop') && (
-            artistLower.contains('taylor swift') ||
-            artistLower.contains('the weeknd') ||
-            artistLower.contains('drake') ||
-            artistLower.contains('ed sheeran') ||
-            artistLower.contains('justin bieber') ||
-            artistLower.contains('dua lipa') ||
-            artistLower.contains('billie eilish') ||
-            artistLower.contains('bruno mars') ||
-            artistLower.contains('coldplay'))) {
-      return 'English';
-    }
-
-    if (genreLower.contains('bhojpuri') ||
-        artistLower.contains('pawan singh') ||
+    // Bhojpuri
+    if (artistLower.contains('pawan singh') ||
         artistLower.contains('khesari') ||
         artistLower.contains('shilpi raj') ||
         artistLower.contains('nirahua') ||
@@ -428,8 +497,8 @@ Genre: $genre
       return 'Bhojpuri';
     }
 
-    if (genreLower.contains('haryanvi') ||
-        artistLower.contains('gulzaar chhaniwala') ||
+    // Haryanvi
+    if (artistLower.contains('gulzaar chhaniwala') ||
         artistLower.contains('renuka panwar') ||
         artistLower.contains('diler kharkiya')) {
       return 'Haryanvi';
@@ -758,6 +827,8 @@ Genre: $genre
         futures.add(searchLiveSongs('$rawArtist 2000s romantic hits', limit: 15).catchError((_) => <Song>[]));
       } else if (is2010s) {
         futures.add(searchLiveSongs('$rawArtist romantic hits', limit: 15).catchError((_) => <Song>[]));
+      } else if (songLanguage == 'English') {
+        futures.add(searchLiveSongs('$rawArtist English pop indie acoustic hits', limit: 15).catchError((_) => <Song>[]));
       } else if (songLanguage == 'Punjabi') {
         futures.add(searchLiveSongs('$rawArtist Punjabi hits', limit: 15).catchError((_) => <Song>[]));
       } else if (songLanguage == 'South') {
@@ -782,9 +853,12 @@ Genre: $genre
       futures.add(searchLiveSongs('Top Tamil Superhits', limit: 15).catchError((_) => <Song>[]));
       futures.add(searchLiveSongs('Telugu Chartbusters', limit: 15).catchError((_) => <Song>[]));
     } else if (songLanguage == 'English') {
-      // STRICT ENGLISH POP
-      futures.add(searchLiveSongs('Billboard Top Pop Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Global English Superhits', limit: 15).catchError((_) => <Song>[]));
+      // STRICT ENGLISH
+      futures.add(searchLiveSongs('Billboard Hot 100 English Pop Hits', limit: 20).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Global English Superhits Chart', limit: 20).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Acoustic English Indie Melodies', limit: 20).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Best of Indie English acoustic', limit: 20).catchError((_) => <Song>[]));
+      futures.add(searchLiveSongs('Global Acoustic Pop English Hits', limit: 20).catchError((_) => <Song>[]));
     } else if (songLanguage == 'Bhojpuri') {
       // STRICT BHOJPURI
       futures.add(searchLiveSongs('Pawan Singh Bhojpuri Hits', limit: 15).catchError((_) => <Song>[]));
@@ -856,6 +930,30 @@ Genre: $genre
           final candLanguage = detectSongLanguage(song);
           if (candLanguage != songLanguage) {
             continue;
+          }
+
+          if (songLanguage == 'English') {
+            final tLower = song.title.toLowerCase();
+            final aLower = song.artist.toLowerCase();
+            if (tLower.contains('dil') ||
+                tLower.contains('pyar') ||
+                tLower.contains('chalein') ||
+                tLower.contains('aao') ||
+                tLower.contains('tere') ||
+                tLower.contains('meri') ||
+                tLower.contains('ishq') ||
+                tLower.contains('tum') ||
+                tLower.contains('hum') ||
+                tLower.contains('zindagi') ||
+                tLower.contains('sukoon') ||
+                aLower.contains('arijit') ||
+                aLower.contains('kumar sanu') ||
+                aLower.contains('alka yagnik') ||
+                aLower.contains('udit narayan') ||
+                aLower.contains('lata mangeshkar') ||
+                aLower.contains('kishore kumar')) {
+              continue;
+            }
           }
 
           // 2. Strict Era matching filter for Hindi

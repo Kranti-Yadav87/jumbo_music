@@ -70,9 +70,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                 ),
             ],
           ),
-          body: Stack(
-            children: [
-              items.isEmpty
+          bottomNavigationBar: playerManager.currentSong != null
+              ? const SafeArea(top: false, child: MiniPlayer())
+              : null,
+          body: items.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -294,18 +295,6 @@ class DownloadedSongsScreen extends StatelessWidget {
                     );
                   },
                 ),
-              if (playerManager.currentSong != null)
-                const Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  child: SafeArea(
-                    top: false,
-                    child: MiniPlayer(),
-                  ),
-                ),
-            ],
-          ),
         );
       },
     );

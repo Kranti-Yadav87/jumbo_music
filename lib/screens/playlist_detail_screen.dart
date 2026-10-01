@@ -21,6 +21,7 @@ class PlaylistDetailScreen extends StatefulWidget {
 class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
   bool _isLoading = false;
   List<Song> _loadedSongs = [];
+  List<Song> _recommendedSongs = [];
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       setState(() {
         _loadedSongs = widget.playlist.songs;
       });
+      _loadMatchingRecommendations(widget.playlist.songs);
       return;
     }
 
@@ -45,6 +47,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
       setState(() {
         _loadedSongs = localSongs;
       });
+      _loadMatchingRecommendations(localSongs);
       return;
     }
 
@@ -62,6 +65,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           _loadedSongs = songs;
           _isLoading = false;
         });
+
+        _loadMatchingRecommendations(songs);
 
         // Add to manager so player can play whole queue
         for (final s in songs) {
@@ -103,6 +108,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
           _isLoading = false;
         });
 
+        _loadMatchingRecommendations(songs);
+
         for (final s in songs) {
           if (!manager.allSongs.any((item) => item.id == s.id)) {
             manager.allSongs.add(s);
@@ -110,6 +117,20 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         }
       }
     }
+  }
+
+  Future<void> _loadMatchingRecommendations(List<Song> sourceSongs) async {
+    if (sourceSongs.isEmpty) return;
+    try {
+      final seed = sourceSongs.first;
+      final recs = await MusicApiService.fetchSmartRecommendations(seed, limit: 10);
+      if (mounted && recs.isNotEmpty) {
+        final existingIds = sourceSongs.map((s) => s.id).toSet();
+        setState(() {
+          _recommendedSongs = recs.where((s) => !existingIds.contains(s.id)).take(8).toList();
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -127,20 +148,33 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     .where((song) => widget.playlist.songIds.contains(song.id))
                     .toList();
 
+        // Check if currently playing a song from this playlist or in manager queue
+        final upcomingQueue = manager.queue.length > manager.currentIndex + 1
+            ? manager.queue.sublist(manager.currentIndex + 1).take(8).toList()
+            : <Song>[];
+
+        final continuePlayingSongs = upcomingQueue.isNotEmpty
+            ? upcomingQueue
+            : _recommendedSongs;
+
         return Scaffold(
           backgroundColor: const Color(0xFF0C0C14),
-          body: Stack(
-            children: [
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
+          bottomNavigationBar: manager.currentSong != null
+              ? const SafeArea(
+                  top: false,
+                  child: MiniPlayer(),
+                )
+              : null,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
               // Sliver App Bar with Playlist Cover
               SliverAppBar(
                 expandedHeight: 300,
                 pinned: true,
                 backgroundColor: const Color(0xFF141424),
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
@@ -149,6 +183,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
+                      color: Colors.white,
                     ),
                   ),
                   background: Stack(
@@ -332,26 +367,83 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   ),
                 ),
 
-              // Padding at the bottom for floating miniplayer
+              // CONTINUE PLAYING & UP NEXT SECTION
+              if (continuePlayingSongs.isNotEmpty) ...[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 28, 16, 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.queue_music_rounded,
+                                color: Color(0xFF818CF8),
+                                size: 16,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              upcomingQueue.isNotEmpty ? 'CONTINUE PLAYING (UP NEXT)' : 'RECOMMENDED FOR YOU',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.1,
+                                color: Color(0xFF818CF8),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (manager.autoplay)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'AUTOPLAY ON',
+                              style: TextStyle(
+                                color: Color(0xFF10B981),
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, idx) {
+                      final song = continuePlayingSongs[idx];
+                      return SongTile(
+                        song: song,
+                        index: playlistSongs.length + idx + 1,
+                        playlistContext: [...playlistSongs, ...continuePlayingSongs],
+                      );
+                    },
+                    childCount: continuePlayingSongs.length,
+                  ),
+                ),
+              ],
+
+              // Padding at the bottom for docked player
               const SliverToBoxAdapter(
-                child: SizedBox(height: 110),
+                child: SizedBox(height: 30),
               ),
             ],
           ),
-          if (manager.currentSong != null)
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: MiniPlayer(),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
-  },
-);
   }
 }

@@ -19,11 +19,12 @@ class NewReleasesScreen extends StatelessWidget {
 
         return Scaffold(
           backgroundColor: const Color(0xFF000000),
-          body: Stack(
-            children: [
-              CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
+          bottomNavigationBar: manager.currentSong != null
+              ? const SafeArea(top: false, child: MiniPlayer())
+              : null,
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
               // App Bar
               SliverAppBar(
                 backgroundColor: const Color(0xFF0D0D12),
@@ -341,24 +342,12 @@ class NewReleasesScreen extends StatelessWidget {
               ),
 
               const SliverToBoxAdapter(
-                child: SizedBox(height: 110),
+                child: SizedBox(height: 30),
               ),
             ],
           ),
-          if (manager.currentSong != null)
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: MiniPlayer(),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
-  },
-);
   }
 }

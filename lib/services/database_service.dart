@@ -725,6 +725,33 @@ class DatabaseService extends ChangeNotifier {
     return playlist;
   }
 
+  Future<void> addSongToSharedPlaylist(String playlistId, Song song) async {
+    final idx = _customPlaylists.indexWhere((p) => p.id == playlistId);
+    if (idx != -1) {
+      final pl = _customPlaylists[idx];
+      if (!pl.songIds.contains(song.id)) {
+        final updatedSongIds = List<String>.from(pl.songIds)..add(song.id);
+        final updatedSongs = List<Song>.from(pl.songs)..add(song);
+        final updatedCover = pl.coverUrl.isEmpty ? song.coverUrl : pl.coverUrl;
+
+        _customPlaylists[idx] = pl.copyWith(
+          songIds: updatedSongIds,
+          songs: updatedSongs,
+          coverUrl: updatedCover,
+        );
+
+        addNotification(
+          title: 'Song Added to Shared Playlist',
+          message: '"${song.title}" was added to "${pl.title}"',
+          type: 'playlist',
+        );
+
+        notifyListeners();
+        await _flushPlaylists();
+      }
+    }
+  }
+
   // -------------------------------------------------------------
   // 10. NOTIFICATIONS STORE
   // -------------------------------------------------------------

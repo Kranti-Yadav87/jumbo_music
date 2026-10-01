@@ -39,10 +39,11 @@ class CachedOfflineScreen extends StatelessWidget {
               ),
             ),
           ),
-          body: Stack(
-            children: [
-              SafeArea(
-                child: Column(
+          bottomNavigationBar: manager.currentSong != null
+              ? const SafeArea(top: false, child: MiniPlayer())
+              : null,
+          body: SafeArea(
+            child: Column(
               children: [
                 // Airplane / Offline Banner
                 Container(
@@ -248,20 +249,8 @@ class CachedOfflineScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (manager.currentSong != null)
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SafeArea(
-                top: false,
-                child: MiniPlayer(),
-              ),
-            ),
-        ],
-      ),
+        );
+      },
     );
-  },
-);
   }
 }
