@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
-import '../services/theme_service.dart';
 import '../widgets/app_top_header.dart';
 import '../widgets/edit_profile_dialog.dart';
 import '../screens/playlist_detail_screen.dart';

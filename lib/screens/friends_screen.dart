@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
-import '../services/theme_service.dart';
 import '../models/friend.dart';
 import '../models/song.dart';
-import '../models/playlist.dart';
 import '../widgets/app_top_header.dart';
 import '../screens/playlist_detail_screen.dart';
 
@@ -166,7 +164,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         artist: friend.currentSongArtist.isNotEmpty ? friend.currentSongArtist : 'Armaan Malik',
                         audioUrl: manager.allSongs.isNotEmpty ? manager.allSongs.first.audioUrl : '',
                         coverUrl: friend.currentSongCover.isNotEmpty ? friend.currentSongCover : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=600',
-                        duration: 210,
+                        duration: const Duration(seconds: 210),
                       ),
                     );
                     manager.playSong(matchingSong);

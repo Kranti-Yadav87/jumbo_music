@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/playlist.dart';
-import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
-import '../services/theme_service.dart';
 import 'downloaded_songs_screen.dart';
 import 'cached_offline_screen.dart';
 import 'playlist_detail_screen.dart';
 import 'history_tab.dart';
-import 'favorites_tab.dart';
 import 'search_tab.dart';
 import '../widgets/track_options_sheet.dart';
 
@@ -23,8 +20,6 @@ class LibraryTab extends StatefulWidget {
 class _LibraryTabState extends State<LibraryTab> {
   String _selectedCategory = 'Playlists';
   bool _isAscending = true;
-  String _searchFilter = '';
-  bool _isSearchOpen = false;
   final TextEditingController _searchController = TextEditingController();
 
   final List<String> _categories = [

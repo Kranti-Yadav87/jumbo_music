@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/database_service.dart';
-import '../services/theme_service.dart';
 
 class NotificationsSheet extends StatelessWidget {
   const NotificationsSheet({super.key});

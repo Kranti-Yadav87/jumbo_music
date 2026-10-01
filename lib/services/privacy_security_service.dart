@@ -10,7 +10,7 @@ class PrivacySecurityService extends ChangeNotifier {
 
   bool _isIncognitoMode = false;
   bool _analyticsEnabled = false;
-  bool _localVaultEncrypted = true;
+  final bool _localVaultEncrypted = true;
   bool _biometricLockEnabled = false;
 
   bool get isIncognitoMode => _isIncognitoMode;

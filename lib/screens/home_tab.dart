@@ -5,9 +5,7 @@ import '../widgets/equalizer_bars.dart';
 import '../widgets/app_footer.dart';
 import '../widgets/app_top_header.dart';
 import 'playlist_detail_screen.dart';
-import 'privacy_security_screen.dart';
 import 'top_50_screen.dart';
-import 'search_tab.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onProfileTap;
