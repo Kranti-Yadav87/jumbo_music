@@ -300,14 +300,13 @@ Genre: $genre
     return [];
   }
 
-  /// Discovers 50+ related, diverse songs matching the seed song's artist,
+  /// Discovers 50-60 related, diverse songs matching the seed song's artist,
   /// style and mood for endless "Continue Playing - Autoplaying similar music".
-  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 50}) async {
+  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 55}) async {
     final List<Song> recommendations = [];
     final Set<String> seenIds = {seedSong.id};
     final Set<String> seenTitles = {seedSong.title.toLowerCase().trim()};
 
-    // 1. Direct Artist Match: Fetch top tracks from the seed song's artist
     final rawArtist = seedSong.artist
         .split(',')
         .first
@@ -316,27 +315,7 @@ Genre: $genre
         .split('feat.')
         .first
         .trim();
-    if (rawArtist.isNotEmpty &&
-        rawArtist.toLowerCase() != 'unknown artist' &&
-        rawArtist.toLowerCase() != 'music') {
-      try {
-        final artistSongs = await searchLiveSongs(rawArtist, limit: 20);
-        for (final song in artistSongs) {
-          final lowerTitle = song.title.toLowerCase().trim();
-          if (!seenIds.contains(song.id) &&
-              !seenTitles.contains(lowerTitle) &&
-              !lowerTitle.contains(seedSong.title.toLowerCase()) &&
-              song.audioUrl.isNotEmpty) {
-            seenIds.add(song.id);
-            seenTitles.add(lowerTitle);
-            recommendations.add(song);
-            if (recommendations.length >= limit) return recommendations;
-          }
-        }
-      } catch (_) {}
-    }
 
-    // 2. Contextual Era, Mood & Related Discovery Queries
     final List<String> discoveryQueries = [];
     final artistLower = seedSong.artist.toLowerCase();
     final genreLower = seedSong.genre.toLowerCase();
@@ -518,11 +497,32 @@ Genre: $genre
     }
 
     discoveryQueries.shuffle();
-    for (final query in discoveryQueries) {
-      if (recommendations.length >= limit) break;
-      try {
-        final results = await searchLiveSongs(query, limit: 10);
-        for (final song in results) {
+    final selectedQueries = discoveryQueries.take(4).toList();
+
+    // Parallel fetch tasks: Artist songs, selected queries, and fallback playlist
+    final List<Future<List<Song>>> futures = [];
+
+    if (rawArtist.isNotEmpty &&
+        rawArtist.toLowerCase() != 'unknown artist' &&
+        rawArtist.toLowerCase() != 'music') {
+      futures.add(searchLiveSongs(rawArtist, limit: 15).catchError((_) => <Song>[]));
+    }
+
+    for (final q in selectedQueries) {
+      futures.add(searchLiveSongs(q, limit: 15).catchError((_) => <Song>[]));
+    }
+
+    if (isOldClassic) {
+      futures.add(fetch90sDuets().catchError((_) => <Song>[]));
+    } else {
+      futures.add(fetchTrendingToday().catchError((_) => <Song>[]));
+      futures.add(fetchIndiaTop50().catchError((_) => <Song>[]));
+    }
+
+    try {
+      final results = await Future.wait(futures);
+      for (final songList in results) {
+        for (final song in songList) {
           final lowerTitle = song.title.toLowerCase().trim();
           if (!seenIds.contains(song.id) &&
               !seenTitles.contains(lowerTitle) &&
@@ -531,52 +531,12 @@ Genre: $genre
             seenIds.add(song.id);
             seenTitles.add(lowerTitle);
             recommendations.add(song);
-            if (recommendations.length >= limit) break;
           }
         }
-      } catch (_) {}
-    }
+      }
+    } catch (_) {}
 
-    // 3. Fallback: Contextual era-safe fallback to ensure 50-60 song queue
-    if (recommendations.length < limit) {
-      try {
-        if (isOldClassic) {
-          final duetsResult = await fetchPlaylist('159470188'); // 90s & Golden Era Duets
-          final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
-          for (final song in duetsSongs) {
-            if (!seenIds.contains(song.id) && song.id != seedSong.id) {
-              seenIds.add(song.id);
-              recommendations.add(song);
-              if (recommendations.length >= limit) break;
-            }
-          }
-        } else {
-          final trending = await fetchTrendingToday();
-          for (final song in trending) {
-            if (!seenIds.contains(song.id) && song.id != seedSong.id) {
-              seenIds.add(song.id);
-              recommendations.add(song);
-              if (recommendations.length >= limit) break;
-            }
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (recommendations.length < limit && !isOldClassic) {
-      try {
-        final top50 = await fetchIndiaTop50();
-        for (final song in top50) {
-          if (!seenIds.contains(song.id) && song.id != seedSong.id) {
-            seenIds.add(song.id);
-            recommendations.add(song);
-            if (recommendations.length >= limit) break;
-          }
-        }
-      } catch (_) {}
-    }
-
-    return recommendations;
+    return recommendations.take(limit).toList();
   }
 }
 

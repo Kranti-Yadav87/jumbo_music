@@ -497,32 +497,52 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _infillSmartQueue(Song seedSong, {int targetQueueSize = 55}) async {
+  Future<void> _infillSmartQueue(Song seedSong, {int targetQueueSize = 60}) async {
     if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_queue.length >= targetQueueSize) return;
-    if (_lastInfilledSongId == seedSong.id && _queue.length >= 45) return;
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
     notifyListeners();
 
     try {
-      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 50);
+      // 1. First immediately seed from local _allSongs if queue has fewer than targetQueueSize items
+      if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
+        final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
+        final localCandidates = _allSongs.where((s) => !currentQueueIds.contains(s.id)).toList();
+        
+        // Prioritize songs from same genre, artist or high quality
+        localCandidates.sort((a, b) {
+          int scoreA = (a.artist == seedSong.artist ? 2 : 0) + (a.genre == seedSong.genre ? 1 : 0);
+          int scoreB = (b.artist == seedSong.artist ? 2 : 0) + (b.genre == seedSong.genre ? 1 : 0);
+          return scoreB.compareTo(scoreA);
+        });
+
+        final needed = targetQueueSize - _queue.length;
+        if (needed > 0 && localCandidates.isNotEmpty) {
+          _queue.addAll(localCandidates.take(needed));
+          notifyListeners();
+        }
+      }
+
+      // 2. Fetch fresh smart recommendations concurrently
+      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 55);
       if (freshTracks.isNotEmpty) {
-        final Set<String> existingQueueIds = _queue.map((s) => s.id).toSet();
+        final Set<String> playedIds = _queue.take(_currentIndex + 1).map((s) => s.id).toSet();
         final List<Song> newTracks =
-            freshTracks.where((s) => !existingQueueIds.contains(s.id)).toList();
+            freshTracks.where((s) => !playedIds.contains(s.id)).toList();
 
         if (newTracks.isNotEmpty) {
-          final int remainingSlots = targetQueueSize - _queue.length;
-          final tracksToAdd = remainingSlots > 0 ? newTracks.take(remainingSlots).toList() : <Song>[];
-          if (tracksToAdd.isNotEmpty) {
-            _queue.addAll(tracksToAdd);
-          }
+          final playedPart = _queue.sublist(0, _currentIndex + 1);
+          final upcomingPart = _queue.sublist(_currentIndex + 1);
+          
+          final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
+          final remainingUpcoming = upcomingPart.where((s) => !freshIds.contains(s.id)).toList();
+          
+          _queue = [...playedPart, ...newTracks, ...remainingUpcoming].take(targetQueueSize).toList();
 
           // Add to allSongs as well
           final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
-          for (final track in tracksToAdd) {
+          for (final track in newTracks) {
             if (!allIds.contains(track.id)) {
               _allSongs.add(track);
             }
@@ -536,17 +556,10 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   /// Plays a song selected from Search and automatically builds a focused,
-  /// 50-song smart queue tailored strictly to that song's era, artist, and genre.
+  /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre.
   Future<void> playSongFromSearch(Song song) async {
-    // Start with a clean queue containing the selected song
-    _queue = [song];
-    _currentIndex = 0;
-
-    // Play with focused queue
     await playSong(song, newQueue: [song]);
-
-    // Asynchronously infill 50-55 strictly matching songs (e.g., Purane Gaane only for old songs)
-    _infillSmartQueue(song, targetQueueSize: 55);
+    _infillSmartQueue(song, targetQueueSize: 60);
   }
 
   Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
@@ -565,15 +578,27 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue = [song];
     }
 
+    // Immediately ensure queue is populated with 50-60 songs if autoplay is active
+    if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
+      final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
+      final localCandidates = _allSongs.where((s) => !currentQueueIds.contains(s.id)).toList();
+      localCandidates.sort((a, b) {
+        int scoreA = (a.artist == song.artist ? 2 : 0) + (a.genre == song.genre ? 1 : 0);
+        int scoreB = (b.artist == song.artist ? 2 : 0) + (b.genre == song.genre ? 1 : 0);
+        return scoreB.compareTo(scoreA);
+      });
+      _queue.addAll(localCandidates.take(60 - _queue.length));
+    }
+
     // Keep queue focused around 50-60 songs max
     if (_queue.length > 60) {
       final currentIdxInQueue = _queue.indexWhere((s) => s.id == song.id);
       if (currentIdxInQueue != -1) {
         final start = (currentIdxInQueue - 5).clamp(0, _queue.length);
-        final end = (start + 55).clamp(0, _queue.length);
+        final end = (start + 60).clamp(0, _queue.length);
         _queue = _queue.sublist(start, end);
       } else {
-        _queue = _queue.take(55).toList();
+        _queue = _queue.take(60).toList();
       }
     }
 
@@ -587,8 +612,8 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Dynamic library generation & Smart queue infill
     _updateDynamicLibrary(song);
-    if (_autoplay && _queue.length < 40) {
-      _infillSmartQueue(song, targetQueueSize: 55);
+    if (_autoplay) {
+      _infillSmartQueue(song, targetQueueSize: 60);
     }
 
     _isPlaying = true;
