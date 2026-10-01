@@ -121,20 +121,6 @@
       }
     });
 
-    window.downloadAudioFile = function(url, filename) {
-      try {
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename || 'jumbo_music_track.mp3';
-        a.target = '_blank';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e) {
-        console.error('Download error:', e);
-      }
-    };
-
     window.jumboStorageGet = function(key) {
       try {
         return window.localStorage.getItem(key);

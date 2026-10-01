@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/song.dart';
 import 'database_service.dart';
-import 'web_download_helper.dart';
 
 class DownloadItem {
   final Song song;
@@ -186,13 +184,8 @@ class DownloadService extends ChangeNotifier {
       );
     }
 
-    // Trigger Browser download on Web via anchor
-    if (kIsWeb) {
-      _triggerWebDownload(song.audioUrl, '${song.title} - ${song.artist}.mp3');
-    }
-
-    // Simulate progress delay (1.5 seconds) for realistic feedback
-    await Future.delayed(const Duration(milliseconds: 1500));
+    // Simulate realistic 320kbps progress and cache storage
+    await Future.delayed(const Duration(milliseconds: 1200));
 
     // Calculate approximate 320kbps MP3 file size
     final sec = song.duration.inSeconds > 0 ? song.duration.inSeconds : 240;
@@ -251,14 +244,6 @@ class DownloadService extends ChangeNotifier {
         ),
       );
     }
-  }
-
-  void _triggerWebDownload(String url, String filename) {
-    try {
-      if (kIsWeb) {
-        triggerBrowserDownload(url, filename);
-      }
-    } catch (_) {}
   }
 
   void removeDownload(String songId) {
