@@ -54,8 +54,9 @@ class _LoginScreenState extends State<LoginScreen>
     if (widget.onLoginSuccess != null) {
       widget.onLoginSuccess!();
     } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthGate()),
+        (route) => false,
       );
     }
   }
@@ -376,10 +377,11 @@ class _LoginScreenState extends State<LoginScreen>
                     decoration: BoxDecoration(
                       color: const Color(0xFF191926),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white10),
+                      border: Border.all(color: Colors.white12),
                     ),
                     child: TabBar(
                       controller: _tabController,
+                      onTap: (_) => setState(() {}),
                       indicator: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [Color(0xFFFF4B2B), Color(0xFFFF416C)],
@@ -439,250 +441,347 @@ class _LoginScreenState extends State<LoginScreen>
                     const SizedBox(height: 16),
                   ],
 
-                  // Form Container (Tab View)
-                  SizedBox(
-                    height: _tabController.index == 0 ? 210 : 270,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // --- Sign In Form ---
-                        Column(
-                          children: [
-                            TextField(
-                              controller: _loginEmailController,
-                              keyboardType: TextInputType.emailAddress,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Email Address',
-                                labelStyle: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 13.5,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.email_outlined,
-                                  color: Colors.white60,
-                                  size: 20,
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFF191926),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _loginPasswordController,
-                              obscureText: _obscureLoginPassword,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                labelStyle: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 13.5,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  color: Colors.white60,
-                                  size: 20,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureLoginPassword
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
+                  // Form Container
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: _tabController.index == 0
+                        ? Column(
+                            key: const ValueKey('signin_form'),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: _loginEmailController,
+                                keyboardType: TextInputType.emailAddress,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Email Address',
+                                  labelStyle: const TextStyle(
                                     color: Colors.white60,
+                                    fontSize: 13.5,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.email_outlined,
+                                    color: Colors.white70,
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(
-                                    () => _obscureLoginPassword =
-                                        !_obscureLoginPassword,
+                                  filled: true,
+                                  fillColor: const Color(0xFF161624),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
                                   ),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFF191926),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: _showForgotPasswordDialog,
-                                child: const Text(
-                                  'Forgot Password?',
-                                  style: TextStyle(
-                                    color: Color(0xFFFF5E3A),
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF4B2B),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
+                                  enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                      width: 1.0,
+                                    ),
                                   ),
-                                  elevation: 0,
-                                ),
-                                onPressed: _isLoading
-                                    ? null
-                                    : _handleEmailLogin,
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        // --- Create Account Form ---
-                        Column(
-                          children: [
-                            TextField(
-                              controller: _signupNameController,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Full Name',
-                                labelStyle: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 13.5,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.person_outline_rounded,
-                                  color: Colors.white60,
-                                  size: 20,
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFF191926),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFFF5E3A),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _signupEmailController,
-                              keyboardType: TextInputType.emailAddress,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Email Address',
-                                labelStyle: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 13.5,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.email_outlined,
-                                  color: Colors.white60,
-                                  size: 20,
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFF191926),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _signupPasswordController,
-                              obscureText: _obscureSignupPassword,
-                              style: const TextStyle(color: Colors.white),
-                              decoration: InputDecoration(
-                                labelText: 'Password (min 6 chars)',
-                                labelStyle: const TextStyle(
-                                  color: Colors.white60,
-                                  fontSize: 13.5,
-                                ),
-                                prefixIcon: const Icon(
-                                  Icons.lock_outline_rounded,
-                                  color: Colors.white60,
-                                  size: 20,
-                                ),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureSignupPassword
-                                        ? Icons.visibility_outlined
-                                        : Icons.visibility_off_outlined,
+                              const SizedBox(height: 14),
+                              TextField(
+                                controller: _loginPasswordController,
+                                obscureText: _obscureLoginPassword,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Password',
+                                  labelStyle: const TextStyle(
                                     color: Colors.white60,
+                                    fontSize: 13.5,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                    color: Colors.white70,
                                     size: 20,
                                   ),
-                                  onPressed: () => setState(
-                                    () => _obscureSignupPassword =
-                                        !_obscureSignupPassword,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureLoginPassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: Colors.white60,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscureLoginPassword =
+                                          !_obscureLoginPassword,
+                                    ),
                                   ),
-                                ),
-                                filled: true,
-                                fillColor: const Color(0xFF191926),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(14),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFFF4B2B),
-                                  foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(
+                                  filled: true,
+                                  fillColor: const Color(0xFF161624),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                      width: 1.0,
+                                    ),
                                   ),
-                                  elevation: 0,
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFFF5E3A),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                    ),
+                                  ),
                                 ),
-                                onPressed: _isLoading
-                                    ? null
-                                    : _handleEmailSignUp,
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 22,
-                                        height: 22,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      )
-                                    : const Text(
-                                        'Create Account & Verify',
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: _showForgotPasswordDialog,
+                                  child: const Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(
+                                      color: Color(0xFFFF5E3A),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF4B2B),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  onPressed: _isLoading
+                                      ? null
+                                      : _handleEmailLogin,
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 15.5,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            key: const ValueKey('signup_form'),
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              TextField(
+                                controller: _signupNameController,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Full Name',
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 13.5,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.person_outline_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFF161624),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFFF5E3A),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextField(
+                                controller: _signupEmailController,
+                                keyboardType: TextInputType.emailAddress,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Email Address',
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 13.5,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.email_outlined,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFF161624),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFFF5E3A),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              TextField(
+                                controller: _signupPasswordController,
+                                obscureText: _obscureSignupPassword,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Password (min 6 chars)',
+                                  labelStyle: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 13.5,
+                                  ),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      _obscureSignupPassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
+                                      color: Colors.white60,
+                                      size: 20,
+                                    ),
+                                    onPressed: () => setState(
+                                      () => _obscureSignupPassword =
+                                          !_obscureSignupPassword,
+                                    ),
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFF161624),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Color(0xFFFF5E3A),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                    borderSide: const BorderSide(
+                                      color: Colors.white12,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF4B2B),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    elevation: 2,
+                                  ),
+                                  onPressed: _isLoading
+                                      ? null
+                                      : _handleEmailSignUp,
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 22,
+                                          height: 22,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text(
+                                          'Create Account & Verify',
+                                          style: TextStyle(
+                                            fontSize: 15.5,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
 
                   const SizedBox(height: 20),

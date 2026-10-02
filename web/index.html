@@ -275,11 +275,22 @@
       }
     };
 
+    window._jumboStopKeepAliveTimer = null;
     window.jumboMediaUpdatePlaybackState = function(isPlaying) {
       if (isPlaying) {
+        if (window._jumboStopKeepAliveTimer) {
+          clearTimeout(window._jumboStopKeepAliveTimer);
+          window._jumboStopKeepAliveTimer = null;
+        }
         window.jumboStartAudioKeepAlive();
       } else {
-        window.jumboStopAudioKeepAlive();
+        if (window._jumboStopKeepAliveTimer) {
+          clearTimeout(window._jumboStopKeepAliveTimer);
+        }
+        window._jumboStopKeepAliveTimer = setTimeout(function() {
+          window.jumboStopAudioKeepAlive();
+          window._jumboStopKeepAliveTimer = null;
+        }, 3500);
       }
       if (!('mediaSession' in navigator)) return;
       try {

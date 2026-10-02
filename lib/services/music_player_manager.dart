@@ -219,13 +219,11 @@ class MusicPlayerManager extends ChangeNotifier {
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
       (state) {
-        if (!_isTransitioning) {
-          _isPlaying = state.playing;
-          _isBuffering =
-              (state.processingState == ProcessingState.buffering ||
-                  state.processingState == ProcessingState.loading) &&
-              !state.playing;
-        }
+        _isPlaying = state.playing;
+        _isBuffering =
+            (state.processingState == ProcessingState.buffering ||
+                state.processingState == ProcessingState.loading) &&
+            !state.playing;
 
         MediaSessionService.updatePlaybackState(isPlaying: state.playing);
 
@@ -882,12 +880,7 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
-      // 1. Explicitly stop and reset previous audio stream so old song immediately ceases
-      try {
-        await _audioPlayer.stop();
-      } catch (_) {}
-
-      // 2. Set new audio source with preload & native lock screen metadata
+      // 1. Set new audio source with preload & native lock screen metadata
       final mediaItem = MediaItem(
         id: song.id,
         album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
@@ -942,9 +935,15 @@ class MusicPlayerManager extends ChangeNotifier {
     }
 
     try {
-      if (_audioPlayer.playing) {
+      if (_isPlaying || _audioPlayer.playing) {
+        _isPlaying = false;
+        notifyListeners();
+        MediaSessionService.updatePlaybackState(isPlaying: false);
         await _audioPlayer.pause();
       } else {
+        _isPlaying = true;
+        notifyListeners();
+        MediaSessionService.updatePlaybackState(isPlaying: true);
         if (_position >= _duration && _duration > Duration.zero) {
           await _audioPlayer.seek(Duration.zero);
         }
@@ -960,10 +959,10 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> next() async {
     if (_queue.isEmpty) return;
 
-    // Proactively infill when within 4 songs of queue end
+    // Proactively infill when within 6 songs of queue end
     if (_autoplay &&
         currentSong != null &&
-        _currentIndex >= _queue.length - 4) {
+        _currentIndex >= _queue.length - 6) {
       _infillSmartQueue(currentSong!);
     }
 
@@ -1062,9 +1061,8 @@ class MusicPlayerManager extends ChangeNotifier {
         if (_currentIndex < _queue.length - 1) {
           await next();
         } else {
-          _isPlaying = false;
-          MediaSessionService.updatePlaybackState(isPlaying: false);
-          notifyListeners();
+          // If queue ended, loop back from start
+          await playSong(_queue[0]);
         }
       } else {
         _isPlaying = false;

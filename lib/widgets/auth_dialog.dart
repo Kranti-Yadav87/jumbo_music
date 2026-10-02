@@ -253,6 +253,9 @@ class _AuthDialogState extends State<AuthDialog> {
               if (_isSignUp) ...[
                 TextField(
                   controller: _nameController,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
                   decoration: InputDecoration(
                     labelText: 'Full Name',
                     prefixIcon: const Icon(
@@ -261,11 +264,26 @@ class _AuthDialogState extends State<AuthDialog> {
                     ),
                     filled: true,
                     fillColor: isDark
-                        ? const Color(0xFF1E1E2D)
+                        ? const Color(0xFF161624)
                         : const Color(0xFFF1F5F9),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFFF5E3A),
+                        width: 1.5,
+                      ),
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                      borderSide: BorderSide(
+                        color: isDark ? Colors.white12 : Colors.black12,
+                      ),
                     ),
                   ),
                 ),
@@ -276,16 +294,34 @@ class _AuthDialogState extends State<AuthDialog> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Email Address',
                   prefixIcon: const Icon(Icons.email_outlined, size: 20),
                   filled: true,
                   fillColor: isDark
-                      ? const Color(0xFF1E1E2D)
+                      ? const Color(0xFF161624)
                       : const Color(0xFFF1F5F9),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFF5E3A),
+                      width: 1.5,
+                    ),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
                   ),
                 ),
               ),
@@ -295,16 +331,34 @@ class _AuthDialogState extends State<AuthDialog> {
               TextField(
                 controller: _passwordController,
                 obscureText: true,
+                style: TextStyle(
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
                   filled: true,
                   fillColor: isDark
-                      ? const Color(0xFF1E1E2D)
+                      ? const Color(0xFF161624)
                       : const Color(0xFFF1F5F9),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFFF5E3A),
+                      width: 1.5,
+                    ),
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
+                    borderSide: BorderSide(
+                      color: isDark ? Colors.white12 : Colors.black12,
+                    ),
                   ),
                 ),
               ),

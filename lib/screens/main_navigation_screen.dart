@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/music_player_manager.dart';
 import '../services/connectivity_service.dart';
 import '../widgets/mini_player.dart';
@@ -17,6 +18,7 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0; // 0: Home, 1: Search, 2: Library, 3: Settings/Profile
+  DateTime? _lastBackPressTime;
 
   late final List<Widget> _tabs;
 
@@ -63,8 +65,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         ? const Color(0xFF1E2D4A)
         : const Color(0xFFE2E8F0);
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // If not on Home tab, always return to Home tab first
+        if (_currentIndex != 0) {
+          setState(() => _currentIndex = 0);
+          return;
+        }
+        // If already on Home tab, require double back press within 2s to exit gracefully
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Press back again to exit Jumbo Music'),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Active Tab Content
@@ -231,7 +258,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   Widget _buildNavItem({

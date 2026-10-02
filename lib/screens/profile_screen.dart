@@ -5,6 +5,7 @@ import '../services/music_player_manager.dart';
 import '../widgets/app_top_header.dart';
 import '../widgets/edit_profile_dialog.dart';
 import '../widgets/auth_dialog.dart';
+import '../screens/auth_gate.dart';
 import '../screens/playlist_detail_screen.dart';
 import '../screens/downloaded_songs_screen.dart';
 import '../screens/privacy_security_screen.dart';
@@ -54,6 +55,10 @@ class ProfileScreen extends StatelessWidget {
                     content: Text('Signed out successfully.'),
                     behavior: SnackBarBehavior.floating,
                   ),
+                );
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const AuthGate()),
+                  (route) => false,
                 );
               }
             },
