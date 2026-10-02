@@ -50,5 +50,31 @@ void main() {
         ),
       );
     });
+
+    test('Correctly maps unauthorized-domain to actionable message', () {
+      final err = Exception(
+        '[firebase_auth/unauthorized-domain] This domain is not authorized for OAuth operations for your Firebase project.',
+      );
+      final result = AuthService.formatAuthError(err);
+      expect(
+        result,
+        equals(
+          'This domain is not authorized for OAuth operations. Please verify authorized domains in Firebase Console.',
+        ),
+      );
+    });
+
+    test('Correctly maps popup-blocked to actionable message', () {
+      final err = Exception(
+        '[firebase_auth/popup-blocked] The popup was blocked by the browser.',
+      );
+      final result = AuthService.formatAuthError(err);
+      expect(
+        result,
+        equals(
+          'Sign-in popup was blocked by your browser. Please allow popups for this site and retry.',
+        ),
+      );
+    });
   });
 }

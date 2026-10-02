@@ -215,10 +215,78 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
 
             const SizedBox(height: 20),
 
+            // Action Buttons: 1. Download APK, 2. 1-Tap Web App Install
+            Container(
+              width: double.infinity,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF10B981), Color(0xFF059669)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF10B981).withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onPressed: () {
+                  downloadFile(
+                    'https://github.com/Kranti-Yadav87/jumbo_music/releases/latest/download/app-release.apk',
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      backgroundColor: Color(0xFF064E3B),
+                      behavior: SnackBarBehavior.floating,
+                      content: Row(
+                        children: [
+                          Icon(Icons.downloading_rounded, color: Colors.white),
+                          SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Downloading Jumbo Music Android APK (v2.0.0 Pro)...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.android_rounded, size: 22),
+                label: const Text(
+                  'Download Android App (APK)',
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
             // Direct 1-Tap Install Button
             Container(
               width: double.infinity,
-              height: 50,
+              height: 48,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],
@@ -259,9 +327,9 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                 label: Text(
                   _isInstalling
                       ? 'Installing Jumbo Music...'
-                      : '1-Tap Install Jumbo Music',
+                      : '1-Tap Add Web App (PWA)',
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.2,
                   ),

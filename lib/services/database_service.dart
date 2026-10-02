@@ -773,34 +773,7 @@ class DatabaseService extends ChangeNotifier {
       }
 
       if (_friends.isEmpty) {
-        _friends.addAll([
-          Friend(
-            id: 'friend_unknown',
-            name: 'Unknown',
-            email: 'friend@email.com',
-            avatarInitials: 'U',
-            currentSongTitle: 'You',
-            currentSongArtist: 'Armaan Malik',
-            currentSongId: '1',
-            currentSongCover:
-                'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
-            isOnline: true,
-            isListening: true,
-          ),
-          Friend(
-            id: 'friend_aarav',
-            name: 'Aarav Sharma',
-            email: 'aarav.sharma@gmail.com',
-            avatarInitials: 'AS',
-            currentSongTitle: 'Tumhein Apna Banane Ki',
-            currentSongArtist: 'Kumar Sanu',
-            currentSongId: '2',
-            currentSongCover:
-                'https://c.saavncdn.com/editorial/charts_PunjabiTopSongs_500x500.jpg',
-            isOnline: true,
-            isListening: true,
-          ),
-        ]);
+        // Start with clean empty friends list or offline sample contact
         await _flushFriends();
       }
     } catch (_) {}

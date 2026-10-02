@@ -3,6 +3,7 @@ import '../data/music_repository.dart';
 import '../models/playlist.dart';
 import '../services/music_api_service.dart';
 import '../services/music_player_manager.dart';
+import '../widgets/app_cached_image.dart';
 import '../widgets/mini_player.dart';
 import 'playlist_detail_screen.dart';
 
@@ -407,22 +408,12 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
                                     ),
                                     padding: const EdgeInsets.all(2.5),
                                     child: ClipOval(
-                                      child: Image.network(
-                                        artist['imageUrl']!,
+                                      child: AppCachedImage(
+                                        imageUrl: artist['imageUrl'] ?? '',
+                                        width: 86,
+                                        height: 86,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => Container(
-                                          color: const Color(0xFF1E1E2D),
-                                          child: Center(
-                                            child: Text(
-                                              artist['name']![0],
-                                              style: const TextStyle(
-                                                fontSize: 30,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
+                                        fallbackIcon: Icons.person_rounded,
                                       ),
                                     ),
                                   ),

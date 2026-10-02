@@ -22,7 +22,6 @@ class MusicPlayerManager extends ChangeNotifier {
 
   bool _isPlaying = false;
   bool _isBuffering = false;
-  bool _isToggling = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
   Duration _bufferedPosition = Duration.zero;
@@ -206,7 +205,7 @@ class MusicPlayerManager extends ChangeNotifier {
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
       (state) {
-        if (!_isTransitioning && !_isToggling) {
+        if (!_isTransitioning) {
           _isPlaying = state.playing;
           _isBuffering =
               (state.processingState == ProcessingState.buffering ||
@@ -214,7 +213,7 @@ class MusicPlayerManager extends ChangeNotifier {
               !state.playing;
         }
 
-        MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
+        MediaSessionService.updatePlaybackState(isPlaying: state.playing);
 
         if (state.processingState == ProcessingState.completed &&
             !_isTransitioning) {
@@ -565,7 +564,8 @@ class MusicPlayerManager extends ChangeNotifier {
     int targetQueueSize = 60,
   }) async {
     if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_lastInfilledSongId == seedSong.id && _queue.length >= targetQueueSize) {
+    if (_lastInfilledSongId == seedSong.id &&
+        _queue.length >= targetQueueSize) {
       return;
     }
     _lastInfilledSongId = seedSong.id;
@@ -908,14 +908,8 @@ class MusicPlayerManager extends ChangeNotifier {
       return;
     }
 
-    final targetPlaying = !_isPlaying;
-    _isPlaying = targetPlaying;
-    _isBuffering = false;
-    _isToggling = true;
-    notifyListeners();
-
     try {
-      if (!targetPlaying) {
+      if (_audioPlayer.playing) {
         await _audioPlayer.pause();
       } else {
         if (_position >= _duration && _duration > Duration.zero) {
@@ -923,14 +917,10 @@ class MusicPlayerManager extends ChangeNotifier {
         }
         await _audioPlayer.play();
       }
-    } catch (_) {
+    } catch (e) {
+      _errorMessage = "Playback toggle error: $e";
       _isPlaying = _audioPlayer.playing;
       notifyListeners();
-    } finally {
-      // Keep _isToggling protected for 400ms so delayed audio stream events don't flicker UI
-      Future.delayed(const Duration(milliseconds: 400), () {
-        _isToggling = false;
-      });
     }
   }
 

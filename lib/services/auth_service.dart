@@ -18,7 +18,16 @@ class AuthService {
   /// Helper to convert Firebase Auth exceptions to user-friendly messages
   static String formatAuthError(Object error) {
     final msg = error.toString();
-    if (msg.contains('email-already-in-use')) {
+    if (msg.contains('unauthorized-domain')) {
+      return 'This domain is not authorized for OAuth operations. Please verify authorized domains in Firebase Console.';
+    } else if (msg.contains('popup-closed-by-user') ||
+        msg.contains('cancelled-popup-request')) {
+      return 'Sign-in cancelled. Please try again.';
+    } else if (msg.contains('popup-blocked')) {
+      return 'Sign-in popup was blocked by your browser. Please allow popups for this site and retry.';
+    } else if (msg.contains('account-exists-with-different-credential')) {
+      return 'An account already exists with this email using a different sign-in method.';
+    } else if (msg.contains('email-already-in-use')) {
       return 'This email is already registered. Please sign in instead.';
     } else if (msg.contains('user-not-found') ||
         msg.contains('wrong-password') ||
@@ -57,6 +66,7 @@ class AuthService {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
         final userCredential = await _auth.signInWithPopup(googleProvider);
         await _syncWithDatabase(userCredential.user);
         return userCredential;

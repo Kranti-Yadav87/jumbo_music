@@ -4,3 +4,4 @@ import 'pwa_install_helper_stub.dart'
 
 Future<bool> triggerPwaInstall() => helper.triggerPwaInstall();
 bool canInstallPwa() => helper.canInstallPwa();
+void downloadFile(String url) => helper.downloadFile(url);

@@ -6,6 +6,9 @@ external JSPromise<JSBoolean> _triggerPwaInstall();
 @JS('canInstallPwa')
 external JSBoolean _canInstallPwa();
 
+@JS('jumboDownloadUrl')
+external void _jumboDownloadUrl(JSString url);
+
 Future<bool> triggerPwaInstall() async {
   try {
     final result = await _triggerPwaInstall().toDart;
@@ -21,4 +24,10 @@ bool canInstallPwa() {
   } catch (_) {
     return false;
   }
+}
+
+void downloadFile(String url) {
+  try {
+    _jumboDownloadUrl(url.toJS);
+  } catch (_) {}
 }

@@ -5,3 +5,5 @@ Future<bool> triggerPwaInstall() async {
 bool canInstallPwa() {
   return false;
 }
+
+void downloadFile(String url) {}

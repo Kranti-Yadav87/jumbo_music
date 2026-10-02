@@ -203,7 +203,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   const SizedBox(height: 12),
 
                   Text(
-                    'We sent an activation link to:\n$userEmail\n\nPlease check your inbox and confirm your address to sync your music and playlists.',
+                    'We sent a verification link to:\n$userEmail',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       fontSize: 14,
@@ -211,7 +211,40 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       height: 1.45,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 18),
+
+                  // 3 Easy Steps Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF14141E),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.08)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text(
+                          'Simple 3-Step Verification:',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF5E3A),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          '1. Open your email inbox (and check spam folder)\n2. Tap the verification link from Firebase / Jumbo Music\n3. Return here and tap "I\'ve Verified My Email" below',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            color: Colors.white70,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
                   if (_message != null) ...[
                     Container(

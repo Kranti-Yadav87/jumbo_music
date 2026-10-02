@@ -88,6 +88,39 @@ class DownloadService extends ChangeNotifier {
   }
 
   Future<void> downloadSong(Song song, {BuildContext? context}) async {
+    if (song.audioUrl.trim().isEmpty ||
+        (!song.audioUrl.startsWith('http://') &&
+            !song.audioUrl.startsWith('https://'))) {
+      if (context != null && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF262630),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            content: Row(
+              children: [
+                const Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.amberAccent,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Offline download is not available for "${song.title}" due to licensing or source stream restrictions.',
+                    style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+      return;
+    }
+
     if (isDownloaded(song.id)) {
       if (context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

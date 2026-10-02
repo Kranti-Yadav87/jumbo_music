@@ -14,6 +14,7 @@ import 'downloaded_songs_screen.dart';
 
 import '../data/music_repository.dart';
 import '../services/music_api_service.dart';
+import '../services/database_service.dart';
 import '../models/playlist.dart';
 import 'friends_screen.dart';
 
@@ -877,119 +878,141 @@ class _HomeTabState extends State<HomeTab> {
               ),
 
               SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: Theme.of(context).brightness == Brightness.dark
-                          ? [const Color(0xFF1A1528), const Color(0xFF101018)]
-                          : [const Color(0xFFF1F5F9), Colors.white],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF6366F1).withOpacity(0.25),
-                      width: 1.2,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF6366F1).withOpacity(0.3),
-                              blurRadius: 8,
-                            ),
-                          ],
+                child: Builder(
+                  builder: (context) {
+                    final db = DatabaseService.instance;
+                    final listeningCount = db.friendsListening.length;
+                    final hasActive = listeningCount > 0;
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors:
+                              Theme.of(context).brightness == Brightness.dark
+                              ? [
+                                  const Color(0xFF1A1528),
+                                  const Color(0xFF101018),
+                                ]
+                              : [const Color(0xFFF1F5F9), Colors.white],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        child: const Center(
-                          child: Icon(
-                            Icons.headphones_rounded,
-                            color: Colors.white,
-                            size: 24,
-                          ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: const Color(0xFF6366F1).withOpacity(0.25),
+                          width: 1.2,
                         ),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Row(
-                              children: [
-                                Text(
-                                  'Live Synchronized Sessions',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF6366F1,
+                                  ).withOpacity(0.3),
+                                  blurRadius: 8,
                                 ),
-                                SizedBox(width: 6),
+                              ],
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.headphones_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      hasActive
+                                          ? '$listeningCount Friend${listeningCount > 1 ? 's' : ''} Streaming'
+                                          : 'Live Jam & Blend Sessions',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      hasActive ? '🟢 Live' : '⚪ Standby',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: hasActive
+                                            ? const Color(0xFF10B981)
+                                            : Colors.white54,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 3),
                                 Text(
-                                  '🟢 Online',
+                                  hasActive
+                                      ? 'Tap to join synchronized live session'
+                                      : 'Start a shared Jam room or invite friends to listen together',
                                   style: TextStyle(
-                                    fontSize: 10.5,
-                                    color: Color(0xFF10B981),
-                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12,
+                                    color: AppThemeManager.textSecondary(
+                                      context,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 3),
-                            Text(
-                              'Join friends or create collaborative Blend playlists',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppThemeManager.textSecondary(context),
+                          ),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF6366F1),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FriendsScreen(),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              hasActive ? 'Join' : 'Open Jam',
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          elevation: 0,
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const FriendsScreen(),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Join',
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
 
