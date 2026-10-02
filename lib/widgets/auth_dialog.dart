@@ -84,31 +84,21 @@ class _AuthDialogState extends State<AuthDialog> {
         final db = DatabaseService.instance;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome, ${db.userName}! (ID: ${db.userId}) 🎉'),
+            content: Text(
+              _isSignUp
+                  ? 'Account created! Check inbox to verify your email 🎉'
+                  : 'Welcome back, ${db.userName}! 🎉',
+            ),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
-      // Fallback to local login if Firebase Auth is not configured or offline
-      final db = DatabaseService.instance;
-      final userName = _isSignUp ? name : (db.userName != 'User' ? db.userName : email.split('@').first);
-      await db.login(
-        email: email,
-        name: userName,
-        password: password,
-      );
-
       if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Welcome back, $userName! (ID: ${db.userId}) 🎉'),
-            backgroundColor: const Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        setState(() {
+          _error = AuthService.formatAuthError(e);
+        });
       }
     } finally {
       if (mounted) {
@@ -139,7 +129,7 @@ class _AuthDialogState extends State<AuthDialog> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Google Sign-In error: ${e.toString().split(']').last.trim()}';
+          _error = AuthService.formatAuthError(e);
         });
       }
     } finally {
@@ -152,18 +142,19 @@ class _AuthDialogState extends State<AuthDialog> {
   Future<void> _quickGuestLogin() async {
     setState(() => _isLoading = true);
     await Future.delayed(const Duration(milliseconds: 300));
-    final randomId = 'JM-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+    final randomId =
+        'JM-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
     final db = DatabaseService.instance;
     await db.login(
-      email: 'music.fan@jumbomusic.app',
-      name: 'Music Enthusiast',
+      email: 'guest.listener@jumbomusic.app',
+      name: 'Guest Explorer',
       userId: randomId,
     );
     if (mounted) {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Logged in as Music Enthusiast! (ID: $randomId) ✨'),
+          content: Text('Exploring in Guest Mode! (ID: $randomId) ✨'),
           backgroundColor: const Color(0xFF6366F1),
           behavior: SnackBarBehavior.floating,
         ),
@@ -215,10 +206,14 @@ class _AuthDialogState extends State<AuthDialog> {
                           ),
                         ),
                         Text(
-                          _isSignUp ? 'Join millions of music lovers' : 'Sign in to sync your playlists & ID',
+                          _isSignUp
+                              ? 'Join millions of music lovers'
+                              : 'Sign in to sync your playlists & ID',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white60
+                                : const Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -234,7 +229,10 @@ class _AuthDialogState extends State<AuthDialog> {
 
               if (_error != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.red.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
@@ -242,7 +240,10 @@ class _AuthDialogState extends State<AuthDialog> {
                   ),
                   child: Text(
                     _error!,
-                    style: const TextStyle(color: Colors.redAccent, fontSize: 12.5),
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontSize: 12.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -254,9 +255,14 @@ class _AuthDialogState extends State<AuthDialog> {
                   controller: _nameController,
                   decoration: InputDecoration(
                     labelText: 'Full Name',
-                    prefixIcon: const Icon(Icons.person_outline_rounded, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.person_outline_rounded,
+                      size: 20,
+                    ),
                     filled: true,
-                    fillColor: isDark ? const Color(0xFF1E1E2D) : const Color(0xFFF1F5F9),
+                    fillColor: isDark
+                        ? const Color(0xFF1E1E2D)
+                        : const Color(0xFFF1F5F9),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide.none,
@@ -274,7 +280,9 @@ class _AuthDialogState extends State<AuthDialog> {
                   labelText: 'Email Address',
                   prefixIcon: const Icon(Icons.email_outlined, size: 20),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E1E2D) : const Color(0xFFF1F5F9),
+                  fillColor: isDark
+                      ? const Color(0xFF1E1E2D)
+                      : const Color(0xFFF1F5F9),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -291,7 +299,9 @@ class _AuthDialogState extends State<AuthDialog> {
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),
                   filled: true,
-                  fillColor: isDark ? const Color(0xFF1E1E2D) : const Color(0xFFF1F5F9),
+                  fillColor: isDark
+                      ? const Color(0xFF1E1E2D)
+                      : const Color(0xFFF1F5F9),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none,
@@ -306,7 +316,9 @@ class _AuthDialogState extends State<AuthDialog> {
                   backgroundColor: const Color(0xFFFF4B2B),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                   elevation: 0,
                 ),
                 onPressed: _isLoading ? null : _submit,
@@ -314,11 +326,17 @@ class _AuthDialogState extends State<AuthDialog> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.2,
+                          color: Colors.white,
+                        ),
                       )
                     : Text(
-                        _isSignUp ? 'Create Account & Get ID' : 'Sign In',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        _isSignUp ? 'Create Account' : 'Sign In',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
               const SizedBox(height: 12),
@@ -327,11 +345,21 @@ class _AuthDialogState extends State<AuthDialog> {
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  side: BorderSide(color: isDark ? Colors.white24 : Colors.black12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  backgroundColor: isDark ? const Color(0xFF1E1E2D) : const Color(0xFFF8FAFC),
+                  side: BorderSide(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  backgroundColor: isDark
+                      ? const Color(0xFF1E1E2D)
+                      : const Color(0xFFF8FAFC),
                 ),
-                icon: const Icon(Icons.g_mobiledata_rounded, color: Color(0xFF4285F4), size: 28),
+                icon: const Icon(
+                  Icons.g_mobiledata_rounded,
+                  color: Color(0xFF4285F4),
+                  size: 28,
+                ),
                 label: Text(
                   'Continue with Google',
                   style: TextStyle(
@@ -344,16 +372,24 @@ class _AuthDialogState extends State<AuthDialog> {
               ),
               const SizedBox(height: 10),
 
-              // Quick 1-Tap Demo / Guest Login
+              // Quick 1-Tap Guest Login
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 11),
-                  side: BorderSide(color: isDark ? Colors.white12 : Colors.black12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  side: BorderSide(
+                    color: isDark ? Colors.white12 : Colors.black12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
-                icon: const Icon(Icons.bolt_rounded, color: Color(0xFFF59E0B), size: 18),
+                icon: const Icon(
+                  Icons.bolt_rounded,
+                  color: Color(0xFFF59E0B),
+                  size: 18,
+                ),
                 label: Text(
-                  '1-Tap Fast Sign In',
+                  'Continue as Guest',
                   style: TextStyle(
                     color: isDark ? Colors.white70 : const Color(0xFF64748B),
                     fontSize: 13,

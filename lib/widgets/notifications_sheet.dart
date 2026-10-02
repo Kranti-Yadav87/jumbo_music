@@ -31,7 +31,9 @@ class NotificationsSheet extends StatelessWidget {
             color: isDark ? const Color(0xFF14141E) : Colors.white,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
             border: Border.all(
-              color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
+              color: isDark
+                  ? Colors.white.withOpacity(0.08)
+                  : const Color(0xFFE2E8F0),
             ),
           ),
           child: Column(
@@ -77,14 +79,18 @@ class NotificationsSheet extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                           ),
                         ),
                         Text(
                           '${notifs.length} recent updates',
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white54
+                                : const Color(0xFF64748B),
                           ),
                         ),
                       ],
@@ -112,7 +118,10 @@ class NotificationsSheet extends StatelessWidget {
               Flexible(
                 child: notifs.isEmpty
                     ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 48,
+                          horizontal: 20,
+                        ),
                         child: Center(
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
@@ -128,7 +137,9 @@ class NotificationsSheet extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF475569),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -137,7 +148,9 @@ class NotificationsSheet extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
-                                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                                  color: isDark
+                                      ? Colors.white38
+                                      : const Color(0xFF94A3B8),
                                 ),
                               ),
                             ],
@@ -172,13 +185,19 @@ class NotificationsSheet extends StatelessWidget {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isDark
-                                  ? (isRead ? const Color(0xFF1A1A24) : const Color(0xFF222232))
-                                  : (isRead ? const Color(0xFFF8FAFC) : const Color(0xFFF1F5F9)),
+                                  ? (isRead
+                                        ? const Color(0xFF1A1A24)
+                                        : const Color(0xFF222232))
+                                  : (isRead
+                                        ? const Color(0xFFF8FAFC)
+                                        : const Color(0xFFF1F5F9)),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isRead
                                     ? Colors.transparent
-                                    : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
+                                    : (isDark
+                                          ? Colors.white12
+                                          : const Color(0xFFE2E8F0)),
                               ),
                             ),
                             child: Row(
@@ -190,19 +209,27 @@ class NotificationsSheet extends StatelessWidget {
                                     color: iconColor.withOpacity(0.15),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(iconData, color: iconColor, size: 18),
+                                  child: Icon(
+                                    iconData,
+                                    color: iconColor,
+                                    size: 18,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        notif['title'] as String? ?? 'Notification',
+                                        notif['title'] as String? ??
+                                            'Notification',
                                         style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 14,
-                                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                          color: isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A),
                                         ),
                                       ),
                                       const SizedBox(height: 3),
@@ -210,7 +237,9 @@ class NotificationsSheet extends StatelessWidget {
                                         notif['message'] as String? ?? '',
                                         style: TextStyle(
                                           fontSize: 12.5,
-                                          color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                          color: isDark
+                                              ? Colors.white70
+                                              : const Color(0xFF475569),
                                           height: 1.3,
                                         ),
                                       ),

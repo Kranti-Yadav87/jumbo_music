@@ -48,4 +48,3 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.jumbomusic.app',
   );
 }
-

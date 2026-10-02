@@ -31,16 +31,28 @@ void main() {
       final lines = LrcParser.parse(sampleLrc);
 
       // Before first timestamp
-      expect(LrcParser.findActiveIndex(lines, const Duration(seconds: 5)), equals(0));
+      expect(
+        LrcParser.findActiveIndex(lines, const Duration(seconds: 5)),
+        equals(0),
+      );
 
       // Exactly at second timestamp
-      expect(LrcParser.findActiveIndex(lines, const Duration(seconds: 20)), equals(1));
+      expect(
+        LrcParser.findActiveIndex(lines, const Duration(seconds: 20)),
+        equals(1),
+      );
 
       // In between second and third timestamp
-      expect(LrcParser.findActiveIndex(lines, const Duration(seconds: 25)), equals(1));
+      expect(
+        LrcParser.findActiveIndex(lines, const Duration(seconds: 25)),
+        equals(1),
+      );
 
       // After last timestamp
-      expect(LrcParser.findActiveIndex(lines, const Duration(seconds: 45)), equals(2));
+      expect(
+        LrcParser.findActiveIndex(lines, const Duration(seconds: 45)),
+        equals(2),
+      );
     });
 
     test('Gracefully converts plain lyrics without timestamps', () {

@@ -12,7 +12,10 @@ void main() {
     test('Generates complete API headers map', () {
       final headers = AppConfig.apiHeaders;
       expect(headers['apikey'], equals(AppConfig.supabaseAnonKey));
-      expect(headers['Authorization'], equals('Bearer ${AppConfig.supabaseAnonKey}'));
+      expect(
+        headers['Authorization'],
+        equals('Bearer ${AppConfig.supabaseAnonKey}'),
+      );
       expect(headers['Content-Type'], equals('application/json'));
     });
   });

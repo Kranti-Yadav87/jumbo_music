@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../services/firestore_sync_service.dart';
 import 'login_screen.dart';
+import 'email_verification_screen.dart';
 import 'main_navigation_screen.dart';
 
 class AuthGate extends StatelessWidget {
@@ -19,23 +20,31 @@ class AuthGate extends StatelessWidget {
           return const Scaffold(
             backgroundColor: Color(0xFF0D0D15),
             body: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFFFF4B2B),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFFFF4B2B)),
             ),
           );
         }
 
         final user = snapshot.data;
         if (user != null) {
-          // Sync with Firestore & DatabaseService
-          if (!db.isLoggedIn) {
-            final name = user.displayName ?? user.email?.split('@').first ?? 'User';
+          // Check if user registered via password and is not verified yet
+          final isPasswordProvider = user.providerData.any(
+            (p) => p.providerId == 'password',
+          );
+          if (isPasswordProvider && !user.emailVerified) {
+            return const EmailVerificationScreen();
+          }
+
+          // Authenticated & verified user: sync with DatabaseService under scoped UID
+          if (!db.isLoggedIn || db.currentScope != 'user_${user.uid}') {
+            final name =
+                user.displayName ?? user.email?.split('@').first ?? 'User';
             final userId = 'JM-${(user.uid.hashCode.abs() % 90000 + 10000)}';
             db.login(
               email: user.email ?? 'user@jumbomusic.app',
               name: name,
               userId: userId,
+              uid: user.uid,
             );
             if (user.photoURL != null && user.photoURL!.isNotEmpty) {
               db.updateProfile(avatarUrl: user.photoURL);
@@ -45,7 +54,7 @@ class AuthGate extends StatelessWidget {
           return const MainNavigationScreen();
         }
 
-        // Also check if user chose guest mode or local login
+        // Guest user or signed out
         return AnimatedBuilder(
           animation: db,
           builder: (context, _) {

@@ -38,18 +38,25 @@ class DownloadService extends ChangeNotifier {
         if (item['song'] != null && item['song'] is Map<String, dynamic>) {
           final song = Song.fromJson(item['song'] as Map<String, dynamic>);
           // Filter out and remove any old mock sample songs
-          if (song.id == 'dl_1' || song.id == 'dl_2' || song.id.startsWith('sample_') || song.title == 'Kesariya Sukoon' || song.title == 'Midnight Lo-Fi Chill') {
+          if (song.id == 'dl_1' ||
+              song.id == 'dl_2' ||
+              song.id.startsWith('sample_') ||
+              song.title == 'Kesariya Sukoon' ||
+              song.title == 'Midnight Lo-Fi Chill') {
             db.removeDownload(song.id);
             continue;
           }
           final dAt = item['downloadedAt'] != null
-              ? DateTime.tryParse(item['downloadedAt'] as String) ?? DateTime.now()
+              ? DateTime.tryParse(item['downloadedAt'] as String) ??
+                    DateTime.now()
               : DateTime.now();
           _downloadedItems[song.id] = DownloadItem(
             song: song,
             fileSize: (item['fileSize'] as String?) ?? '10.2 MB',
             downloadedAt: dAt,
-            localPath: (item['localPath'] as String?) ?? 'offline_storage/${song.id}.mp3',
+            localPath:
+                (item['localPath'] as String?) ??
+                'offline_storage/${song.id}.mp3',
           );
         }
       }
@@ -60,13 +67,16 @@ class DownloadService extends ChangeNotifier {
       _downloadedItems.values.map((item) => item.song).toList();
 
   List<DownloadItem> get downloadedItems =>
-      _downloadedItems.values.toList()..sort((a, b) => b.downloadedAt.compareTo(a.downloadedAt));
+      _downloadedItems.values.toList()
+        ..sort((a, b) => b.downloadedAt.compareTo(a.downloadedAt));
 
   int get totalDownloadedCount => _downloadedItems.length;
 
   bool isDownloaded(String songId) =>
       _downloadedItems.containsKey(songId) ||
-      _downloadedItems.values.any((item) => item.song.title.toLowerCase() == songId.toLowerCase());
+      _downloadedItems.values.any(
+        (item) => item.song.title.toLowerCase() == songId.toLowerCase(),
+      );
 
   bool isDownloading(String songId) => _downloadingIds.contains(songId);
 
@@ -84,10 +94,16 @@ class DownloadService extends ChangeNotifier {
           SnackBar(
             backgroundColor: const Color(0xFF1E1E2E),
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             content: Row(
               children: [
-                const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 20),
+                const Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF10B981),
+                  size: 20,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -112,7 +128,9 @@ class DownloadService extends ChangeNotifier {
           duration: const Duration(seconds: 2),
           backgroundColor: const Color(0xFF1E1E2E),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           content: Row(
             children: [
               const SizedBox(
@@ -166,10 +184,16 @@ class DownloadService extends ChangeNotifier {
         SnackBar(
           backgroundColor: const Color(0xFF0F2E22),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           content: Row(
             children: [
-              const Icon(Icons.download_done_rounded, color: Color(0xFF10B981), size: 22),
+              const Icon(
+                Icons.download_done_rounded,
+                color: Color(0xFF10B981),
+                size: 22,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -186,7 +210,10 @@ class DownloadService extends ChangeNotifier {
                     ),
                     Text(
                       '$sizeStr • 320 kbps Master • Saved to Library > Downloaded',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),

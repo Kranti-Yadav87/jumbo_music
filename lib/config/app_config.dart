@@ -6,7 +6,8 @@ class AppConfig {
   /// Supabase endpoint URL for music catalog search and streaming functions
   static const String supabaseEndpoint = String.fromEnvironment(
     'SPOTIFY_ENDPOINT',
-    defaultValue: 'https://uwvsyladvvvjqlgnqppq.supabase.co/functions/v1/spotify',
+    defaultValue:
+        'https://uwvsyladvvvjqlgnqppq.supabase.co/functions/v1/spotify',
   );
 
   /// Supabase anon public key (can be overridden during build)
@@ -21,13 +22,14 @@ class AppConfig {
   static const String appVersion = '2.0.0 Pro';
 
   /// Default notification channel ID for background audio
-  static const String audioNotificationChannelId = 'com.example.jumbo_music.channel.audio';
+  static const String audioNotificationChannelId =
+      'com.example.jumbo_music.channel.audio';
   static const String audioNotificationChannelName = 'Jumbo Music Playback';
 
   /// Headers map for Supabase API calls
   static Map<String, String> get apiHeaders => {
-        'apikey': supabaseAnonKey,
-        'Authorization': 'Bearer $supabaseAnonKey',
-        'Content-Type': 'application/json',
-      };
+    'apikey': supabaseAnonKey,
+    'Authorization': 'Bearer $supabaseAnonKey',
+    'Content-Type': 'application/json',
+  };
 }

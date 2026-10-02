@@ -38,7 +38,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (email.isEmpty || !email.contains('@')) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter a valid email address (e.g. friend@email.com)'),
+          content: Text(
+            'Please enter a valid email address (e.g. friend@email.com)',
+          ),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -60,7 +62,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }
   }
 
-  void _showFriendListeningOptions(BuildContext context, Friend friend, MusicPlayerManager manager) {
+  void _showFriendListeningOptions(
+    BuildContext context,
+    Friend friend,
+    MusicPlayerManager manager,
+  ) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
@@ -96,7 +102,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF4A1F1B),
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFFFF5E3A).withOpacity(0.5)),
+                        border: Border.all(
+                          color: const Color(0xFFFF5E3A).withOpacity(0.5),
+                        ),
                       ),
                       child: Center(
                         child: Text(
@@ -119,7 +127,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                           Text(
@@ -147,7 +157,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       color: const Color(0xFFFF5E3A).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.headphones_rounded, color: Color(0xFFFF5E3A), size: 20),
+                    child: const Icon(
+                      Icons.headphones_rounded,
+                      color: Color(0xFFFF5E3A),
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     'Listen Together Now',
@@ -158,19 +172,37 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   ),
                   subtitle: Text(
                     'Sync & play "${friend.currentSongTitle}" in real-time',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
                     final matchingSong = manager.allSongs.firstWhere(
-                      (s) => s.title.toLowerCase().contains(friend.currentSongTitle.toLowerCase()) ||
-                             s.artist.toLowerCase().contains(friend.currentSongArtist.toLowerCase()),
+                      (s) =>
+                          s.title.toLowerCase().contains(
+                            friend.currentSongTitle.toLowerCase(),
+                          ) ||
+                          s.artist.toLowerCase().contains(
+                            friend.currentSongArtist.toLowerCase(),
+                          ),
                       orElse: () => Song(
-                        id: friend.currentSongId.isNotEmpty ? friend.currentSongId : 'friend_stream_${DateTime.now().millisecondsSinceEpoch}',
-                        title: friend.currentSongTitle.isNotEmpty ? friend.currentSongTitle : 'You',
-                        artist: friend.currentSongArtist.isNotEmpty ? friend.currentSongArtist : 'Armaan Malik',
-                        audioUrl: manager.allSongs.isNotEmpty ? manager.allSongs.first.audioUrl : '',
-                        coverUrl: friend.currentSongCover.isNotEmpty ? friend.currentSongCover : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+                        id: friend.currentSongId.isNotEmpty
+                            ? friend.currentSongId
+                            : 'friend_stream_${DateTime.now().millisecondsSinceEpoch}',
+                        title: friend.currentSongTitle.isNotEmpty
+                            ? friend.currentSongTitle
+                            : 'You',
+                        artist: friend.currentSongArtist.isNotEmpty
+                            ? friend.currentSongArtist
+                            : 'Armaan Malik',
+                        audioUrl: manager.allSongs.isNotEmpty
+                            ? manager.allSongs.first.audioUrl
+                            : '',
+                        coverUrl: friend.currentSongCover.isNotEmpty
+                            ? friend.currentSongCover
+                            : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
                         duration: const Duration(seconds: 210),
                       ),
                     );
@@ -180,7 +212,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     });
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('🎧 Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"'),
+                        content: Text(
+                          '🎧 Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"',
+                        ),
                         backgroundColor: const Color(0xFFFF5E3A),
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -196,7 +230,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       color: const Color(0xFFA855F7).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.queue_music_rounded, color: Color(0xFFA855F7), size: 20),
+                    child: const Icon(
+                      Icons.queue_music_rounded,
+                      color: Color(0xFFA855F7),
+                      size: 20,
+                    ),
                   ),
                   title: Text(
                     'Create Shared Playlist with ${friend.name}',
@@ -207,7 +245,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   ),
                   subtitle: Text(
                     'Collaborative blend playlist where both can add songs',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -224,7 +265,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         color: const Color(0xFF10B981).withOpacity(0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.send_rounded, color: Color(0xFF10B981), size: 20),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Color(0xFF10B981),
+                        size: 20,
+                      ),
                     ),
                     title: Text(
                       'Send "${manager.currentSong!.title}" to ${friend.name}',
@@ -235,13 +280,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                     subtitle: Text(
                       'Share what you are currently listening to',
-                      style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
                     ),
                     onTap: () {
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Sent "${manager.currentSong!.title}" to ${friend.name} 🎵'),
+                          content: Text(
+                            'Sent "${manager.currentSong!.title}" to ${friend.name} 🎵',
+                          ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
@@ -255,7 +307,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  void _showCreateSharedPlaylistDialog(BuildContext context, Friend friend, MusicPlayerManager manager) {
+  void _showCreateSharedPlaylistDialog(
+    BuildContext context,
+    Friend friend,
+    MusicPlayerManager manager,
+  ) {
     final titleController = TextEditingController(
       text: '${DatabaseService.instance.userName} + ${friend.name} Duo Jam',
     );
@@ -298,7 +354,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
               decoration: InputDecoration(
                 hintText: 'Playlist Name',
                 filled: true,
-                fillColor: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                fillColor: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : const Color(0xFFF1F5F9),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
@@ -310,23 +368,29 @@ class _FriendsScreenState extends State<FriendsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF5E3A),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () async {
               final title = titleController.text.trim();
               if (title.isNotEmpty) {
                 final starter = manager.favoriteSongs.take(5).toList();
-                final playlist = await DatabaseService.instance.createSharedBlendPlaylist(
-                  title: title,
-                  friend: friend,
-                  starterSongs: starter,
-                );
+                final playlist = await DatabaseService.instance
+                    .createSharedBlendPlaylist(
+                      title: title,
+                      friend: friend,
+                      starterSongs: starter,
+                    );
                 if (ctx.mounted) {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -338,7 +402,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 }
               }
             },
-            child: const Text('Create Shared Playlist', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Create Shared Playlist',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -364,7 +431,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
             return SafeArea(
               child: Container(
                 height: MediaQuery.of(context).size.height * 0.75,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -392,30 +462,46 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       'Song will instantly be available for both you and your friend',
                       style: TextStyle(
                         fontSize: 12,
-                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
                       ),
                     ),
                     const SizedBox(height: 14),
                     TextField(
                       controller: searchCtrl,
                       autofocus: true,
-                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Search song name or artist...',
-                        hintStyle: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
-                        prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF5E3A)),
+                        hintStyle: TextStyle(
+                          color: isDark
+                              ? Colors.white38
+                              : const Color(0xFF94A3B8),
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFFFF5E3A),
+                        ),
                         suffixIcon: isSearching
                             ? const Padding(
                                 padding: EdgeInsets.all(12),
                                 child: SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFF5E3A)),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFFFF5E3A),
+                                  ),
                                 ),
                               )
                             : null,
                         filled: true,
-                        fillColor: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                        fillColor: isDark
+                            ? Colors.white.withOpacity(0.06)
+                            : const Color(0xFFF1F5F9),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
@@ -424,7 +510,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       onChanged: (val) async {
                         if (val.trim().length >= 2) {
                           setModalState(() => isSearching = true);
-                          final res = await MusicApiService.searchLiveSongs(val.trim(), limit: 12);
+                          final res = await MusicApiService.searchLiveSongs(
+                            val.trim(),
+                            limit: 12,
+                          );
                           setModalState(() {
                             searchResults = res;
                             isSearching = false;
@@ -437,8 +526,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       child: searchResults.isEmpty
                           ? Center(
                               child: Text(
-                                searchCtrl.text.isEmpty ? 'Type to search songs' : 'No tracks found',
-                                style: TextStyle(color: isDark ? Colors.white38 : const Color(0xFF94A3B8)),
+                                searchCtrl.text.isEmpty
+                                    ? 'Type to search songs'
+                                    : 'No tracks found',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white38
+                                      : const Color(0xFF94A3B8),
+                                ),
                               ),
                             )
                           : ListView.builder(
@@ -446,7 +541,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               itemBuilder: (context, idx) {
                                 final song = searchResults[idx];
                                 return ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
                                   leading: ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
                                     child: Image.network(
@@ -458,7 +556,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                         width: 44,
                                         height: 44,
                                         color: const Color(0xFF232330),
-                                        child: const Icon(Icons.music_note, color: Colors.white30),
+                                        child: const Icon(
+                                          Icons.music_note,
+                                          color: Colors.white30,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -467,7 +568,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                      color: isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A),
                                       fontWeight: FontWeight.w600,
                                       fontSize: 14,
                                     ),
@@ -477,7 +580,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                      color: isDark
+                                          ? Colors.white54
+                                          : const Color(0xFF64748B),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -485,16 +590,35 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFFFF5E3A),
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                     ),
-                                    child: const Text('Add', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    child: const Text(
+                                      'Add',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                     onPressed: () {
-                                      DatabaseService.instance.addSongToSharedPlaylist(playlist.id, song);
+                                      DatabaseService.instance
+                                          .addSongToSharedPlaylist(
+                                            playlist.id,
+                                            song,
+                                          );
                                       Navigator.pop(ctx);
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('Added "${song.title}" to ${playlist.title}! 🎵'),
+                                          content: Text(
+                                            'Added "${song.title}" to ${playlist.title}! 🎵',
+                                          ),
                                           behavior: SnackBarBehavior.floating,
                                         ),
                                       );
@@ -526,7 +650,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
           children: [
             Icon(Icons.podcasts_rounded, color: Color(0xFFFF5E3A)),
             SizedBox(width: 10),
-            Text('Live Synced Jam Room', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(
+              'Live Synced Jam Room',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
           ],
         ),
         content: Column(
@@ -544,13 +671,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               decoration: BoxDecoration(
-                color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFF5E3A).withOpacity(0.4)),
+                border: Border.all(
+                  color: const Color(0xFFFF5E3A).withOpacity(0.4),
+                ),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.key_rounded, size: 18, color: Color(0xFFFF5E3A)),
+                  const Icon(
+                    Icons.key_rounded,
+                    size: 18,
+                    color: Color(0xFFFF5E3A),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -564,7 +699,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 18, color: Colors.white70),
+                    icon: const Icon(
+                      Icons.copy_rounded,
+                      size: 18,
+                      color: Colors.white70,
+                    ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -582,16 +721,23 @@ class _FriendsScreenState extends State<FriendsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+            child: Text(
+              'Close',
+              style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+            ),
           ),
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFFF5E3A),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             icon: const Icon(Icons.sensors_rounded, size: 18),
-            label: Text(_isLiveJamActive ? 'Active in Jam' : 'Start Live Session'),
+            label: Text(
+              _isLiveJamActive ? 'Active in Jam' : 'Start Live Session',
+            ),
             onPressed: () {
               setState(() {
                 _isLiveJamActive = true;
@@ -599,7 +745,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('🎧 Live Jam Room $_activeJamRoom is ACTIVE! Both devices will play together.'),
+                  content: Text(
+                    '🎧 Live Jam Room $_activeJamRoom is ACTIVE! Both devices will play together.',
+                  ),
                   backgroundColor: const Color(0xFFFF5E3A),
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -627,18 +775,30 @@ class _FriendsScreenState extends State<FriendsScreen> {
         // Filtered lists
         final filteredFriends = _searchFilter.isEmpty
             ? allFriends
-            : allFriends.where((f) =>
-                f.name.toLowerCase().contains(_searchFilter) ||
-                f.email.toLowerCase().contains(_searchFilter)).toList();
+            : allFriends
+                  .where(
+                    (f) =>
+                        f.name.toLowerCase().contains(_searchFilter) ||
+                        f.email.toLowerCase().contains(_searchFilter),
+                  )
+                  .toList();
 
         final filteredPlaylists = _searchFilter.isEmpty
             ? sharedPlaylists
-            : sharedPlaylists.where((p) =>
-                p.title.toLowerCase().contains(_searchFilter) ||
-                p.collaboratorNames.any((n) => n.toLowerCase().contains(_searchFilter))).toList();
+            : sharedPlaylists
+                  .where(
+                    (p) =>
+                        p.title.toLowerCase().contains(_searchFilter) ||
+                        p.collaboratorNames.any(
+                          (n) => n.toLowerCase().contains(_searchFilter),
+                        ),
+                  )
+                  .toList();
 
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF101016) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark
+              ? const Color(0xFF101016)
+              : const Color(0xFFF8FAFC),
           bottomNavigationBar: manager.currentSong != null
               ? const SafeArea(top: false, child: MiniPlayer())
               : null,
@@ -663,7 +823,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         IconButton(
                           icon: Icon(
                             Icons.arrow_back_ios_new_rounded,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                             size: 20,
                           ),
                           tooltip: 'Back',
@@ -681,24 +843,37 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               fontSize: 24,
                               fontWeight: FontWeight.w900,
                               letterSpacing: -0.5,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                         ),
                         if (_isLiveJamActive)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFFF5E3A),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Row(
                               children: [
-                                Icon(Icons.sensors_rounded, size: 12, color: Colors.white),
+                                Icon(
+                                  Icons.sensors_rounded,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
                                 SizedBox(width: 4),
                                 Text(
                                   'SYNC ON',
-                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -711,14 +886,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 // Search Bar (Search Friends, Playlists & Songs)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 6,
+                    ),
                     child: Container(
                       height: 48,
                       decoration: BoxDecoration(
                         color: isDark ? const Color(0xFF181824) : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
+                          color: isDark
+                              ? Colors.white.withOpacity(0.08)
+                              : const Color(0xFFE2E8F0),
                         ),
                       ),
                       child: TextField(
@@ -730,13 +910,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         decoration: InputDecoration(
                           hintText: 'Search friends, shared playlists...',
                           hintStyle: TextStyle(
-                            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                            color: isDark
+                                ? Colors.white38
+                                : const Color(0xFF94A3B8),
                             fontSize: 13.5,
                           ),
-                          prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFFFF5E3A), size: 20),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: Color(0xFFFF5E3A),
+                            size: 20,
+                          ),
                           suffixIcon: _searchFilter.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _searchController.clear();
@@ -745,7 +934,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   },
                                 )
                               : null,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           border: InputBorder.none,
                         ),
                         onChanged: (val) {
@@ -768,7 +960,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF2C1654), Color(0xFF4A183D), Color(0xFF7A2020)],
+                          colors: [
+                            Color(0xFF2C1654),
+                            Color(0xFF4A183D),
+                            Color(0xFF7A2020),
+                          ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -795,7 +991,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   color: const Color(0xFFFF5E3A),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.headphones_rounded, color: Colors.white, size: 20),
+                                child: const Icon(
+                                  Icons.headphones_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 10),
                               const Expanded(
@@ -824,15 +1024,27 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFFF5E3A),
                                   foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
                                 ),
-                                onPressed: () => _showLiveJamDialog(context, manager),
+                                onPressed: () =>
+                                    _showLiveJamDialog(context, manager),
                                 child: const Row(
                                   children: [
                                     Icon(Icons.sensors_rounded, size: 14),
                                     SizedBox(width: 4),
-                                    Text('Live Room', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                    Text(
+                                      'Live Room',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -841,7 +1053,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           if (manager.currentSong != null) ...[
                             const SizedBox(height: 12),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.3),
                                 borderRadius: BorderRadius.circular(12),
@@ -855,30 +1070,46 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                       width: 32,
                                       height: 32,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(width: 32, height: 32, color: Colors.white24),
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 32,
+                                        height: 32,
+                                        color: Colors.white24,
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Broadcasting: ${manager.currentSong!.title}',
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                         Text(
                                           manager.currentSong!.artist,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(color: Colors.white60, fontSize: 10),
+                                          style: const TextStyle(
+                                            color: Colors.white60,
+                                            fontSize: 10,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.graphic_eq_rounded, color: Color(0xFFFF5E3A), size: 18),
+                                  const Icon(
+                                    Icons.graphic_eq_rounded,
+                                    color: Color(0xFFFF5E3A),
+                                    size: 18,
+                                  ),
                                 ],
                               ),
                             ),
@@ -903,7 +1134,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF475569),
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -913,10 +1146,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               child: Container(
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF181822) : Colors.white,
+                                  color: isDark
+                                      ? const Color(0xFF181822)
+                                      : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: isDark ? Colors.white.withOpacity(0.08) : const Color(0xFFE2E8F0),
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.08)
+                                        : const Color(0xFFE2E8F0),
                                   ),
                                 ),
                                 child: TextField(
@@ -929,10 +1166,15 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   decoration: InputDecoration(
                                     hintText: 'friend@email.com',
                                     hintStyle: TextStyle(
-                                      color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                                      color: isDark
+                                          ? Colors.white38
+                                          : const Color(0xFF94A3B8),
                                       fontSize: 14,
                                     ),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 12,
+                                    ),
                                     border: InputBorder.none,
                                   ),
                                   onSubmitted: (_) => _addFriend(),
@@ -950,7 +1192,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFFF5E3A).withOpacity(0.35),
+                                      color: const Color(
+                                        0xFFFF5E3A,
+                                      ).withOpacity(0.35),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -963,7 +1207,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           height: 20,
                                           child: CircularProgressIndicator(
                                             strokeWidth: 2,
-                                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white,
+                                                ),
                                           ),
                                         )
                                       : const Icon(
@@ -986,14 +1233,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 // "FRIENDS LISTENING" Section Header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
                     child: Text(
                       'FRIENDS LISTENING NOW',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                         letterSpacing: 1.2,
-                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
                       ),
                     ),
                   ),
@@ -1003,21 +1255,30 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 if (friendsListening.isEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF161622) : Colors.white,
+                          color: isDark
+                              ? const Color(0xFF161622)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Text(
                           'No friends currently streaming. Add a friend to start listening together!',
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                            color: isDark
+                                ? Colors.white38
+                                : const Color(0xFF94A3B8),
                           ),
                         ),
                       ),
@@ -1025,90 +1286,122 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   )
                 else
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final friend = friendsListening[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF161622) : Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
-                            ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final friend = friendsListening[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? const Color(0xFF161622)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : const Color(0xFFE2E8F0),
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                            onTap: () => _showFriendListeningOptions(context, friend, manager),
-                            leading: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF4A1F1B),
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: const Color(0xFFFF5E3A).withOpacity(0.4),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 6,
+                          ),
+                          onTap: () => _showFriendListeningOptions(
+                            context,
+                            friend,
+                            manager,
+                          ),
+                          leading: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF4A1F1B),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: const Color(0xFFFF5E3A).withOpacity(0.4),
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                friend.avatarInitials.isNotEmpty
+                                    ? friend.avatarInitials
+                                    : '?',
+                                style: const TextStyle(
+                                  color: Color(0xFFFF8E72),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 17,
                                 ),
                               ),
-                              child: Center(
+                            ),
+                          ),
+                          title: Row(
+                            children: [
+                              const Icon(
+                                Icons.music_note_rounded,
+                                size: 16,
+                                color: Color(0xFFFF5E3A),
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
                                 child: Text(
-                                  friend.avatarInitials.isNotEmpty ? friend.avatarInitials : '?',
-                                  style: const TextStyle(
-                                    color: Color(0xFFFF8E72),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 17,
+                                  '${friend.currentSongTitle} - ${friend.currentSongArtist}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
                                   ),
                                 ),
                               ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            '${friend.name} is listening • Tap to listen together',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
                             ),
-                            title: Row(
+                          ),
+                          trailing: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFF5E3A).withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.music_note_rounded, size: 16, color: Color(0xFFFF5E3A)),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    '${friend.currentSongTitle} - ${friend.currentSongArtist}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                    ),
+                                Icon(
+                                  Icons.headphones_rounded,
+                                  size: 13,
+                                  color: Color(0xFFFF5E3A),
+                                ),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Sync',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5E3A),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
-                            subtitle: Text(
-                              '${friend.name} is listening • Tap to listen together',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                              ),
-                            ),
-                            trailing: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF5E3A).withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.headphones_rounded, size: 13, color: Color(0xFFFF5E3A)),
-                                  SizedBox(width: 3),
-                                  Text(
-                                    'Sync',
-                                    style: TextStyle(color: Color(0xFFFF5E3A), fontSize: 11, fontWeight: FontWeight.bold),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ),
-                        );
-                      },
-                      childCount: friendsListening.length,
-                    ),
+                        ),
+                      );
+                    }, childCount: friendsListening.length),
                   ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 20)),
@@ -1116,7 +1409,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 // "SHARED PLAYLISTS / DUO JAM" Section Header
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -1126,15 +1422,25 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
-                            color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white54
+                                : const Color(0xFF64748B),
                           ),
                         ),
                         if (allFriends.isNotEmpty)
                           InkWell(
-                            onTap: () => _showCreateSharedPlaylistDialog(context, allFriends.first, manager),
+                            onTap: () => _showCreateSharedPlaylistDialog(
+                              context,
+                              allFriends.first,
+                              manager,
+                            ),
                             child: const Row(
                               children: [
-                                Icon(Icons.add_rounded, size: 16, color: Color(0xFFFF5E3A)),
+                                Icon(
+                                  Icons.add_rounded,
+                                  size: 16,
+                                  color: Color(0xFFFF5E3A),
+                                ),
                                 SizedBox(width: 2),
                                 Text(
                                   'New Duo Jam',
@@ -1155,14 +1461,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 if (filteredPlaylists.isEmpty)
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF161622) : Colors.white,
+                          color: isDark
+                              ? const Color(0xFF161622)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Column(
@@ -1170,14 +1483,20 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.group_rounded, color: Color(0xFFFF5E3A), size: 20),
+                                const Icon(
+                                  Icons.group_rounded,
+                                  color: Color(0xFFFF5E3A),
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Create a Shared Playlist with Friend',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
-                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
                                   ),
                                 ),
                               ],
@@ -1187,7 +1506,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               'Aap aur aapka friend same playlist me song add karke apne alag-alag device me ek sath sun sakte hain!',
                               style: TextStyle(
                                 fontSize: 12.5,
-                                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                color: isDark
+                                    ? Colors.white60
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -1196,12 +1517,27 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFFFF5E3A),
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
                                 ),
-                                icon: const Icon(Icons.queue_music_rounded, size: 18),
-                                label: const Text('Create First Shared Playlist'),
-                                onPressed: () => _showCreateSharedPlaylistDialog(context, allFriends.first, manager),
+                                icon: const Icon(
+                                  Icons.queue_music_rounded,
+                                  size: 18,
+                                ),
+                                label: const Text(
+                                  'Create First Shared Playlist',
+                                ),
+                                onPressed: () =>
+                                    _showCreateSharedPlaylistDialog(
+                                      context,
+                                      allFriends.first,
+                                      manager,
+                                    ),
                               ),
                           ],
                         ),
@@ -1210,187 +1546,112 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   )
                 else
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final pl = filteredPlaylists[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF161622) : Colors.white,
-                            borderRadius: BorderRadius.circular(18),
-                            border: Border.all(
-                              color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: Stack(
-                                children: [
-                                  Image.network(
-                                    pl.coverUrl,
-                                    width: 48,
-                                    height: 48,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 48,
-                                      height: 48,
-                                      color: const Color(0xFF2A2016),
-                                      child: const Icon(Icons.group_rounded, color: Color(0xFFFF5E3A)),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 2,
-                                    right: 2,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(2),
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFFF5E3A),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: const Icon(Icons.sync_rounded, size: 10, color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    pl.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFF5E3A).withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'Duo Jam',
-                                    style: TextStyle(
-                                      color: Color(0xFFFF5E3A),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            subtitle: Text(
-                              '${pl.songs.length} songs • ${pl.collaboratorNames.join(' & ')}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFFFF5E3A), size: 22),
-                                  tooltip: 'Add Song to this Playlist',
-                                  onPressed: () => _showAddSongToSharedDialog(context, pl),
-                                ),
-                                Icon(
-                                  Icons.arrow_forward_ios_rounded,
-                                  size: 14,
-                                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PlaylistDetailScreen(playlist: pl),
-                                ),
-                              );
-                            },
-                          ),
-                        );
-                      },
-                      childCount: filteredPlaylists.length,
-                    ),
-                  ),
-
-                const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-                // "ALL FRIENDS (X)" Section Header
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
-                    child: Text(
-                      'ALL FRIENDS (${filteredFriends.length})',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                      ),
-                    ),
-                  ),
-                ),
-
-                // All Friends List
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final friend = filteredFriends[index];
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final pl = filteredPlaylists[index];
                       return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF161622) : Colors.white,
+                          color: isDark
+                              ? const Color(0xFF161622)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(18),
                           border: Border.all(
-                            color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                            color: isDark
+                                ? Colors.white.withOpacity(0.06)
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          leading: Container(
-                            width: 44,
-                            height: 44,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF4A1F1B),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFFF5E3A).withOpacity(0.3),
-                              ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Stack(
+                              children: [
+                                Image.network(
+                                  pl.coverUrl,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 48,
+                                    height: 48,
+                                    color: const Color(0xFF2A2016),
+                                    child: const Icon(
+                                      Icons.group_rounded,
+                                      color: Color(0xFFFF5E3A),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  bottom: 2,
+                                  right: 2,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFFF5E3A),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.sync_rounded,
+                                      size: 10,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            child: Center(
-                              child: Text(
-                                friend.initials,
-                                style: const TextStyle(
-                                  color: Color(0xFFFF8E72),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
+                          ),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  pl.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                          title: Text(
-                            friend.name,
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
-                            ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFFFF5E3A,
+                                  ).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Duo Jam',
+                                  style: TextStyle(
+                                    color: Color(0xFFFF5E3A),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                           subtitle: Text(
-                            friend.email,
+                            '${pl.songs.length} songs • ${pl.collaboratorNames.join(' & ')}',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                           trailing: Row(
@@ -1398,26 +1659,156 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(
-                                  Icons.headphones_rounded,
+                                  Icons.add_circle_outline_rounded,
                                   color: Color(0xFFFF5E3A),
-                                  size: 20,
+                                  size: 22,
                                 ),
-                                tooltip: 'Listen Together',
-                                onPressed: () => _showFriendListeningOptions(context, friend, manager),
+                                tooltip: 'Add Song to this Playlist',
+                                onPressed: () =>
+                                    _showAddSongToSharedDialog(context, pl),
                               ),
                               Icon(
                                 Icons.arrow_forward_ios_rounded,
                                 size: 14,
-                                color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                                color: isDark
+                                    ? Colors.white38
+                                    : const Color(0xFF94A3B8),
                               ),
                             ],
                           ),
-                          onTap: () => _showFriendListeningOptions(context, friend, manager),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: pl),
+                              ),
+                            );
+                          },
                         ),
                       );
-                    },
-                    childCount: filteredFriends.length,
+                    }, childCount: filteredPlaylists.length),
                   ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+                // "ALL FRIENDS (X)" Section Header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 6,
+                    ),
+                    child: Text(
+                      'ALL FRIENDS (${filteredFriends.length})',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ),
+
+                // All Friends List
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final friend = filteredFriends[index];
+                    return Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF161622) : Colors.white,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        leading: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF4A1F1B),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFFF5E3A).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              friend.initials,
+                              style: const TextStyle(
+                                color: Color(0xFFFF8E72),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          friend.name,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
+                          ),
+                        ),
+                        subtitle: Text(
+                          friend.email,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark
+                                ? Colors.white54
+                                : const Color(0xFF64748B),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.headphones_rounded,
+                                color: Color(0xFFFF5E3A),
+                                size: 20,
+                              ),
+                              tooltip: 'Listen Together',
+                              onPressed: () => _showFriendListeningOptions(
+                                context,
+                                friend,
+                                manager,
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 14,
+                              color: isDark
+                                  ? Colors.white38
+                                  : const Color(0xFF94A3B8),
+                            ),
+                          ],
+                        ),
+                        onTap: () => _showFriendListeningOptions(
+                          context,
+                          friend,
+                          manager,
+                        ),
+                      ),
+                    );
+                  }, childCount: filteredFriends.length),
                 ),
 
                 const SliverToBoxAdapter(child: SizedBox(height: 100)),

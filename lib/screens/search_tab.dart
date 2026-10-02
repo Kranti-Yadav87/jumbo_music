@@ -85,7 +85,10 @@ class _SearchTabState extends State<SearchTab> {
       }).toList();
 
       // 2. Fetch live online 320 kbps matches from JioSaavn API
-      final onlineMatches = await MusicApiService.searchLiveSongs(trimmed, limit: 25);
+      final onlineMatches = await MusicApiService.searchLiveSongs(
+        trimmed,
+        limit: 25,
+      );
 
       final Set<String> seenUrls = {};
       final List<Song> combined = [];
@@ -102,11 +105,15 @@ class _SearchTabState extends State<SearchTab> {
       dynamicSuggestions.add(trimmed);
 
       for (final s in combined) {
-        if (!dynamicSuggestions.any((item) => item.toLowerCase() == s.title.toLowerCase()) &&
+        if (!dynamicSuggestions.any(
+              (item) => item.toLowerCase() == s.title.toLowerCase(),
+            ) &&
             dynamicSuggestions.length < 5) {
           dynamicSuggestions.add(s.title);
         }
-        if (!dynamicSuggestions.any((item) => item.toLowerCase() == s.artist.toLowerCase()) &&
+        if (!dynamicSuggestions.any(
+              (item) => item.toLowerCase() == s.artist.toLowerCase(),
+            ) &&
             dynamicSuggestions.length < 5) {
           dynamicSuggestions.add(s.artist);
         }
@@ -146,7 +153,9 @@ class _SearchTabState extends State<SearchTab> {
         final recentSearches = db.searchHistory;
 
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF000000) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark
+              ? const Color(0xFF000000)
+              : const Color(0xFFF8FAFC),
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -177,12 +186,19 @@ class _SearchTabState extends State<SearchTab> {
                       // Text Field
                       Expanded(
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF14141E) : const Color(0xFFE2E8F0),
+                            color: isDark
+                                ? const Color(0xFF14141E)
+                                : const Color(0xFFE2E8F0),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isDark ? Colors.white12 : const Color(0xFFCBD5E1),
+                              color: isDark
+                                  ? Colors.white12
+                                  : const Color(0xFFCBD5E1),
                             ),
                           ),
                           child: TextField(
@@ -198,7 +214,9 @@ class _SearchTabState extends State<SearchTab> {
                             onChanged: _onSearchChanged,
                             onSubmitted: (val) {
                               if (val.trim().isNotEmpty) {
-                                DatabaseService.instance.addSearchQuery(val.trim());
+                                DatabaseService.instance.addSearchQuery(
+                                  val.trim(),
+                                );
                               }
                             },
                             decoration: InputDecoration(
@@ -209,7 +227,9 @@ class _SearchTabState extends State<SearchTab> {
                               ),
                               border: InputBorder.none,
                               isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
                             ),
                           ),
                         ),
@@ -234,7 +254,9 @@ class _SearchTabState extends State<SearchTab> {
 
                 Divider(
                   height: 1,
-                  color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFE2E8F0),
                 ),
 
                 // 2. Body: Recent Searches / Discovery / Search Results
@@ -262,7 +284,9 @@ class _SearchTabState extends State<SearchTab> {
                                     Text(
                                       'Recent Searches',
                                       style: TextStyle(
-                                        color: AppThemeManager.textPrimary(context),
+                                        color: AppThemeManager.textPrimary(
+                                          context,
+                                        ),
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -273,7 +297,8 @@ class _SearchTabState extends State<SearchTab> {
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: const Size(50, 30),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   onPressed: () => db.clearSearchHistory(),
                                   child: const Text(
@@ -295,7 +320,10 @@ class _SearchTabState extends State<SearchTab> {
                                 _focusNode.unfocus();
                               },
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 18,
+                                  vertical: 10,
+                                ),
                                 child: Row(
                                   children: [
                                     Container(
@@ -310,7 +338,9 @@ class _SearchTabState extends State<SearchTab> {
                                       child: Center(
                                         child: Icon(
                                           Icons.history_rounded,
-                                          color: AppThemeManager.textSecondary(context),
+                                          color: AppThemeManager.textSecondary(
+                                            context,
+                                          ),
                                           size: 18,
                                         ),
                                       ),
@@ -320,7 +350,9 @@ class _SearchTabState extends State<SearchTab> {
                                       child: Text(
                                         term,
                                         style: TextStyle(
-                                          color: AppThemeManager.textPrimary(context),
+                                          color: AppThemeManager.textPrimary(
+                                            context,
+                                          ),
                                           fontSize: 15,
                                           fontWeight: FontWeight.w500,
                                         ),
@@ -329,11 +361,14 @@ class _SearchTabState extends State<SearchTab> {
                                     IconButton(
                                       icon: Icon(
                                         Icons.close_rounded,
-                                        color: AppThemeManager.textMuted(context),
+                                        color: AppThemeManager.textMuted(
+                                          context,
+                                        ),
                                         size: 18,
                                       ),
                                       splashRadius: 18,
-                                      onPressed: () => db.removeSearchQuery(term),
+                                      onPressed: () =>
+                                          db.removeSearchQuery(term),
                                     ),
                                   ],
                                 ),
@@ -376,7 +411,9 @@ class _SearchTabState extends State<SearchTab> {
                                 labelStyle: TextStyle(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF1E293B),
                                 ),
                                 backgroundColor: isDark
                                     ? const Color(0xFF14141E)
@@ -400,7 +437,8 @@ class _SearchTabState extends State<SearchTab> {
                       ],
 
                       // B. When Query is Typed -> Dynamic Suggestions
-                      if (_searchQuery.isNotEmpty && _suggestions.isNotEmpty) ...[
+                      if (_searchQuery.isNotEmpty &&
+                          _suggestions.isNotEmpty) ...[
                         ..._suggestions.map((suggestion) {
                           return InkWell(
                             onTap: () {
@@ -408,7 +446,10 @@ class _SearchTabState extends State<SearchTab> {
                               _focusNode.unfocus();
                             },
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 8,
+                              ),
                               child: Row(
                                 children: [
                                   Container(
@@ -423,7 +464,9 @@ class _SearchTabState extends State<SearchTab> {
                                     child: Center(
                                       child: Icon(
                                         Icons.search_rounded,
-                                        color: AppThemeManager.textSecondary(context),
+                                        color: AppThemeManager.textSecondary(
+                                          context,
+                                        ),
                                         size: 18,
                                       ),
                                     ),
@@ -433,7 +476,9 @@ class _SearchTabState extends State<SearchTab> {
                                     child: Text(
                                       suggestion,
                                       style: TextStyle(
-                                        color: AppThemeManager.textPrimary(context),
+                                        color: AppThemeManager.textPrimary(
+                                          context,
+                                        ),
                                         fontSize: 15,
                                         fontWeight: FontWeight.normal,
                                       ),
@@ -447,9 +492,12 @@ class _SearchTabState extends State<SearchTab> {
                                     ),
                                     onPressed: () {
                                       _searchController.text = suggestion;
-                                      _searchController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: suggestion.length),
-                                      );
+                                      _searchController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: suggestion.length,
+                                            ),
+                                          );
                                       _onSearchChanged(suggestion);
                                     },
                                   ),
@@ -490,12 +538,18 @@ class _SearchTabState extends State<SearchTab> {
                           final isCurrent = manager.currentSong?.id == song.id;
 
                           return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             child: ListTile(
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 2,
+                              ),
                               leading: ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
@@ -506,8 +560,13 @@ class _SearchTabState extends State<SearchTab> {
                                   errorBuilder: (_, __, ___) => Container(
                                     width: 48,
                                     height: 48,
-                                    color: isDark ? const Color(0xFF1C1C1E) : const Color(0xFFE2E8F0),
-                                    child: Icon(Icons.music_note, color: AppThemeManager.textMuted(context)),
+                                    color: isDark
+                                        ? const Color(0xFF1C1C1E)
+                                        : const Color(0xFFE2E8F0),
+                                    child: Icon(
+                                      Icons.music_note,
+                                      color: AppThemeManager.textMuted(context),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -520,7 +579,9 @@ class _SearchTabState extends State<SearchTab> {
                                       ? const Color(0xFF818CF8)
                                       : AppThemeManager.textPrimary(context),
                                   fontSize: 14.5,
-                                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.w600,
+                                  fontWeight: isCurrent
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
                                 ),
                               ),
                               subtitle: Text(
@@ -537,23 +598,38 @@ class _SearchTabState extends State<SearchTab> {
                                   Icons.more_vert_rounded,
                                   color: AppThemeManager.textMuted(context),
                                 ),
-                                onPressed: () => TrackOptionsSheet.show(context, song),
+                                onPressed: () =>
+                                    TrackOptionsSheet.show(context, song),
                               ),
                               onTap: () {
-                                DatabaseService.instance.addSearchQuery(_searchQuery.isNotEmpty ? _searchQuery : song.title);
+                                DatabaseService.instance.addSearchQuery(
+                                  _searchQuery.isNotEmpty
+                                      ? _searchQuery
+                                      : song.title,
+                                );
                                 manager.playSongFromSearch(song);
 
                                 Navigator.of(context).push(
                                   PageRouteBuilder(
-                                    pageBuilder: (context, anim1, anim2) => const NowPlayingScreen(),
-                                    transitionsBuilder: (context, anim1, anim2, child) {
-                                      const begin = Offset(0.0, 1.0);
-                                      const end = Offset.zero;
-                                      const curve = Curves.easeOutCubic;
-                                      final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                                      return SlideTransition(position: anim1.drive(tween), child: child);
-                                    },
-                                    transitionDuration: const Duration(milliseconds: 300),
+                                    pageBuilder: (context, anim1, anim2) =>
+                                        const NowPlayingScreen(),
+                                    transitionsBuilder:
+                                        (context, anim1, anim2, child) {
+                                          const begin = Offset(0.0, 1.0);
+                                          const end = Offset.zero;
+                                          const curve = Curves.easeOutCubic;
+                                          final tween = Tween(
+                                            begin: begin,
+                                            end: end,
+                                          ).chain(CurveTween(curve: curve));
+                                          return SlideTransition(
+                                            position: anim1.drive(tween),
+                                            child: child,
+                                          );
+                                        },
+                                    transitionDuration: const Duration(
+                                      milliseconds: 300,
+                                    ),
                                   ),
                                 );
                               },
@@ -567,12 +643,16 @@ class _SearchTabState extends State<SearchTab> {
                           padding: EdgeInsets.all(40),
                           child: Center(
                             child: CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Color(0xFF6366F1),
+                              ),
                             ),
                           ),
                         ),
 
-                      if (!_isLoading && _searchQuery.isNotEmpty && _searchResults.isEmpty)
+                      if (!_isLoading &&
+                          _searchQuery.isNotEmpty &&
+                          _searchResults.isEmpty)
                         Padding(
                           padding: const EdgeInsets.all(48),
                           child: Column(

@@ -55,13 +55,20 @@ class MiniPlayer extends StatelessWidget {
                     onTap: () {
                       Navigator.of(context).push(
                         PageRouteBuilder(
-                          pageBuilder: (context, anim1, anim2) => const NowPlayingScreen(),
+                          pageBuilder: (context, anim1, anim2) =>
+                              const NowPlayingScreen(),
                           transitionsBuilder: (context, anim1, anim2, child) {
                             const begin = Offset(0.0, 1.0);
                             const end = Offset.zero;
                             const curve = Curves.easeOutCubic;
-                            final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                            return SlideTransition(position: anim1.drive(tween), child: child);
+                            final tween = Tween(
+                              begin: begin,
+                              end: end,
+                            ).chain(CurveTween(curve: curve));
+                            return SlideTransition(
+                              position: anim1.drive(tween),
+                              child: child,
+                            );
                           },
                         ),
                       );
@@ -86,7 +93,9 @@ class MiniPlayer extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  color: isDark
+                                      ? Colors.white
+                                      : const Color(0xFF0F172A),
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -97,7 +106,9 @@ class MiniPlayer extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFF64748B),
                                   fontSize: 11.5,
                                 ),
                               ),
@@ -114,10 +125,17 @@ class MiniPlayer extends StatelessWidget {
                 // 2. Favorite Heart Button
                 IconButton(
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
                   icon: Icon(
-                    isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    color: isFav ? const Color(0xFFF43F5E) : (isDark ? Colors.white70 : const Color(0xFF94A3B8)),
+                    isFav
+                        ? Icons.favorite_rounded
+                        : Icons.favorite_border_rounded,
+                    color: isFav
+                        ? const Color(0xFFF43F5E)
+                        : (isDark ? Colors.white70 : const Color(0xFF94A3B8)),
                     size: 22,
                   ),
                   onPressed: () => manager.toggleFavorite(song.id),
@@ -153,7 +171,8 @@ class MiniPlayer extends StatelessWidget {
                       child: Center(
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 150),
-                          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                          transitionBuilder: (child, anim) =>
+                              ScaleTransition(scale: anim, child: child),
                           child: (manager.isBuffering && !manager.isPlaying)
                               ? SizedBox(
                                   key: const ValueKey('mini_buffering'),
@@ -170,7 +189,11 @@ class MiniPlayer extends StatelessWidget {
                                   manager.isPlaying
                                       ? Icons.pause_rounded
                                       : Icons.play_arrow_rounded,
-                                  key: ValueKey(manager.isPlaying ? 'mini_pause' : 'mini_play'),
+                                  key: ValueKey(
+                                    manager.isPlaying
+                                        ? 'mini_pause'
+                                        : 'mini_play',
+                                  ),
                                   color: isDark ? Colors.black : Colors.white,
                                   size: 24,
                                 ),
@@ -185,7 +208,10 @@ class MiniPlayer extends StatelessWidget {
                 // 4. Next Track Button
                 IconButton(
                   padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
                   icon: Icon(
                     Icons.skip_next_rounded,
                     color: isDark ? Colors.white70 : const Color(0xFF475569),

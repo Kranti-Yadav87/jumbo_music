@@ -29,7 +29,8 @@ class MusicApiService {
     } else if (imageObj is List && imageObj.isNotEmpty) {
       for (final item in imageObj.reversed) {
         if (item is Map) {
-          final url = (item['url'] as String?) ?? (item['link'] as String?) ?? '';
+          final url =
+              (item['url'] as String?) ?? (item['link'] as String?) ?? '';
           if (url.isNotEmpty) {
             result = url;
             break;
@@ -40,10 +41,14 @@ class MusicApiService {
         }
       }
       if (result.isEmpty && imageObj.first is Map) {
-        result = (imageObj.first['url'] as String?) ?? (imageObj.first['link'] as String?) ?? '';
+        result =
+            (imageObj.first['url'] as String?) ??
+            (imageObj.first['link'] as String?) ??
+            '';
       }
     } else if (imageObj is Map) {
-      result = (imageObj['url'] as String?) ?? (imageObj['link'] as String?) ?? '';
+      result =
+          (imageObj['url'] as String?) ?? (imageObj['link'] as String?) ?? '';
     }
 
     result = result.trim();
@@ -86,7 +91,10 @@ class MusicApiService {
     if (item['artists'] != null && item['artists']['primary'] != null) {
       final primaries = item['artists']['primary'];
       if (primaries is List) {
-        final names = primaries.map((a) => a['name'] as String? ?? '').where((n) => n.isNotEmpty).toList();
+        final names = primaries
+            .map((a) => a['name'] as String? ?? '')
+            .where((n) => n.isNotEmpty)
+            .toList();
         if (names.isNotEmpty) return _unescape(names.join(', '));
       }
     }
@@ -113,16 +121,17 @@ class MusicApiService {
           : _unescape(rawAlbum as String? ?? 'Single');
 
       final coverUrl = _extractImage(item['image']);
-      final id = (item['id'] as String?) ??
+      final id =
+          (item['id'] as String?) ??
           'song_${DateTime.now().millisecondsSinceEpoch}';
 
-      final durationSec = int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
+      final durationSec =
+          int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
       final year = item['year']?.toString() ?? '2025';
 
       // Extract language from metadata if present
-      String rawLang = (item['language'] as String?) ??
-          (item['lang'] as String?) ??
-          '';
+      String rawLang =
+          (item['language'] as String?) ?? (item['lang'] as String?) ?? '';
       rawLang = rawLang.trim().toLowerCase();
       if (rawLang.isEmpty) {
         rawLang = 'hindi';
@@ -158,7 +167,8 @@ class MusicApiService {
         releaseYear: year,
         quality: '320 kbps Studio HD',
         isLiveStream: true,
-        lyrics: '''
+        lyrics:
+            '''
 [Live Streamed via Aura/JioSaavn Engine]
 Title: $name
 Artist: $artist
@@ -174,7 +184,10 @@ Audio Stream: 320 kbps Original Master
   }
 
   /// Live Search matching aura-stream-henna.vercel.app
-  static Future<List<Song>> searchLiveSongs(String query, {int limit = 30}) async {
+  static Future<List<Song>> searchLiveSongs(
+    String query, {
+    int limit = 30,
+  }) async {
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 
@@ -255,7 +268,12 @@ Audio Stream: 320 kbps Original Master
         };
       }
     } catch (_) {}
-    return {'id': playlistId, 'name': 'Playlist', 'coverUrl': '', 'songs': <Song>[]};
+    return {
+      'id': playlistId,
+      'name': 'Playlist',
+      'coverUrl': '',
+      'songs': <Song>[],
+    };
   }
 
   /// Curated featured playlists identical to Aura Stream
@@ -280,7 +298,10 @@ Audio Stream: 320 kbps Original Master
   }
 
   /// iTunes fallback
-  static Future<List<Song>> searchOnlineSongsFallback(String query, {int limit = 25}) async {
+  static Future<List<Song>> searchOnlineSongsFallback(
+    String query, {
+    int limit = 25,
+  }) async {
     try {
       final uri = Uri.https('itunes.apple.com', '/search', {
         'term': query.trim(),
@@ -289,9 +310,7 @@ Audio Stream: 320 kbps Original Master
         'limit': '$limit',
       });
 
-      final response = await http
-          .get(uri)
-          .timeout(const Duration(seconds: 8));
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final body = response.body;
@@ -311,10 +330,13 @@ Audio Stream: 320 kbps Original Master
           final hdCover = rawCover.replaceAll('100x100bb', '600x600bb');
           final albumName = (item['collectionName'] as String?) ?? 'Single';
           final genre = (item['primaryGenreName'] as String?) ?? 'Music';
-          final trackId = item['trackId']?.toString() ??
+          final trackId =
+              item['trackId']?.toString() ??
               DateTime.now().millisecondsSinceEpoch.toString();
           final releaseDate = (item['releaseDate'] as String?) ?? '';
-          final year = releaseDate.length >= 4 ? releaseDate.substring(0, 4) : '2025';
+          final year = releaseDate.length >= 4
+              ? releaseDate.substring(0, 4)
+              : '2025';
           final trackMillis = (item['trackTimeMillis'] as int?) ?? 30000;
 
           songs.add(
@@ -333,7 +355,8 @@ Audio Stream: 320 kbps Original Master
               releaseYear: year,
               quality: '256 kbps AAC HD',
               isLiveStream: true,
-              lyrics: '''
+              lyrics:
+                  '''
 [Live Streamed Track]
 Title: $trackName
 Artist: $artistName
@@ -362,7 +385,8 @@ Genre: $genre
     final langLower = song.language.toLowerCase();
 
     // 1. Explicit Hindi words in title (Never treat as English if title has Hindi words)
-    final bool hasHindiWords = titleLower.contains('dil') ||
+    final bool hasHindiWords =
+        titleLower.contains('dil') ||
         titleLower.contains('pyar') ||
         titleLower.contains('pyaar') ||
         titleLower.contains('ishq') ||
@@ -402,10 +426,26 @@ Genre: $genre
       return 'Hindi';
     }
 
-    if (langLower.contains('punjabi') || genreLower.contains('punjabi') || albumLower.contains('punjabi')) return 'Punjabi';
-    if (langLower.contains('tamil') || langLower.contains('telugu') || langLower.contains('kannada') || langLower.contains('malayalam') || genreLower.contains('tamil') || genreLower.contains('telugu') || genreLower.contains('south')) return 'South';
-    if (langLower.contains('bhojpuri') || genreLower.contains('bhojpuri')) return 'Bhojpuri';
-    if (langLower.contains('haryanvi') || genreLower.contains('haryanvi')) return 'Haryanvi';
+    if (langLower.contains('punjabi') ||
+        genreLower.contains('punjabi') ||
+        albumLower.contains('punjabi')) {
+      return 'Punjabi';
+    }
+    if (langLower.contains('tamil') ||
+        langLower.contains('telugu') ||
+        langLower.contains('kannada') ||
+        langLower.contains('malayalam') ||
+        genreLower.contains('tamil') ||
+        genreLower.contains('telugu') ||
+        genreLower.contains('south')) {
+      return 'South';
+    }
+    if (langLower.contains('bhojpuri') || genreLower.contains('bhojpuri')) {
+      return 'Bhojpuri';
+    }
+    if (langLower.contains('haryanvi') || genreLower.contains('haryanvi')) {
+      return 'Haryanvi';
+    }
 
     // 2. English Indicators
     if (langLower.contains('english') ||
@@ -541,7 +581,8 @@ Genre: $genre
     }
 
     // Exclusive Vintage Legends (before 1980)
-    final isClassicSinger = artistLower.contains('kishore kumar') ||
+    final isClassicSinger =
+        artistLower.contains('kishore kumar') ||
         artistLower.contains('mohammed rafi') ||
         artistLower.contains('mohd rafi') ||
         artistLower.contains('mukesh') ||
@@ -564,7 +605,8 @@ Genre: $genre
     }
 
     // Lata Mangeshkar / Asha Bhosle vintage check
-    if ((artistLower.contains('lata mangeshkar') || artistLower.contains('asha bhosle')) &&
+    if ((artistLower.contains('lata mangeshkar') ||
+            artistLower.contains('asha bhosle')) &&
         !artistLower.contains('kumar sanu') &&
         !artistLower.contains('udit narayan') &&
         !artistLower.contains('sonu nigam') &&
@@ -688,7 +730,9 @@ Genre: $genre
 
   /// Checks if a song belongs to the 2000s - 2009 Bollywood Soulful / Emraan Hashmi Era / KK
   static bool is2000sSong(Song song) {
-    if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song)) return false;
+    if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song)) {
+      return false;
+    }
 
     final artistLower = song.artist.toLowerCase();
     final titleLower = song.title.toLowerCase();
@@ -734,7 +778,12 @@ Genre: $genre
 
   /// Checks if a song belongs to the 2010s (2010 - 2019) Arijit Singh / Modern Romantic Era
   static bool is2010sSong(Song song) {
-    if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2000sSong(song)) return false;
+    if (isVintageGoldenEra(song) ||
+        is80sEra(song) ||
+        is90sMelodyEra(song) ||
+        is2000sSong(song)) {
+      return false;
+    }
 
     final year = int.tryParse(song.releaseYear);
     if (year != null && year >= 2010 && year < 2020) {
@@ -782,7 +831,10 @@ Genre: $genre
 
   /// Discovers 50-60 related, strictly era-pure and language-pure songs matching the seed song's
   /// era, language, artist, and mood for uninterrupted "Continue Playing".
-  static Future<List<Song>> fetchSmartRecommendations(Song seedSong, {int limit = 55}) async {
+  static Future<List<Song>> fetchSmartRecommendations(
+    Song seedSong, {
+    int limit = 55,
+  }) async {
     final List<Song> recommendations = [];
     final Set<String> seenIds = {seedSong.id};
     final Set<String> seenTitles = {seedSong.title.toLowerCase().trim()};
@@ -799,10 +851,29 @@ Genre: $genre
     final songLanguage = detectSongLanguage(seedSong);
     final is70s = songLanguage == 'Hindi' && isVintageGoldenEra(seedSong);
     final is80s = songLanguage == 'Hindi' && !is70s && is80sEra(seedSong);
-    final is90s = songLanguage == 'Hindi' && !is70s && !is80s && is90sMelodyEra(seedSong);
-    final is2000s = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && is2000sSong(seedSong);
-    final is2010s = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && is2010sSong(seedSong);
-    final isIndie = songLanguage == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && !is2010s && isIndieOrSukoonSong(seedSong);
+    final is90s =
+        songLanguage == 'Hindi' && !is70s && !is80s && is90sMelodyEra(seedSong);
+    final is2000s =
+        songLanguage == 'Hindi' &&
+        !is70s &&
+        !is80s &&
+        !is90s &&
+        is2000sSong(seedSong);
+    final is2010s =
+        songLanguage == 'Hindi' &&
+        !is70s &&
+        !is80s &&
+        !is90s &&
+        !is2000s &&
+        is2010sSong(seedSong);
+    final isIndie =
+        songLanguage == 'Hindi' &&
+        !is70s &&
+        !is80s &&
+        !is90s &&
+        !is2000s &&
+        !is2010s &&
+        isIndieOrSukoonSong(seedSong);
 
     final List<Future<List<Song>>> futures = [];
 
@@ -811,104 +882,389 @@ Genre: $genre
         rawArtist.toLowerCase() != 'unknown artist' &&
         rawArtist.toLowerCase() != 'music') {
       if (is70s) {
-        futures.add(searchLiveSongs('$rawArtist 60s 70s golden hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist 60s 70s golden hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (is80s) {
-        futures.add(searchLiveSongs('$rawArtist 80s disco romantic hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist 80s disco romantic hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (is90s) {
-        futures.add(searchLiveSongs('$rawArtist 90s romantic melodies', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist 90s romantic melodies',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (is2000s) {
-        futures.add(searchLiveSongs('$rawArtist 2000s romantic hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist 2000s romantic hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (is2010s) {
-        futures.add(searchLiveSongs('$rawArtist romantic hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist romantic hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (songLanguage == 'English') {
-        futures.add(searchLiveSongs('$rawArtist English pop indie acoustic hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist English pop indie acoustic hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (songLanguage == 'Punjabi') {
-        futures.add(searchLiveSongs('$rawArtist Punjabi hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist Punjabi hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else if (songLanguage == 'South') {
-        futures.add(searchLiveSongs('$rawArtist South hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist South hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       } else {
-        futures.add(searchLiveSongs('$rawArtist hits', limit: 15).catchError((_) => <Song>[]));
+        futures.add(
+          searchLiveSongs(
+            '$rawArtist hits',
+            limit: 15,
+          ).catchError((_) => <Song>[]),
+        );
       }
     }
 
     // 2. Language & Era Specific Recommendations
     if (songLanguage == 'Punjabi') {
       // STRICT PUNJABI
-      futures.add(searchLiveSongs('Karan Aujla New Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Diljit Dosanjh Superhits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('AP Dhillon Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Sidhu Moosewala Superhits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Top Punjabi Chartbusters 2024', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Karan Aujla New Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Diljit Dosanjh Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'AP Dhillon Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Sidhu Moosewala Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Top Punjabi Chartbusters 2024',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (songLanguage == 'South') {
       // STRICT SOUTH (TAMIL & TELUGU)
-      futures.add(searchLiveSongs('Anirudh Ravichander Tamil Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Sid Sriram Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Top Tamil Superhits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Telugu Chartbusters', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Anirudh Ravichander Tamil Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Sid Sriram Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Top Tamil Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Telugu Chartbusters',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (songLanguage == 'English') {
       // STRICT ENGLISH
-      futures.add(searchLiveSongs('Billboard Hot 100 English Pop Hits', limit: 20).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Global English Superhits Chart', limit: 20).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Acoustic English Indie Melodies', limit: 20).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Best of Indie English acoustic', limit: 20).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Global Acoustic Pop English Hits', limit: 20).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Billboard Hot 100 English Pop Hits',
+          limit: 20,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Global English Superhits Chart',
+          limit: 20,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Acoustic English Indie Melodies',
+          limit: 20,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Best of Indie English acoustic',
+          limit: 20,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Global Acoustic Pop English Hits',
+          limit: 20,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (songLanguage == 'Bhojpuri') {
       // STRICT BHOJPURI
-      futures.add(searchLiveSongs('Pawan Singh Bhojpuri Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Khesari Lal Superhits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Pawan Singh Bhojpuri Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Khesari Lal Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (songLanguage == 'Haryanvi') {
       // STRICT HARYANVI
-      futures.add(searchLiveSongs('Gulzaar Chhaniwala Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Top Haryanvi Chartbusters', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Gulzaar Chhaniwala Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Top Haryanvi Chartbusters',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (is70s) {
       // STRICT 50s-70s GOLDEN ERA (Kishore, Lata Vintage, Rafi, Mukesh, SD/RD Burman)
       // Strictly NO 80s, NO 90s, NO 2000s!
-      futures.add(searchLiveSongs('Kishore Kumar 70s Evergreen Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Lata Mangeshkar 60s 70s Golden Era Classics', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Mohammed Rafi 60s 70s Classic Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Mukesh Golden Era Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('RD Burman SD Burman 60s 70s Superhits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Vintage Bollywood Golden Classics 60s 70s', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Kishore Kumar 70s Evergreen Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Lata Mangeshkar 60s 70s Golden Era Classics',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Mohammed Rafi 60s 70s Classic Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Mukesh Golden Era Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'RD Burman SD Burman 60s 70s Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Vintage Bollywood Golden Classics 60s 70s',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (is80s) {
       // STRICT 80s BOLLYWOOD (Bappi Lahiri, Disco Dancer, Tezaab, Chandni, QSQT)
       // Strictly NO 70s, NO 90s!
-      futures.add(searchLiveSongs('80s Bollywood Disco Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Bappi Lahiri 80s Superhits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('80s Bollywood Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Amit Kumar 80s Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Chandni Tezaab QSQT 80s Songs', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          '80s Bollywood Disco Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Bappi Lahiri 80s Superhits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          '80s Bollywood Romantic Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Amit Kumar 80s Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Chandni Tezaab QSQT 80s Songs',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (is90s) {
       // STRICT 90s BOLLYWOOD MELODIES (Kumar Sanu, Alka Yagnik, Udit Narayan, DDLJ, Saajan)
       // Strictly NO 70s, NO 80s, NO 2000s!
-      futures.add(searchLiveSongs('Kumar Sanu Alka Yagnik 90s Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Udit Narayan 90s Evergreen Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Nadeem Shravan 90s Magic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('90s Bollywood Evergreen Romantic Songs', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Kumar Sanu Alka Yagnik 90s Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Udit Narayan 90s Evergreen Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Nadeem Shravan 90s Magic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          '90s Bollywood Evergreen Romantic Songs',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
       futures.add(fetch90sDuets().catchError((_) => <Song>[]));
     } else if (is2000s) {
       // STRICT 2000s BOLLYWOOD NOSTALGIA / EMRAAN HASHMI ERA / KK
-      futures.add(searchLiveSongs('2000s Bollywood Romantic Nostalgia', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('KK Best Soulful Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Atif Aslam 2000s Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Mohit Chauhan 2000s Soulful Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Emraan Hashmi Era Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          '2000s Bollywood Romantic Nostalgia',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'KK Best Soulful Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Atif Aslam 2000s Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Mohit Chauhan 2000s Soulful Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Emraan Hashmi Era Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (is2010s) {
       // STRICT 2010s BOLLYWOOD (Arijit Singh, Aashiqui 2, Kabir Singh, Armaan Malik)
-      futures.add(searchLiveSongs('Arijit Singh 2010s Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Aashiqui 2 Kabir Singh Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('2010s Bollywood Superhit Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Armaan Malik Jubin Nautiyal Romantic Hits', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Arijit Singh 2010s Romantic Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Aashiqui 2 Kabir Singh Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          '2010s Bollywood Superhit Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Armaan Malik Jubin Nautiyal Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
     } else if (isIndie) {
       // INDIE & SUKOON
-      futures.add(searchLiveSongs('Indie India Sukoon Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Anuv Jain Prateek Kuhad Melodies', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Acoustic Hindi Sukoon Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Indie India Sukoon Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Anuv Jain Prateek Kuhad Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Acoustic Hindi Sukoon Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
       futures.add(fetchBestOfIndie().catchError((_) => <Song>[]));
     } else {
       // MODERN BOLLYWOOD / 2020+ RELEASES
-      futures.add(searchLiveSongs('Darshan Raval Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Arijit Singh Modern Romantic Hits', limit: 15).catchError((_) => <Song>[]));
-      futures.add(searchLiveSongs('Trending Bollywood Romantic Melodies', limit: 15).catchError((_) => <Song>[]));
+      futures.add(
+        searchLiveSongs(
+          'Darshan Raval Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Arijit Singh Modern Romantic Hits',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
+      futures.add(
+        searchLiveSongs(
+          'Trending Bollywood Romantic Melodies',
+          limit: 15,
+        ).catchError((_) => <Song>[]),
+      );
       futures.add(fetchTrendingToday().catchError((_) => <Song>[]));
       futures.add(fetchIndiaTop50().catchError((_) => <Song>[]));
     }
@@ -953,22 +1309,35 @@ Genre: $genre
           if (songLanguage == 'Hindi') {
             if (is70s) {
               // Strictly 70s golden era
-              if (!isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2000sSong(song) || is2010sSong(song)) {
+              if (!isVintageGoldenEra(song) ||
+                  is80sEra(song) ||
+                  is90sMelodyEra(song) ||
+                  is2000sSong(song) ||
+                  is2010sSong(song)) {
                 continue;
               }
             } else if (is80s) {
               // Strictly 80s
-              if (isVintageGoldenEra(song) || is90sMelodyEra(song) || is2000sSong(song) || is2010sSong(song)) {
+              if (isVintageGoldenEra(song) ||
+                  is90sMelodyEra(song) ||
+                  is2000sSong(song) ||
+                  is2010sSong(song)) {
                 continue;
               }
             } else if (is90s) {
               // Strictly 90s melodies
-              if (isVintageGoldenEra(song) || is80sEra(song) || is2000sSong(song) || is2010sSong(song)) {
+              if (isVintageGoldenEra(song) ||
+                  is80sEra(song) ||
+                  is2000sSong(song) ||
+                  is2010sSong(song)) {
                 continue;
               }
             } else if (is2000s) {
               // Strictly 2000s
-              if (isVintageGoldenEra(song) || is80sEra(song) || is90sMelodyEra(song) || is2010sSong(song)) {
+              if (isVintageGoldenEra(song) ||
+                  is80sEra(song) ||
+                  is90sMelodyEra(song) ||
+                  is2010sSong(song)) {
                 continue;
               }
             }
@@ -989,5 +1358,3 @@ Genre: $genre
     return recommendations.take(limit).toList();
   }
 }
-
-

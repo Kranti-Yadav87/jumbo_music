@@ -43,7 +43,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;
           const curve = Curves.easeOutCubic;
-          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          final tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           return SlideTransition(position: anim1.drive(tween), child: child);
         },
       ),
@@ -56,31 +59,38 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final navBgColor = isDark ? const Color(0xFF081220) : Colors.white;
-    final navBorderColor = isDark ? const Color(0xFF1E2D4A) : const Color(0xFFE2E8F0);
+    final navBorderColor = isDark
+        ? const Color(0xFF1E2D4A)
+        : const Color(0xFFE2E8F0);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
           // Active Tab Content
-          IndexedStack(
-            index: _currentIndex,
-            children: _tabs,
-          ),
+          IndexedStack(index: _currentIndex, children: _tabs),
 
           // Offline Status Banner
           AnimatedBuilder(
             animation: ConnectivityService.instance,
             builder: (context, _) {
-              if (!ConnectivityService.instance.isOffline) return const SizedBox.shrink();
+              if (!ConnectivityService.instance.isOffline) {
+                return const SizedBox.shrink();
+              }
               return Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 child: SafeArea(
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFE11D48),
                       borderRadius: BorderRadius.circular(12),
@@ -94,7 +104,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                     child: const Row(
                       children: [
-                        Icon(Icons.wifi_off_rounded, color: Colors.white, size: 18),
+                        Icon(
+                          Icons.wifi_off_rounded,
+                          color: Colors.white,
+                          size: 18,
+                        ),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -134,12 +148,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: navBgColor,
-          border: Border(
-            top: BorderSide(
-              color: navBorderColor,
-              width: 0.8,
-            ),
-          ),
+          border: Border(top: BorderSide(color: navBorderColor, width: 0.8)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.18),
@@ -192,7 +201,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                     child: Center(
                       child: Icon(
-                        manager.isPlaying ? Icons.headphones_rounded : Icons.play_arrow_rounded,
+                        manager.isPlaying
+                            ? Icons.headphones_rounded
+                            : Icons.play_arrow_rounded,
                         color: const Color(0xFF081220),
                         size: 26,
                       ),
@@ -232,7 +243,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isSelected = _currentIndex == tabIndex;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final activeColor = isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+    final activeColor = isDark
+        ? const Color(0xFF38BDF8)
+        : const Color(0xFF0284C7);
     final inactiveColor = isDark ? Colors.white60 : const Color(0xFF94A3B8);
 
     return InkWell(

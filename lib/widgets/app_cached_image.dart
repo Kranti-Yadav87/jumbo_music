@@ -31,7 +31,9 @@ class AppCachedImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final validUrl = imageUrl.trim();
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final defaultBg = fallbackBgColor ?? (isDark ? const Color(0xFF131F38) : const Color(0xFFE2E8F0));
+    final defaultBg =
+        fallbackBgColor ??
+        (isDark ? const Color(0xFF131F38) : const Color(0xFFE2E8F0));
     final defaultIconColor = isDark ? Colors.white38 : Colors.black38;
 
     final defaultFallback = Container(
@@ -39,10 +41,15 @@ class AppCachedImage extends StatelessWidget {
       height: height,
       color: defaultBg,
       alignment: Alignment.center,
-      child: Icon(fallbackIcon, color: defaultIconColor, size: (width != null && width! < 40) ? 18 : 24),
+      child: Icon(
+        fallbackIcon,
+        color: defaultIconColor,
+        size: (width != null && width! < 40) ? 18 : 24,
+      ),
     );
 
-    if (validUrl.isEmpty || (!validUrl.startsWith('http://') && !validUrl.startsWith('https://'))) {
+    if (validUrl.isEmpty ||
+        (!validUrl.startsWith('http://') && !validUrl.startsWith('https://'))) {
       return ClipRRect(
         borderRadius: borderRadius ?? BorderRadius.zero,
         child: defaultFallback,
@@ -67,10 +74,7 @@ class AppCachedImage extends StatelessWidget {
     );
 
     if (borderRadius != null && borderRadius != BorderRadius.zero) {
-      return ClipRRect(
-        borderRadius: borderRadius!,
-        child: imageWidget,
-      );
+      return ClipRRect(borderRadius: borderRadius!, child: imageWidget);
     }
 
     return imageWidget;

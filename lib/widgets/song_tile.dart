@@ -48,19 +48,20 @@ class SongTile extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: onTap ??
+              onTap:
+                  onTap ??
                   () {
                     if (isCurrent) {
                       playerManager.togglePlay();
                     } else {
-                      playerManager.playSong(
-                        song,
-                        newQueue: playlistContext,
-                      );
+                      playerManager.playSong(song, newQueue: playlistContext);
                     }
                   },
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 child: Row(
                   children: [
                     if (index != null)
@@ -137,7 +138,9 @@ class SongTile extends StatelessWidget {
                     IconButton(
                       icon: Icon(
                         isFav ? Icons.favorite : Icons.favorite_border,
-                        color: isFav ? const Color(0xFFEF4444) : Colors.grey.shade500,
+                        color: isFav
+                            ? const Color(0xFFEF4444)
+                            : Colors.grey.shade500,
                         size: 20,
                       ),
                       onPressed: () {

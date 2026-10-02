@@ -3,7 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 class PrivacySecurityService extends ChangeNotifier {
-  static final PrivacySecurityService _instance = PrivacySecurityService._internal();
+  static final PrivacySecurityService _instance =
+      PrivacySecurityService._internal();
   factory PrivacySecurityService() => _instance;
 
   PrivacySecurityService._internal();
@@ -42,7 +43,8 @@ class PrivacySecurityService extends ChangeNotifier {
       'app': 'Jumbo Music',
       'version': '1.0.0',
       'exported_at': DateTime.now().toIso8601String(),
-      'privacy_policy': 'Zero-knowledge client storage. No data shared with third parties.',
+      'privacy_policy':
+          'Zero-knowledge client storage. No data shared with third parties.',
       'user_data': {
         'favorites_count': favoriteIds.length,
         'favorite_song_ids': favoriteIds,

@@ -39,14 +39,22 @@ class DownloadedSongsScreen extends StatelessWidget {
               if (items.isNotEmpty)
                 IconButton(
                   tooltip: 'Clear All Downloads',
-                  icon: const Icon(Icons.delete_sweep_rounded, color: Colors.white60),
+                  icon: const Icon(
+                    Icons.delete_sweep_rounded,
+                    color: Colors.white60,
+                  ),
                   onPressed: () {
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(
                         backgroundColor: const Color(0xFF1C1C1E),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        title: const Text('Clear Downloads', style: TextStyle(color: Colors.white)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        title: const Text(
+                          'Clear Downloads',
+                          style: TextStyle(color: Colors.white),
+                        ),
                         content: const Text(
                           'Are you sure you want to remove all downloaded songs from offline storage?',
                           style: TextStyle(color: Colors.white70),
@@ -54,14 +62,20 @@ class DownloadedSongsScreen extends StatelessWidget {
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(color: Colors.white54),
+                            ),
                           ),
                           TextButton(
                             onPressed: () {
                               downloadService.clearAllDownloads();
                               Navigator.pop(ctx);
                             },
-                            child: const Text('Clear All', style: TextStyle(color: Colors.redAccent)),
+                            child: const Text(
+                              'Clear All',
+                              style: TextStyle(color: Colors.redAccent),
+                            ),
                           ),
                         ],
                       ),
@@ -105,7 +119,11 @@ class DownloadedSongsScreen extends StatelessWidget {
                         child: Text(
                           'Tap the 3-dots menu on any song or in track options to download 320 kbps tracks for offline playback.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                            height: 1.4,
+                          ),
                         ),
                       ),
                     ],
@@ -126,7 +144,11 @@ class DownloadedSongsScreen extends StatelessWidget {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 16),
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Color(0xFF10B981),
+                                      size: 16,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       '${items.length} tracks offline • High Fidelity 320 kbps',
@@ -146,13 +168,18 @@ class DownloadedSongsScreen extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 elevation: 4,
                               ),
-                              icon: const Icon(Icons.play_arrow_rounded, size: 24),
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 24,
+                              ),
                               label: const Text(
                                 'Play All Offline',
                                 style: TextStyle(
@@ -162,7 +189,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                                 ),
                               ),
                               onPressed: () {
-                                playerManager.playPlaylist(songs, initialIndex: 0);
+                                playerManager.playPlaylist(
+                                  songs,
+                                  initialIndex: 0,
+                                );
                               },
                             ),
                           ],
@@ -171,13 +201,19 @@ class DownloadedSongsScreen extends StatelessWidget {
                     }
 
                     final item = items[index - 1];
-                    final isCurrent = playerManager.currentSong?.id == item.song.id;
+                    final isCurrent =
+                        playerManager.currentSong?.id == item.song.id;
                     final isPlaying = isCurrent && playerManager.isPlaying;
 
                     return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isCurrent ? const Color(0xFF1A1A2E) : const Color(0xFF141418),
+                        color: isCurrent
+                            ? const Color(0xFF1A1A2E)
+                            : const Color(0xFF141418),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isCurrent
@@ -186,7 +222,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                         ),
                       ),
                       child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
                         leading: Stack(
                           children: [
                             ClipRRect(
@@ -200,7 +239,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                                   width: 48,
                                   height: 48,
                                   color: const Color(0xFF2C2C2E),
-                                  child: const Icon(Icons.music_note, color: Colors.white54),
+                                  child: const Icon(
+                                    Icons.music_note,
+                                    color: Colors.white54,
+                                  ),
                                 ),
                               ),
                             ),
@@ -225,7 +267,9 @@ class DownloadedSongsScreen extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            color: isCurrent ? const Color(0xFF818CF8) : Colors.white,
+                            color: isCurrent
+                                ? const Color(0xFF818CF8)
+                                : Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -243,7 +287,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                                 '${item.song.artist} • ${item.fileSize}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                style: const TextStyle(
+                                  color: Colors.white54,
+                                  fontSize: 11,
+                                ),
                               ),
                             ),
                           ],
@@ -252,7 +299,11 @@ class DownloadedSongsScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             IconButton(
-                              icon: const Icon(Icons.more_vert_rounded, color: Colors.white54, size: 20),
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
                               onPressed: () {
                                 TrackOptionsSheet.show(context, item.song);
                               },
@@ -265,7 +316,10 @@ class DownloadedSongsScreen extends StatelessWidget {
                                   if (isCurrent) {
                                     playerManager.togglePlay();
                                   } else {
-                                    playerManager.playSong(item.song, newQueue: songs);
+                                    playerManager.playSong(
+                                      item.song,
+                                      newQueue: songs,
+                                    );
                                   }
                                 },
                                 child: Padding(

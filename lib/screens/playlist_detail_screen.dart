@@ -9,10 +9,7 @@ import '../widgets/mini_player.dart';
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
 
-  const PlaylistDetailScreen({
-    super.key,
-    required this.playlist,
-  });
+  const PlaylistDetailScreen({super.key, required this.playlist});
 
   @override
   State<PlaylistDetailScreen> createState() => _PlaylistDetailScreenState();
@@ -123,11 +120,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
     if (sourceSongs.isEmpty) return;
     try {
       final seed = sourceSongs.first;
-      final recs = await MusicApiService.fetchSmartRecommendations(seed, limit: 10);
+      final recs = await MusicApiService.fetchSmartRecommendations(
+        seed,
+        limit: 10,
+      );
       if (mounted && recs.isNotEmpty) {
         final existingIds = sourceSongs.map((s) => s.id).toSet();
         setState(() {
-          _recommendedSongs = recs.where((s) => !existingIds.contains(s.id)).take(8).toList();
+          _recommendedSongs = recs
+              .where((s) => !existingIds.contains(s.id))
+              .take(8)
+              .toList();
         });
       }
     } catch (_) {}
@@ -143,10 +146,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         final List<Song> playlistSongs = _loadedSongs.isNotEmpty
             ? _loadedSongs
             : widget.playlist.songs.isNotEmpty
-                ? widget.playlist.songs
-                : manager.allSongs
-                    .where((song) => widget.playlist.songIds.contains(song.id))
-                    .toList();
+            ? widget.playlist.songs
+            : manager.allSongs
+                  .where((song) => widget.playlist.songIds.contains(song.id))
+                  .toList();
 
         // Check if currently playing a song from this playlist or in manager queue
         final upcomingQueue = manager.queue.length > manager.currentIndex + 1
@@ -160,10 +163,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
         return Scaffold(
           backgroundColor: const Color(0xFF0C0C14),
           bottomNavigationBar: manager.currentSong != null
-              ? const SafeArea(
-                  top: false,
-                  child: MiniPlayer(),
-                )
+              ? const SafeArea(top: false, child: MiniPlayer())
               : null,
           body: CustomScrollView(
             physics: const BouncingScrollPhysics(),
@@ -174,7 +174,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 pinned: true,
                 backgroundColor: const Color(0xFF141424),
                 leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.white),
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    size: 20,
+                    color: Colors.white,
+                  ),
                   onPressed: () => Navigator.pop(context),
                 ),
                 flexibleSpace: FlexibleSpaceBar(
@@ -194,7 +198,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Container(
                           color: const Color(0xFF1E1B4B),
-                          child: const Icon(Icons.queue_music, size: 60, color: Colors.white30),
+                          child: const Icon(
+                            Icons.queue_music,
+                            size: 60,
+                            color: Colors.white30,
+                          ),
                         ),
                       ),
                       Container(
@@ -218,7 +226,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               // Playlist Action Bar & Details
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -242,7 +253,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                           ),
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981).withOpacity(0.2),
                               borderRadius: BorderRadius.circular(6),
@@ -266,12 +280,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF6366F1),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
-                              icon: const Icon(Icons.play_arrow_rounded, size: 24),
+                              icon: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 24,
+                              ),
                               label: const Text(
                                 'Play All',
                                 style: TextStyle(
@@ -327,7 +346,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF818CF8)),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFF818CF8),
+                          ),
                         ),
                         SizedBox(height: 14),
                         Text(
@@ -354,17 +375,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                 )
               else
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final song = playlistSongs[index];
-                      return SongTile(
-                        song: song,
-                        index: index + 1,
-                        playlistContext: playlistSongs,
-                      );
-                    },
-                    childCount: playlistSongs.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final song = playlistSongs[index];
+                    return SongTile(
+                      song: song,
+                      index: index + 1,
+                      playlistContext: playlistSongs,
+                    );
+                  }, childCount: playlistSongs.length),
                 ),
 
               // CONTINUE PLAYING & UP NEXT SECTION
@@ -391,7 +409,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              upcomingQueue.isNotEmpty ? 'CONTINUE PLAYING (UP NEXT)' : 'RECOMMENDED FOR YOU',
+                              upcomingQueue.isNotEmpty
+                                  ? 'CONTINUE PLAYING (UP NEXT)'
+                                  : 'RECOMMENDED FOR YOU',
                               style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
@@ -403,7 +423,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                         ),
                         if (manager.autoplay)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFF10B981).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(6),
@@ -422,24 +445,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   ),
                 ),
                 SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, idx) {
-                      final song = continuePlayingSongs[idx];
-                      return SongTile(
-                        song: song,
-                        index: playlistSongs.length + idx + 1,
-                        playlistContext: [...playlistSongs, ...continuePlayingSongs],
-                      );
-                    },
-                    childCount: continuePlayingSongs.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, idx) {
+                    final song = continuePlayingSongs[idx];
+                    return SongTile(
+                      song: song,
+                      index: playlistSongs.length + idx + 1,
+                      playlistContext: [
+                        ...playlistSongs,
+                        ...continuePlayingSongs,
+                      ],
+                    );
+                  }, childCount: continuePlayingSongs.length),
                 ),
               ],
 
               // Padding at the bottom for docked player
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 30),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 30)),
             ],
           ),
         );

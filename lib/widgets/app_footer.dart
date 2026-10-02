@@ -52,14 +52,18 @@ class AppFooter extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                             ),
                           ),
                           Text(
                             'Jumbo Music • Free & Open Streaming',
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                              color: isDark
+                                  ? Colors.white60
+                                  : const Color(0xFF64748B),
                             ),
                           ),
                         ],
@@ -68,7 +72,9 @@ class AppFooter extends StatelessWidget {
                     IconButton(
                       icon: Icon(
                         Icons.close_rounded,
-                        color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
                       ),
                       onPressed: () => Navigator.pop(ctx),
                     ),
@@ -133,7 +139,10 @@ class AppFooter extends StatelessWidget {
                     onPressed: () => Navigator.pop(ctx),
                     child: const Text(
                       'I Understand & Agree',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -184,9 +193,7 @@ class AppFooter extends StatelessWidget {
       child: Column(
         children: [
           // 1. Relocated App Download & Install Banner
-          const InstallAppCard(
-            margin: EdgeInsets.only(bottom: 20),
-          ),
+          const InstallAppCard(margin: EdgeInsets.only(bottom: 20)),
 
           // 2. Footer Container Card
           Container(
@@ -195,7 +202,9 @@ class AppFooter extends StatelessWidget {
               color: isDark ? const Color(0xFF101018) : Colors.white,
               borderRadius: BorderRadius.circular(22),
               border: Border.all(
-                color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE2E8F0),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : const Color(0xFFE2E8F0),
               ),
               boxShadow: [
                 BoxShadow(
@@ -222,7 +231,9 @@ class AppFooter extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF6366F1).withValues(alpha: 0.35),
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withValues(alpha: 0.35),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
                               ),
@@ -248,14 +259,18 @@ class AppFooter extends StatelessWidget {
                                 fontSize: 15,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.8,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                             Text(
                               'Live 320kbps Music Streaming',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                color: isDark
+                                    ? Colors.white54
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -268,23 +283,32 @@ class AppFooter extends StatelessWidget {
                       onTap: () => themeManager.toggleTheme(),
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: isDark
                               ? Colors.white.withValues(alpha: 0.06)
                               : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: isDark ? Colors.white12 : const Color(0xFFE2E8F0),
+                            color: isDark
+                                ? Colors.white12
+                                : const Color(0xFFE2E8F0),
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                              isDark
+                                  ? Icons.light_mode_rounded
+                                  : Icons.dark_mode_rounded,
                               size: 14,
-                              color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF6366F1),
+                              color: isDark
+                                  ? const Color(0xFFFBBF24)
+                                  : const Color(0xFF6366F1),
                             ),
                             const SizedBox(width: 6),
                             Text(
@@ -292,7 +316,9 @@ class AppFooter extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white70 : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                           ],
@@ -305,7 +331,9 @@ class AppFooter extends StatelessWidget {
                 const SizedBox(height: 18),
                 Divider(
                   height: 1,
-                  color: isDark ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.06)
+                      : const Color(0xFFF1F5F9),
                 ),
                 const SizedBox(height: 16),
 
@@ -318,13 +346,21 @@ class AppFooter extends StatelessWidget {
                     // Download App Button
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFF818CF8) : const Color(0xFF4F46E5),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        foregroundColor: isDark
+                            ? const Color(0xFF818CF8)
+                            : const Color(0xFF4F46E5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                       icon: const Icon(Icons.file_download_outlined, size: 16),
                       label: const Text(
                         'Download App',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       onPressed: () => showDownloadAppDialog(context),
                     ),
@@ -332,18 +368,28 @@ class AppFooter extends StatelessWidget {
                     // Privacy Policy Button
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                        foregroundColor: isDark ? const Color(0xFF10B981) : const Color(0xFF059669),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        foregroundColor: isDark
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFF059669),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                       icon: const Icon(Icons.shield_outlined, size: 16),
                       label: const Text(
                         'Privacy Policy',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacySecurityScreen(),
+                          ),
                         );
                       },
                     ),
@@ -351,13 +397,21 @@ class AppFooter extends StatelessWidget {
                     // Terms of Service Button
                     TextButton.icon(
                       style: TextButton.styleFrom(
-                        foregroundColor: isDark ? Colors.white70 : const Color(0xFF475569),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        foregroundColor: isDark
+                            ? Colors.white70
+                            : const Color(0xFF475569),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                       ),
                       icon: const Icon(Icons.gavel_rounded, size: 16),
                       label: const Text(
                         'Terms',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                       onPressed: () => _showTermsDialog(context),
                     ),
@@ -375,24 +429,29 @@ class AppFooter extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
                       ),
                     ),
-                    const Text(
-                      '❤️',
-                      style: TextStyle(fontSize: 13),
-                    ),
+                    const Text('❤️', style: TextStyle(fontSize: 13)),
                     Text(
                       ' by ',
                       style: TextStyle(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
                       ),
                     ),
                     ShaderMask(
                       shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Color(0xFF6366F1), Color(0xFFA855F7), Color(0xFFEC4899)],
+                        colors: [
+                          Color(0xFF6366F1),
+                          Color(0xFFA855F7),
+                          Color(0xFFEC4899),
+                        ],
                       ).createShader(bounds),
                       child: const Text(
                         'Kranti',

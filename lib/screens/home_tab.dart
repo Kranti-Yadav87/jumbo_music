@@ -34,7 +34,10 @@ class _HomeTabState extends State<HomeTab> {
     return 'Good Evening 🌙';
   }
 
-  Future<void> _playArtist(BuildContext context, Map<String, String> artist) async {
+  Future<void> _playArtist(
+    BuildContext context,
+    Map<String, String> artist,
+  ) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Loading top tracks for ${artist['name']}... 🎵'),
@@ -57,12 +60,18 @@ class _HomeTabState extends State<HomeTab> {
       );
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: playlist)),
+        MaterialPageRoute(
+          builder: (_) => PlaylistDetailScreen(playlist: playlist),
+        ),
       );
     }
   }
 
-  Widget _buildSectionHeader(BuildContext context, {required String title, VoidCallback? onArrowTap}) {
+  Widget _buildSectionHeader(
+    BuildContext context, {
+    required String title,
+    VoidCallback? onArrowTap,
+  }) {
     final textColor = AppThemeManager.textPrimary(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 26, 14, 14),
@@ -92,7 +101,11 @@ class _HomeTabState extends State<HomeTab> {
                     color: Colors.white.withOpacity(0.06),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.arrow_forward_rounded, color: textColor, size: 20),
+                  child: Icon(
+                    Icons.arrow_forward_rounded,
+                    color: textColor,
+                    size: 20,
+                  ),
                 ),
             ],
           ),
@@ -113,7 +126,8 @@ class _HomeTabState extends State<HomeTab> {
         final playlists = manager.playlists;
         final top50 = manager.top50Songs;
         final newReleases = manager.newReleases;
-        final isOffline = manager.onlineTrending.isEmpty && !manager.isLoadingTrending;
+        final isOffline =
+            manager.onlineTrending.isEmpty && !manager.isLoadingTrending;
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -138,7 +152,10 @@ class _HomeTabState extends State<HomeTab> {
                       gradient: LinearGradient(
                         colors: isOffline
                             ? [const Color(0xFF1E1B4B), const Color(0xFF0F172A)]
-                            : [const Color(0xFF064E3B), const Color(0xFF0F172A)],
+                            : [
+                                const Color(0xFF064E3B),
+                                const Color(0xFF0F172A),
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -154,12 +171,20 @@ class _HomeTabState extends State<HomeTab> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: (isOffline ? const Color(0xFF6366F1) : const Color(0xFF10B981)).withOpacity(0.2),
+                            color:
+                                (isOffline
+                                        ? const Color(0xFF6366F1)
+                                        : const Color(0xFF10B981))
+                                    .withOpacity(0.2),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            isOffline ? Icons.flight_takeoff_rounded : Icons.offline_pin_rounded,
-                            color: isOffline ? const Color(0xFF818CF8) : const Color(0xFF34D399),
+                            isOffline
+                                ? Icons.flight_takeoff_rounded
+                                : Icons.offline_pin_rounded,
+                            color: isOffline
+                                ? const Color(0xFF818CF8)
+                                : const Color(0xFF34D399),
                             size: 20,
                           ),
                         ),
@@ -169,7 +194,9 @@ class _HomeTabState extends State<HomeTab> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                isOffline ? 'Offline Mode Active ✈️' : 'Downloaded Songs Ready ⚡',
+                                isOffline
+                                    ? 'Offline Mode Active ✈️'
+                                    : 'Downloaded Songs Ready ⚡',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -190,19 +217,34 @@ class _HomeTabState extends State<HomeTab> {
                         const SizedBox(width: 8),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: isOffline ? const Color(0xFF6366F1) : const Color(0xFF10B981),
+                            backgroundColor: isOffline
+                                ? const Color(0xFF6366F1)
+                                : const Color(0xFF10B981),
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             elevation: 0,
                           ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const DownloadedSongsScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const DownloadedSongsScreen(),
+                              ),
                             );
                           },
-                          child: const Text('Open', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            'Open',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -248,18 +290,23 @@ class _HomeTabState extends State<HomeTab> {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () => manager.toggleAutoplay(),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: manager.autoplay
                                     ? const Color(0xFFFF5E3A).withOpacity(0.15)
                                     : (AppThemeManager.instance.isDarkMode
-                                        ? Colors.white.withOpacity(0.06)
-                                        : Colors.black.withOpacity(0.04)),
+                                          ? Colors.white.withOpacity(0.06)
+                                          : Colors.black.withOpacity(0.04)),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
                                   color: manager.autoplay
                                       ? const Color(0xFFFF5E3A).withOpacity(0.5)
-                                      : (AppThemeManager.instance.isDarkMode ? Colors.white12 : const Color(0xFFE2E8F0)),
+                                      : (AppThemeManager.instance.isDarkMode
+                                            ? Colors.white12
+                                            : const Color(0xFFE2E8F0)),
                                 ),
                               ),
                               child: Row(
@@ -290,12 +337,17 @@ class _HomeTabState extends State<HomeTab> {
                           if (manager.isSleepTimerActive) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFF6366F1).withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: const Color(0xFF818CF8).withOpacity(0.4),
+                                  color: const Color(
+                                    0xFF818CF8,
+                                  ).withOpacity(0.4),
                                 ),
                               ),
                               child: Row(
@@ -341,7 +393,8 @@ class _HomeTabState extends State<HomeTab> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => PlaylistDetailScreen(playlist: playlist),
+                              builder: (_) =>
+                                  PlaylistDetailScreen(playlist: playlist),
                             ),
                           );
                         },
@@ -466,22 +519,50 @@ class _HomeTabState extends State<HomeTab> {
                                       top: 8,
                                       left: 8,
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 3,
+                                        ),
                                         decoration: BoxDecoration(
                                           gradient: rank == 1
-                                              ? const LinearGradient(colors: [Color(0xFFF59E0B), Color(0xFFD97706)])
+                                              ? const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFFF59E0B),
+                                                    Color(0xFFD97706),
+                                                  ],
+                                                )
                                               : rank == 2
-                                                  ? const LinearGradient(colors: [Color(0xFF94A3B8), Color(0xFF64748B)])
-                                                  : rank == 3
-                                                      ? const LinearGradient(colors: [Color(0xFFB45309), Color(0xFF78350F)])
-                                                      : LinearGradient(colors: [
-                                                          const Color(0xFF1E1E24).withOpacity(0.9),
-                                                          const Color(0xFF0F0F14).withOpacity(0.9),
-                                                        ]),
-                                          borderRadius: BorderRadius.circular(12),
+                                              ? const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFF94A3B8),
+                                                    Color(0xFF64748B),
+                                                  ],
+                                                )
+                                              : rank == 3
+                                              ? const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFFB45309),
+                                                    Color(0xFF78350F),
+                                                  ],
+                                                )
+                                              : LinearGradient(
+                                                  colors: [
+                                                    const Color(
+                                                      0xFF1E1E24,
+                                                    ).withOpacity(0.9),
+                                                    const Color(
+                                                      0xFF0F0F14,
+                                                    ).withOpacity(0.9),
+                                                  ],
+                                                ),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.4),
+                                              color: Colors.black.withOpacity(
+                                                0.4,
+                                              ),
                                               blurRadius: 4,
                                             ),
                                           ],
@@ -518,7 +599,9 @@ class _HomeTabState extends State<HomeTab> {
                                         child: Container(
                                           padding: const EdgeInsets.all(7),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.75),
+                                            color: Colors.black.withOpacity(
+                                              0.75,
+                                            ),
                                             shape: BoxShape.circle,
                                           ),
                                           child: const Icon(
@@ -539,7 +622,9 @@ class _HomeTabState extends State<HomeTab> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? const Color(0xFF818CF8) : AppThemeManager.textPrimary(context),
+                                  color: isCurrent
+                                      ? const Color(0xFF818CF8)
+                                      : AppThemeManager.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -569,7 +654,9 @@ class _HomeTabState extends State<HomeTab> {
                   onArrowTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const NewReleasesScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const NewReleasesScreen(),
+                      ),
                     );
                   },
                 ),
@@ -632,7 +719,9 @@ class _HomeTabState extends State<HomeTab> {
                                         child: Container(
                                           padding: const EdgeInsets.all(7),
                                           decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(0.75),
+                                            color: Colors.black.withOpacity(
+                                              0.75,
+                                            ),
                                             shape: BoxShape.circle,
                                           ),
                                           child: const Icon(
@@ -653,7 +742,9 @@ class _HomeTabState extends State<HomeTab> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
-                                  color: isCurrent ? const Color(0xFF818CF8) : AppThemeManager.textPrimary(context),
+                                  color: isCurrent
+                                      ? const Color(0xFF818CF8)
+                                      : AppThemeManager.textPrimary(context),
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -713,11 +804,16 @@ class _HomeTabState extends State<HomeTab> {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFFFF4B2B), Color(0xFFFF416C)],
+                                    colors: [
+                                      Color(0xFFFF4B2B),
+                                      Color(0xFFFF416C),
+                                    ],
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFFFF4B2B).withOpacity(0.25),
+                                      color: const Color(
+                                        0xFFFF4B2B,
+                                      ).withOpacity(0.25),
                                       blurRadius: 10,
                                       offset: const Offset(0, 4),
                                     ),
@@ -782,7 +878,10 @@ class _HomeTabState extends State<HomeTab> {
 
               SliverToBoxAdapter(
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -816,7 +915,11 @@ class _HomeTabState extends State<HomeTab> {
                           ],
                         ),
                         child: const Center(
-                          child: Icon(Icons.headphones_rounded, color: Colors.white, size: 24),
+                          child: Icon(
+                            Icons.headphones_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -828,12 +931,19 @@ class _HomeTabState extends State<HomeTab> {
                               children: [
                                 Text(
                                   'Live Synchronized Sessions',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                                 SizedBox(width: 6),
                                 Text(
                                   '🟢 Online',
-                                  style: TextStyle(fontSize: 10.5, color: Color(0xFF10B981), fontWeight: FontWeight.bold),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    color: Color(0xFF10B981),
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ],
                             ),
@@ -853,17 +963,30 @@ class _HomeTabState extends State<HomeTab> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF6366F1),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           elevation: 0,
                         ),
                         onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const FriendsScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const FriendsScreen(),
+                            ),
                           );
                         },
-                        child: const Text('Join', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Join',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -873,13 +996,9 @@ class _HomeTabState extends State<HomeTab> {
               const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
               // Bottom Footer: Download App, Terms, Privacy Policy & Made with Love by Kranti
-              const SliverToBoxAdapter(
-                child: AppFooter(),
-              ),
+              const SliverToBoxAdapter(child: AppFooter()),
 
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 120),
-              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
         );

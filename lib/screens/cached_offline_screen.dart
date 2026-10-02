@@ -22,12 +22,17 @@ class CachedOfflineScreen extends StatelessWidget {
         final offlineSongs = {...downloadedSongs, ...historySongs}.toList();
 
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF0A0F1D) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark
+              ? const Color(0xFF0A0F1D)
+              : const Color(0xFFF8FAFC),
           appBar: AppBar(
             backgroundColor: Colors.transparent,
             elevation: 0,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_rounded, color: isDark ? Colors.white : const Color(0xFF0F172A)),
+              icon: Icon(
+                Icons.arrow_back_rounded,
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+              ),
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
@@ -53,7 +58,9 @@ class CachedOfflineScreen extends StatelessWidget {
                     color: isDark ? const Color(0xFF131D31) : Colors.white,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF1E2D4A) : const Color(0xFFE2E8F0),
+                      color: isDark
+                          ? const Color(0xFF1E2D4A)
+                          : const Color(0xFFE2E8F0),
                     ),
                     boxShadow: [
                       BoxShadow(
@@ -87,7 +94,9 @@ class CachedOfflineScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF0F172A),
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -95,7 +104,9 @@ class CachedOfflineScreen extends StatelessWidget {
                               '${offlineSongs.length} tracks cached in memory & ready to play without WiFi or mobile data.',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                                color: isDark
+                                    ? Colors.white60
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                           ],
@@ -123,7 +134,9 @@ class CachedOfflineScreen extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF475569),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -132,7 +145,9 @@ class CachedOfflineScreen extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12.5,
-                                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                                  color: isDark
+                                      ? Colors.white38
+                                      : const Color(0xFF94A3B8),
                                 ),
                               ),
                             ],
@@ -144,17 +159,22 @@ class CachedOfflineScreen extends StatelessWidget {
                           itemCount: offlineSongs.length,
                           itemBuilder: (context, index) {
                             final song = offlineSongs[index];
-                            final isCurrent = manager.currentSong?.id == song.id;
+                            final isCurrent =
+                                manager.currentSong?.id == song.id;
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF131D31) : Colors.white,
+                                color: isDark
+                                    ? const Color(0xFF131D31)
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: isCurrent
                                       ? const Color(0xFF0EA5E9).withOpacity(0.5)
-                                      : (isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFE2E8F0)),
+                                      : (isDark
+                                            ? Colors.white.withOpacity(0.04)
+                                            : const Color(0xFFE2E8F0)),
                                 ),
                               ),
                               child: ListTile(
@@ -169,7 +189,10 @@ class CachedOfflineScreen extends StatelessWidget {
                                       width: 46,
                                       height: 46,
                                       color: const Color(0xFF1E293B),
-                                      child: const Icon(Icons.music_note, color: Colors.white54),
+                                      child: const Icon(
+                                        Icons.music_note,
+                                        color: Colors.white54,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -178,19 +201,29 @@ class CachedOfflineScreen extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: isCurrent ? const Color(0xFF0EA5E9) : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                                    color: isCurrent
+                                        ? const Color(0xFF0EA5E9)
+                                        : (isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A)),
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
                                   ),
                                 ),
                                 subtitle: Row(
                                   children: [
-                                    const Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF10B981)),
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 12,
+                                      color: Color(0xFF10B981),
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '${song.artist} • Offline Ready',
                                       style: TextStyle(
-                                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                        color: isDark
+                                            ? Colors.white54
+                                            : const Color(0xFF64748B),
                                         fontSize: 11.5,
                                       ),
                                     ),
@@ -202,10 +235,13 @@ class CachedOfflineScreen extends StatelessWidget {
                                     IconButton(
                                       icon: Icon(
                                         Icons.more_vert_rounded,
-                                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                                        color: isDark
+                                            ? Colors.white54
+                                            : const Color(0xFF64748B),
                                         size: 20,
                                       ),
-                                      onPressed: () => TrackOptionsSheet.show(context, song),
+                                      onPressed: () =>
+                                          TrackOptionsSheet.show(context, song),
                                     ),
                                     Material(
                                       color: Colors.transparent,
@@ -215,7 +251,10 @@ class CachedOfflineScreen extends StatelessWidget {
                                           if (isCurrent) {
                                             manager.togglePlay();
                                           } else {
-                                            manager.playSong(song, newQueue: offlineSongs);
+                                            manager.playSong(
+                                              song,
+                                              newQueue: offlineSongs,
+                                            );
                                           }
                                         },
                                         child: Padding(
@@ -238,7 +277,10 @@ class CachedOfflineScreen extends StatelessWidget {
                                   if (isCurrent) {
                                     manager.togglePlay();
                                   } else {
-                                    manager.playSong(song, newQueue: offlineSongs);
+                                    manager.playSong(
+                                      song,
+                                      newQueue: offlineSongs,
+                                    );
                                   }
                                 },
                               ),

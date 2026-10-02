@@ -1,21 +1,209 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/privacy_security_service.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
+import '../services/database_service.dart';
+import '../services/auth_service.dart';
+import 'login_screen.dart';
 
 class PrivacySecurityScreen extends StatelessWidget {
   const PrivacySecurityScreen({super.key});
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    final isGuest = user == null;
+    final passwordController = TextEditingController();
+    bool isDeleting = false;
+    String? errorMessage;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF1C1C24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: const [
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.redAccent,
+                  size: 24,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Delete Account & Data',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isGuest
+                        ? 'This will permanently wipe all your local guest favorites, playlists, downloads, and listening history.'
+                        : 'This will permanently delete your Jumbo Music cloud account, your Firestore profile, all synchronized playlists, favorites, history, and local downloads. This action cannot be undone.',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13.5,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (!isGuest &&
+                      user.providerData.any(
+                        (p) => p.providerId == 'password',
+                      )) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Enter your password to confirm deletion:',
+                      style: TextStyle(color: Colors.white60, fontSize: 12.5),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: true,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        labelStyle: const TextStyle(
+                          color: Colors.white60,
+                          fontSize: 13,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF14141E),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorMessage ?? '',
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isDeleting ? null : () => Navigator.pop(ctx),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white54),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.redAccent,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: isDeleting
+                    ? null
+                    : () async {
+                        setDialogState(() {
+                          isDeleting = true;
+                          errorMessage = null;
+                        });
+
+                        try {
+                          AuthCredential? reauthCred;
+                          if (user != null &&
+                              passwordController.text.isNotEmpty) {
+                            reauthCred = EmailAuthProvider.credential(
+                              email: user.email ?? '',
+                              password: passwordController.text.trim(),
+                            );
+                          }
+
+                          await AuthService.instance.deleteAccount(
+                            reauthCredential: reauthCred,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(ctx);
+                            Navigator.of(context).pushAndRemoveUntil(
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                              (route) => false,
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Account and all associated data have been permanently deleted.',
+                                ),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (ctx.mounted) {
+                            setDialogState(() {
+                              isDeleting = false;
+                              errorMessage = AuthService.formatAuthError(e);
+                            });
+                          }
+                        }
+                      },
+                child: isDeleting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'Delete Permanently',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final privacy = PrivacySecurityService();
     final playerManager = MusicPlayerManager();
     final downloadService = DownloadService();
+    final db = DatabaseService.instance;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([privacy, playerManager, downloadService]),
+      animation: Listenable.merge([
+        privacy,
+        playerManager,
+        downloadService,
+        db,
+      ]),
       builder: (context, _) {
+        final isUserLoggedIn = db.isLoggedIn && !db.userEmail.contains('guest');
+
         return Scaffold(
           backgroundColor: const Color(0xFF000000),
           appBar: AppBar(
@@ -45,12 +233,16 @@ class PrivacySecurityScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             children: [
-              // 1. Top Shield Banner: Privacy Top Priority
+              // 1. Top Shield Banner
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [Color(0xFF064E3B), Color(0xFF042F2E), Color(0xFF021715)],
+                    colors: [
+                      Color(0xFF064E3B),
+                      Color(0xFF042F2E),
+                      Color(0xFF021715),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -83,11 +275,11 @@ class PrivacySecurityScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'User Privacy is Our #1 Priority',
                             style: TextStyle(
                               color: Colors.white,
@@ -95,10 +287,12 @@ class PrivacySecurityScreen extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          SizedBox(height: 4),
+                          const SizedBox(height: 4),
                           Text(
-                            'Zero data tracking, zero ad trackers, no selling of user data. Everything stays 100% private on your device.',
-                            style: TextStyle(
+                            isUserLoggedIn
+                                ? 'Your profile and playlists are securely isolated to your account in Firebase Cloud Firestore. Zero ad trackers or third-party data selling.'
+                                : 'You are in Guest Mode. All playback data and preferences remain strictly local to your device.',
+                            style: const TextStyle(
                               color: Colors.white70,
                               fontSize: 12,
                               height: 1.35,
@@ -148,16 +342,22 @@ class PrivacySecurityScreen extends StatelessWidget {
                         ),
                         child: Icon(
                           Icons.visibility_off_rounded,
-                          color: privacy.isIncognitoMode ? const Color(0xFF10B981) : Colors.white60,
+                          color: privacy.isIncognitoMode
+                              ? const Color(0xFF10B981)
+                              : Colors.white60,
                           size: 20,
                         ),
                       ),
                       title: const Text(
                         'Incognito Private Mode',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
                       subtitle: const Text(
-                        'Do not record listening history or update dynamic mixes while playing.',
+                        'Do not record listening history or search queries while playing.',
                         style: TextStyle(color: Colors.white54, fontSize: 11),
                       ),
                       onChanged: (_) {
@@ -192,21 +392,31 @@ class PrivacySecurityScreen extends StatelessWidget {
                         ),
                       ),
                       title: const Text(
-                        'Offline Data Vault Encryption',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                        'Scoped Account Storage',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
-                      subtitle: const Text(
-                        'Downloaded tracks and cache are securely isolated.',
-                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      subtitle: Text(
+                        'Active Scope: ${db.currentScope}',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
                       ),
                       trailing: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF10B981).withOpacity(0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Text(
-                          'Encrypted',
+                          'Isolated',
                           style: TextStyle(
                             color: Color(0xFF10B981),
                             fontSize: 11,
@@ -235,10 +445,14 @@ class PrivacySecurityScreen extends StatelessWidget {
                       ),
                       title: const Text(
                         'Telemetry & Ad Tracking',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
                       ),
                       subtitle: const Text(
-                        'Disabled by default for 100% privacy. No usage data sent anywhere.',
+                        'Disabled by default for 100% privacy. No personal data shared.',
                         style: TextStyle(color: Colors.white54, fontSize: 11),
                       ),
                       onChanged: (_) => privacy.toggleAnalytics(),
@@ -249,7 +463,7 @@ class PrivacySecurityScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // 3. Permissions Transparency Audit
+              // 3. Permissions Transparency
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Text(
@@ -272,22 +486,42 @@ class PrivacySecurityScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildPermissionRow(Icons.mic_off_rounded, 'Microphone Access', 'Never Requested / Blocked'),
+                    _buildPermissionRow(
+                      Icons.mic_off_rounded,
+                      'Microphone Access',
+                      'Never Requested / Blocked',
+                    ),
                     const SizedBox(height: 12),
-                    _buildPermissionRow(Icons.videocam_off_rounded, 'Camera Access', 'Never Requested / Blocked'),
+                    _buildPermissionRow(
+                      Icons.videocam_off_rounded,
+                      'Camera Access',
+                      'Never Requested / Blocked',
+                    ),
                     const SizedBox(height: 12),
-                    _buildPermissionRow(Icons.location_off_rounded, 'Location Tracking', 'Never Requested / Blocked'),
+                    _buildPermissionRow(
+                      Icons.location_off_rounded,
+                      'Location Tracking',
+                      'Never Requested / Blocked',
+                    ),
                     const SizedBox(height: 12),
-                    _buildPermissionRow(Icons.contacts_rounded, 'Contacts & Social', 'Never Requested / Blocked'),
+                    _buildPermissionRow(
+                      Icons.contacts_rounded,
+                      'Contacts & Social',
+                      'Never Requested / Blocked',
+                    ),
                     const SizedBox(height: 12),
-                    _buildPermissionRow(Icons.sd_storage_rounded, 'Offline Storage', 'Scoped Only to Downloaded Audio'),
+                    _buildPermissionRow(
+                      Icons.sd_storage_rounded,
+                      'Offline Storage',
+                      'Scoped Only to Downloaded Audio',
+                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // 4. Data Ownership & GDPR Right to be Forgotten
+              // 4. Data Management & Rights
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 child: Text(
@@ -311,15 +545,29 @@ class PrivacySecurityScreen extends StatelessWidget {
                   children: [
                     // Clear History
                     ListTile(
-                      leading: const Icon(Icons.history_rounded, color: Colors.white70),
-                      title: const Text('Clear Listening History', style: TextStyle(color: Colors.white)),
-                      subtitle: const Text('Erase all recently played tracks from device', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white30),
+                      leading: const Icon(
+                        Icons.history_rounded,
+                        color: Colors.white70,
+                      ),
+                      title: const Text(
+                        'Clear Listening History',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: const Text(
+                        'Erase all recently played tracks from active scope',
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white30,
+                      ),
                       onTap: () {
                         playerManager.clearPlaybackHistory();
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Listening history wiped successfully.'),
+                            content: Text(
+                              'Listening history wiped successfully.',
+                            ),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -330,67 +578,65 @@ class PrivacySecurityScreen extends StatelessWidget {
 
                     // Export Data JSON
                     ListTile(
-                      leading: const Icon(Icons.file_download_outlined, color: Colors.white70),
-                      title: const Text('Export My Data (JSON)', style: TextStyle(color: Colors.white)),
-                      subtitle: const Text('Download complete copy of your favorites and playlists', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                      trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white30),
-                      onTap: () {
-                        final jsonStr = privacy.exportUserDataAsJson(
-                          favoriteIds: playerManager.favoriteIds.toList(),
-                          downloadedSongIds: downloadService.downloadedSongs.map((s) => s.id).toList(),
-                          playlistCount: playerManager.playlists.length,
-                        );
+                      leading: const Icon(
+                        Icons.file_download_outlined,
+                        color: Colors.white70,
+                      ),
+                      title: const Text(
+                        'Export My Data (JSON)',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      subtitle: const Text(
+                        'Download complete copy of your favorites and playlists',
+                        style: TextStyle(color: Colors.white54, fontSize: 11),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right_rounded,
+                        color: Colors.white30,
+                      ),
+                      onTap: () async {
+                        final jsonStr = await db.exportAllDataJson();
                         Clipboard.setData(ClipboardData(text: jsonStr));
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Encrypted user data JSON copied to clipboard.'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'User data JSON copied to clipboard.',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       },
                     ),
 
                     const Divider(height: 1, color: Color(0xFF242426)),
 
-                    // Delete All Data
+                    // Delete All Data & Account
                     ListTile(
-                      leading: const Icon(Icons.delete_forever_rounded, color: Colors.redAccent),
-                      title: const Text('Delete All User Data & Reset', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                      subtitle: const Text('Complete wipe: favorites, downloads, playlists, and history', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: const Color(0xFF1C1C1E),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                            title: const Text('Delete All User Data?', style: TextStyle(color: Colors.white)),
-                            content: const Text(
-                              'This will permanently delete your listening history, favorites, custom playlists, and offline downloaded songs. This action cannot be undone.',
-                              style: TextStyle(color: Colors.white70),
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(ctx),
-                                child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
-                              ),
-                              TextButton(
-                                onPressed: () {
-                                  playerManager.clearAllUserData();
-                                  downloadService.clearAllDownloads();
-                                  Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('All user data permanently deleted.'),
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
-                                  );
-                                },
-                                child: const Text('Delete Everything', style: TextStyle(color: Colors.redAccent)),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      leading: const Icon(
+                        Icons.delete_forever_rounded,
+                        color: Colors.redAccent,
+                      ),
+                      title: Text(
+                        isUserLoggedIn
+                            ? 'Delete Account & Cloud Data'
+                            : 'Reset Local Guest Data',
+                        style: const TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        isUserLoggedIn
+                            ? 'Permanently delete Firebase user, Firestore docs & local data'
+                            : 'Wipe local favorites, downloads, playlists, and history',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 11,
+                        ),
+                      ),
+                      onTap: () => _showDeleteAccountDialog(context),
                     ),
                   ],
                 ),
@@ -411,7 +657,11 @@ class PrivacySecurityScreen extends StatelessWidget {
         const SizedBox(width: 10),
         Text(
           title,
-          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const Spacer(),
         Text(

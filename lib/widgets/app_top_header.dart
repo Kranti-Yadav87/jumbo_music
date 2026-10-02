@@ -50,7 +50,11 @@ class AppTopHeader extends StatelessWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(Icons.settings_outlined, color: Color(0xFFFF5E3A), size: 22),
+                    const Icon(
+                      Icons.settings_outlined,
+                      color: Color(0xFFFF5E3A),
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       'Settings & Audio',
@@ -68,11 +72,17 @@ class AppTopHeader extends StatelessWidget {
                   activeColor: const Color(0xFFFF5E3A),
                   title: Text(
                     'Infinite Autoplay',
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     'Keep playing related music continuously',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   onChanged: (_) {
                     manager.toggleAutoplay();
@@ -80,14 +90,23 @@ class AppTopHeader extends StatelessWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.equalizer_rounded, color: Color(0xFFFF5E3A)),
+                  leading: const Icon(
+                    Icons.equalizer_rounded,
+                    color: Color(0xFFFF5E3A),
+                  ),
                   title: Text(
                     'Audio Quality Preset',
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     '${manager.soundPreset} • Lossless 320 kbps',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   onTap: () => Navigator.pop(ctx),
                 ),
@@ -99,12 +118,20 @@ class AppTopHeader extends StatelessWidget {
                     color: const Color(0xFFFBBF24),
                   ),
                   title: Text(
-                    AppThemeManager.instance.isDarkMode ? 'Theme (Dark Mode)' : 'Theme (Light Mode)',
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    AppThemeManager.instance.isDarkMode
+                        ? 'Theme (Dark Mode)'
+                        : 'Theme (Light Mode)',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     'Toggle light & dark interface',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
                   trailing: Switch.adaptive(
                     value: AppThemeManager.instance.isDarkMode,
@@ -113,35 +140,63 @@ class AppTopHeader extends StatelessWidget {
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.shield_rounded, color: Color(0xFF10B981)),
+                  leading: const Icon(
+                    Icons.shield_rounded,
+                    color: Color(0xFF10B981),
+                  ),
                   title: Text(
                     'Data Privacy & Security',
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     '100% Client-side. Incognito, vault, zero tracking.',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const PrivacySecurityScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const PrivacySecurityScreen(),
+                      ),
                     );
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.install_mobile_rounded, color: Color(0xFF818CF8)),
+                  leading: const Icon(
+                    Icons.install_mobile_rounded,
+                    color: Color(0xFF818CF8),
+                  ),
                   title: Text(
                     'Download App (PWA & APK)',
-                    style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   subtitle: Text(
                     'Install on Android, iOS & PC for 1-tap playback',
-                    style: TextStyle(color: isDark ? Colors.white54 : const Color(0xFF64748B), fontSize: 12),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
                   ),
-                  trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     showDownloadAppDialog(context);
@@ -164,7 +219,9 @@ class AppTopHeader extends StatelessWidget {
     return AnimatedBuilder(
       animation: Listenable.merge([db, manager]),
       builder: (context, _) {
-        final hasUnreadNotifs = db.notifications.any((n) => (n['isRead'] as bool?) == false);
+        final hasUnreadNotifs = db.notifications.any(
+          (n) => (n['isRead'] as bool?) == false,
+        );
 
         return SafeArea(
           bottom: false,
@@ -232,7 +289,9 @@ class AppTopHeader extends StatelessWidget {
                       constraints: const BoxConstraints(),
                       icon: Icon(
                         Icons.notifications_none_rounded,
-                        color: isDark ? Colors.white70 : const Color(0xFF334155),
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF334155),
                         size: 24,
                       ),
                       tooltip: 'Notifications',
@@ -277,7 +336,9 @@ class AppTopHeader extends StatelessWidget {
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        MaterialPageRoute(
+                          builder: (_) => const ProfileScreen(),
+                        ),
                       );
                     }
                   },
@@ -287,7 +348,11 @@ class AppTopHeader extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFD4AF37), Color(0xFF8C6D23), Color(0xFF3E2F13)],
+                        colors: [
+                          Color(0xFFD4AF37),
+                          Color(0xFF8C6D23),
+                          Color(0xFF3E2F13),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),

@@ -5,18 +5,15 @@ class InstallAppCard extends StatelessWidget {
   final VoidCallback? onDismiss;
   final EdgeInsetsGeometry? margin;
 
-  const InstallAppCard({
-    super.key,
-    this.onDismiss,
-    this.margin,
-  });
+  const InstallAppCard({super.key, this.onDismiss, this.margin});
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: margin ?? const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+      padding:
+          margin ?? const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
@@ -38,10 +35,7 @@ class InstallAppCard extends StatelessWidget {
                       end: Alignment.bottomRight,
                     )
                   : const LinearGradient(
-                      colors: [
-                        Color(0xFFF8FAFC),
-                        Color(0xFFEEF2FF),
-                      ],
+                      colors: [Color(0xFFF8FAFC), Color(0xFFEEF2FF)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -103,7 +97,9 @@ class InstallAppCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                           letterSpacing: -0.2,
                         ),
                       ),
@@ -114,7 +110,9 @@ class InstallAppCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                          color: isDark
+                              ? Colors.white60
+                              : const Color(0xFF64748B),
                         ),
                       ),
                     ],
@@ -124,7 +122,10 @@ class InstallAppCard extends StatelessWidget {
 
                 // Download Pill Badge (matches REC MedAssist intro-install-badge)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [Color(0xFF6366F1), Color(0xFF4F46E5)],

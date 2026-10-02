@@ -63,7 +63,8 @@ class _EqualizerBarsState extends State<EqualizerBars>
           children: List.generate(widget.barCount, (index) {
             final double phase = (index * 0.25);
             final double value = widget.isPlaying
-                ? (0.3 + 0.7 * (((_controller.value + phase) % 1.0) * 2 - 1).abs())
+                ? (0.3 +
+                      0.7 * (((_controller.value + phase) % 1.0) * 2 - 1).abs())
                 : 0.2;
             final double barH = widget.height * value;
 

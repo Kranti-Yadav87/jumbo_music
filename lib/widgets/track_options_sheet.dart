@@ -80,7 +80,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 13)),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
           Text(
             value,
             style: const TextStyle(
@@ -197,7 +200,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                       backgroundColor: Colors.white.withOpacity(0.08),
                       labelStyle: TextStyle(
                         color: isSelected ? Colors.black : Colors.white70,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                       ),
                       onSelected: (_) {
                         manager.setPlaybackSpeed(speed);
@@ -279,7 +284,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                               width: 52,
                               height: 52,
                               color: const Color(0xFF2C2C2E),
-                              child: const Icon(Icons.music_note, color: Colors.white54),
+                              child: const Icon(
+                                Icons.music_note,
+                                color: Colors.white54,
+                              ),
                             ),
                           ),
                         ),
@@ -328,7 +336,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
 
                   // 2. Volume Card
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1C1C1E),
                       borderRadius: BorderRadius.circular(20),
@@ -364,7 +375,8 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                               child: SliderTheme(
                                 data: SliderTheme.of(context).copyWith(
                                   trackHeight: 12,
-                                  trackShape: const RoundedRectSliderTrackShape(),
+                                  trackShape:
+                                      const RoundedRectSliderTrackShape(),
                                   thumbShape: SliderComponentShape.noThumb,
                                   overlayShape: SliderComponentShape.noOverlay,
                                   activeTrackColor: const Color(0xFFE5A5A5),
@@ -404,7 +416,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                             manager.playSong(song);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Started radio based on "${song.title}"'),
+                                content: Text(
+                                  'Started radio based on "${song.title}"',
+                                ),
                                 duration: const Duration(seconds: 2),
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -429,7 +443,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                           icon: Icons.link_rounded,
                           label: 'Copy link',
                           onTap: () {
-                            Clipboard.setData(ClipboardData(text: song.audioUrl));
+                            Clipboard.setData(
+                              ClipboardData(text: song.audioUrl),
+                            );
                             Navigator.pop(context);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -523,7 +539,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                           : const Color(0xFF1C1C1E),
                       borderRadius: BorderRadius.circular(20),
                       border: isDownloaded
-                          ? Border.all(color: const Color(0xFF10B981).withOpacity(0.5))
+                          ? Border.all(
+                              color: const Color(0xFF10B981).withOpacity(0.5),
+                            )
                           : null,
                     ),
                     child: ListTile(
@@ -533,7 +551,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                               height: 22,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFE5A5A5)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFE5A5A5),
+                                ),
                               ),
                             )
                           : Icon(
@@ -549,10 +569,12 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                         isDownloaded
                             ? 'Downloaded ($fileSize)'
                             : isDownloading
-                                ? 'Downloading (320 kbps)...'
-                                : 'Download',
+                            ? 'Downloading (320 kbps)...'
+                            : 'Download',
                         style: TextStyle(
-                          color: isDownloaded ? const Color(0xFF10B981) : Colors.white,
+                          color: isDownloaded
+                              ? const Color(0xFF10B981)
+                              : Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -562,13 +584,19 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                             ? 'Saved to Library > Downloaded • Offline Ready'
                             : 'Save high-quality 320 kbps MP3 to device',
                         style: TextStyle(
-                          color: isDownloaded ? Colors.white70 : const Color(0xFF8E8E93),
+                          color: isDownloaded
+                              ? Colors.white70
+                              : const Color(0xFF8E8E93),
                           fontSize: 11,
                         ),
                       ),
                       trailing: isDownloaded
                           ? IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                color: Colors.redAccent,
+                                size: 20,
+                              ),
                               onPressed: () {
                                 downloadService.removeDownload(song.id);
                               },
@@ -620,7 +648,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                           ),
                           subtitle: Text(
                             manager.soundPreset,
-                            style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                            style: const TextStyle(
+                              color: Color(0xFF8E8E93),
+                              fontSize: 12,
+                            ),
                           ),
                           onTap: () {
                             _showEqualizerPicker(context, manager);
@@ -639,7 +670,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                           ),
                           subtitle: Text(
                             'x${manager.playbackSpeed.toStringAsFixed(2)} • x1.00',
-                            style: const TextStyle(color: Color(0xFF8E8E93), fontSize: 12),
+                            style: const TextStyle(
+                              color: Color(0xFF8E8E93),
+                              fontSize: 12,
+                            ),
                           ),
                           onTap: () {
                             _showTempoDialog(context, manager);
@@ -692,7 +726,11 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
     );
   }
 
-  void _showAddToPlaylistSheet(BuildContext context, MusicPlayerManager manager, Song song) {
+  void _showAddToPlaylistSheet(
+    BuildContext context,
+    MusicPlayerManager manager,
+    Song song,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF141416),
@@ -732,12 +770,23 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                     TextButton.icon(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        _showCreatePlaylistDialog(context, manager, addSong: song);
+                        _showCreatePlaylistDialog(
+                          context,
+                          manager,
+                          addSong: song,
+                        );
                       },
-                      icon: const Icon(Icons.add_rounded, size: 18, color: Color(0xFFE5A5A5)),
+                      icon: const Icon(
+                        Icons.add_rounded,
+                        size: 18,
+                        color: Color(0xFFE5A5A5),
+                      ),
                       label: const Text(
                         'New',
-                        style: TextStyle(color: Color(0xFFE5A5A5), fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Color(0xFFE5A5A5),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
@@ -765,7 +814,10 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                         final pl = manager.playlists[index];
                         final alreadyIn = pl.songIds.contains(song.id);
                         return ListTile(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
                           leading: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Image.network(
@@ -777,24 +829,40 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                                 width: 42,
                                 height: 42,
                                 color: const Color(0xFF2C2C2E),
-                                child: const Icon(Icons.queue_music, color: Colors.white54, size: 20),
+                                child: const Icon(
+                                  Icons.queue_music,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
                               ),
                             ),
                           ),
                           title: Text(
                             pl.title,
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           subtitle: Text(
-                            alreadyIn ? 'Already added • ${pl.songIds.length} songs' : '${pl.songIds.length} songs',
+                            alreadyIn
+                                ? 'Already added • ${pl.songIds.length} songs'
+                                : '${pl.songIds.length} songs',
                             style: TextStyle(
-                              color: alreadyIn ? const Color(0xFF10B981) : Colors.white54,
+                              color: alreadyIn
+                                  ? const Color(0xFF10B981)
+                                  : Colors.white54,
                               fontSize: 12,
                             ),
                           ),
                           trailing: Icon(
-                            alreadyIn ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
-                            color: alreadyIn ? const Color(0xFF10B981) : Colors.white54,
+                            alreadyIn
+                                ? Icons.check_circle_rounded
+                                : Icons.add_circle_outline_rounded,
+                            color: alreadyIn
+                                ? const Color(0xFF10B981)
+                                : Colors.white54,
                             size: 22,
                           ),
                           onTap: () {
@@ -803,7 +871,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Added "${song.title}" to ${pl.title}'),
+                                  content: Text(
+                                    'Added "${song.title}" to ${pl.title}',
+                                  ),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -811,7 +881,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('"${song.title}" is already in ${pl.title}'),
+                                  content: Text(
+                                    '"${song.title}" is already in ${pl.title}',
+                                  ),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -830,15 +902,24 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
     );
   }
 
-  void _showCreatePlaylistDialog(BuildContext context, MusicPlayerManager manager, {Song? addSong}) {
+  void _showCreatePlaylistDialog(
+    BuildContext context,
+    MusicPlayerManager manager, {
+    Song? addSong,
+  }) {
     final titleController = TextEditingController();
     showDialog(
       context: context,
       builder: (dCtx) {
         return AlertDialog(
           backgroundColor: const Color(0xFF1C1C1E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('New Playlist', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'New Playlist',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           content: TextField(
             controller: titleController,
             autofocus: true,
@@ -857,18 +938,26 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dCtx),
-              child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white54),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE5A5A5),
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () async {
                 final title = titleController.text.trim();
                 if (title.isNotEmpty) {
-                  final newPl = await manager.createPlaylist(title, description: 'Custom Collection');
+                  final newPl = await manager.createPlaylist(
+                    title,
+                    description: 'Custom Collection',
+                  );
                   if (addSong != null) {
                     await manager.addSongToPlaylist(newPl.id, addSong.id);
                   }
@@ -876,14 +965,19 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                     Navigator.pop(dCtx);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Created playlist "$title"${addSong != null ? ' and added "${addSong.title}"' : ''}'),
+                        content: Text(
+                          'Created playlist "$title"${addSong != null ? ' and added "${addSong.title}"' : ''}',
+                        ),
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
                   }
                 }
               },
-              child: const Text('Create', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Create',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );

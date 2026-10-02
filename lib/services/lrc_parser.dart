@@ -3,22 +3,25 @@ class LrcLine {
   final Duration timestamp;
   final String text;
 
-  const LrcLine({
-    required this.timestamp,
-    required this.text,
-  });
+  const LrcLine({required this.timestamp, required this.text});
 
   @override
-  String toString() => '[${timestamp.inMinutes}:${(timestamp.inSeconds % 60).toString().padLeft(2, '0')}.${(timestamp.inMilliseconds % 1000) ~/ 10}] $text';
+  String toString() =>
+      '[${timestamp.inMinutes}:${(timestamp.inSeconds % 60).toString().padLeft(2, '0')}.${(timestamp.inMilliseconds % 1000) ~/ 10}] $text';
 }
 
 /// High-performance parser and query engine for LRC (synchronized lyrics) format
 class LrcParser {
   // Regex pattern matching [mm:ss.xx], [mm:ss.xxx], or [mm:ss]
-  static final RegExp _lrcRegex = RegExp(r'\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]');
+  static final RegExp _lrcRegex = RegExp(
+    r'\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]',
+  );
 
   /// Parse raw LRC text or plain multi-line string into structured [LrcLine] objects
-  static List<LrcLine> parse(String? rawLrc, {Duration totalDuration = Duration.zero}) {
+  static List<LrcLine> parse(
+    String? rawLrc, {
+    Duration totalDuration = Duration.zero,
+  }) {
     if (rawLrc == null || rawLrc.trim().isEmpty) {
       return [];
     }
@@ -79,7 +82,8 @@ class LrcParser {
           ? totalDuration
           : const Duration(minutes: 3, seconds: 30);
 
-      final intervalMs = (effectiveDuration.inMilliseconds / validLines.length).round();
+      final intervalMs = (effectiveDuration.inMilliseconds / validLines.length)
+          .round();
 
       for (int i = 0; i < validLines.length; i++) {
         parsed.add(

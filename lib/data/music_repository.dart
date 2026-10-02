@@ -11,56 +11,64 @@ class MusicRepository {
       id: 'p_hindi',
       title: 'Hindi Top Hits',
       description: 'Arijit Singh, Shreya Ghoshal, Pritam • Trending Bollywood',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_punjabi',
       title: 'Punjabi Superhits',
       description: 'Karan Aujla, Diljit Dosanjh, Sidhu Moose Wala, AP Dhillon',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_PunjabiTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_PunjabiTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_bhojpuri',
       title: 'Bhojpuri Dhamaka',
       description: 'Pawan Singh, Khesari Lal Yadav, Shilpi Raj • Chartbusters',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_BhojpuriTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_BhojpuriTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_haryanvi',
       title: 'Haryanvi Hits',
       description: 'Gulzaar Chhaniwala, Renuka Panwar, Diler Kharkiya',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_HaryanviTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_HaryanviTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_english',
       title: 'English & Global Pop',
       description: 'Taylor Swift, The Weeknd, Drake, Dua Lipa • Billboard Top',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_south',
       title: 'South Special (Tamil & Telugu)',
       description: 'Anirudh Ravichander, Sid Sriram, Devi Sri Prasad',
-      coverUrl: 'https://c.saavncdn.com/editorial/charts_TamilTopSongs_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_TamilTopSongs_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_indie',
       title: 'Indie & Acoustic Beats',
       description: 'Prateek Kuhad, Anuv Jain, Jasleen Royal • Pure Melodies',
-      coverUrl: 'https://c.saavncdn.com/editorial/BestOfIndieHindi_20230324103126_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/BestOfIndieHindi_20230324103126_500x500.jpg',
       songIds: [],
     ),
     Playlist(
       id: 'p_sufi',
       title: 'Sufi & Qawwali Hits',
       description: 'Rahat Fateh Ali Khan, Atif Aslam, Nusrat Fateh Ali Khan',
-      coverUrl: 'https://c.saavncdn.com/editorial/SoulfulSufi_20210416065535_500x500.jpg',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/SoulfulSufi_20210416065535_500x500.jpg',
       songIds: [],
     ),
   ];
@@ -71,16 +79,19 @@ class MusicRepository {
       'name': 'Darshan Raval',
       'role': 'Heartthrob of Indie & Romance',
       'listeners': '33M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Darshan_Raval_005_20230323062306_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Darshan_Raval_005_20230323062306_500x500.jpg',
       'query': 'Darshan Raval romantic hits',
-      'keywords': 'darshan raval dharshan rawal darshan rawal dharshan raval kamariya chogada',
+      'keywords':
+          'darshan raval dharshan rawal darshan rawal dharshan raval kamariya chogada',
     },
     {
       'id': 'art_arijit',
       'name': 'Arijit Singh',
       'role': 'King of Soulful Melodies',
       'listeners': '42M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
       'query': 'Arijit Singh hits',
       'keywords': 'arijit singh arijit romantic hits tum hi ho kesariya',
     },
@@ -89,7 +100,8 @@ class MusicRepository {
       'name': 'Jubin Nautiyal',
       'role': 'Soulful & Devotional Maestro',
       'listeners': '27M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Jubin_Nautiyal_003_20230323062348_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Jubin_Nautiyal_003_20230323062348_500x500.jpg',
       'query': 'Jubin Nautiyal hits',
       'keywords': 'jubin nautiyal jubin hits raataan lambiyan lut gaye',
     },
@@ -98,7 +110,8 @@ class MusicRepository {
       'name': 'Karan Aujla',
       'role': 'Singer & Lyricist',
       'listeners': '28M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Karan_Aujla_004_20230609071019_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Karan_Aujla_004_20230609071019_500x500.jpg',
       'query': 'Karan Aujla hits',
       'keywords': 'karan aujla aujla tauba tauba winning speech',
     },
@@ -107,7 +120,8 @@ class MusicRepository {
       'name': 'Diljit Dosanjh',
       'role': 'Global Punjabi Icon',
       'listeners': '34M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20221006184540_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Diljit_Dosanjh_004_20221006184540_500x500.jpg',
       'query': 'Diljit Dosanjh hits',
       'keywords': 'diljit dosanjh diljit goat born to shine lover',
     },
@@ -116,7 +130,8 @@ class MusicRepository {
       'name': 'Shreya Ghoshal',
       'role': 'Melody Queen of India',
       'listeners': '30M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Shreya_Ghoshal_004_20230323061447_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Shreya_Ghoshal_004_20230323061447_500x500.jpg',
       'query': 'Shreya Ghoshal hits',
       'keywords': 'shreya ghoshal shreya shreya hits deewani mastani',
     },
@@ -134,7 +149,8 @@ class MusicRepository {
       'name': 'Sidhu Moose Wala',
       'role': 'Legendary Punjabi Icon',
       'listeners': '31M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Sidhu_Moose_Wala_004_20230607074218_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Sidhu_Moose_Wala_004_20230607074218_500x500.jpg',
       'query': 'Sidhu Moose Wala hits',
       'keywords': 'sidhu moose wala sidhu moosewala 295 so high',
     },
@@ -143,7 +159,8 @@ class MusicRepository {
       'name': 'Anirudh Ravichander',
       'role': 'Rockstar Music Director',
       'listeners': '29M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Anirudh_Ravichander_002_20230328080355_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Anirudh_Ravichander_002_20230328080355_500x500.jpg',
       'query': 'Anirudh Ravichander hits',
       'keywords': 'anirudh ravichander anirudh leo jailer hukuum arabic kuthu',
     },
@@ -152,7 +169,8 @@ class MusicRepository {
       'name': 'Atif Aslam',
       'role': 'Romantic Vocalist',
       'listeners': '26M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Atif_Aslam_002_20210217084534_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Atif_Aslam_002_20210217084534_500x500.jpg',
       'query': 'Atif Aslam hits',
       'keywords': 'atif aslam atif aadat tere bin pehli nazar mein',
     },
@@ -163,7 +181,8 @@ class MusicRepository {
       'listeners': '35M+ monthly streams',
       'imageUrl': 'https://c.saavncdn.com/artists/Kishore_Kumar_500x500.jpg',
       'query': 'Kishore Kumar evergreen romantic hits',
-      'keywords': 'kishore kumar kishore da purane gaane roop tera mastana mere sapno ki rani',
+      'keywords':
+          'kishore kumar kishore da purane gaane roop tera mastana mere sapno ki rani',
     },
     {
       'id': 'art_lata',
@@ -172,7 +191,8 @@ class MusicRepository {
       'listeners': '38M+ monthly streams',
       'imageUrl': 'https://c.saavncdn.com/artists/Lata_Mangeshkar_500x500.jpg',
       'query': 'Lata Mangeshkar golden era hits',
-      'keywords': 'lata mangeshkar lata ji aaja piya tohe pyar doon lag ja gale purane gaane',
+      'keywords':
+          'lata mangeshkar lata ji aaja piya tohe pyar doon lag ja gale purane gaane',
     },
     {
       'id': 'art_rafi',
@@ -181,7 +201,8 @@ class MusicRepository {
       'listeners': '32M+ monthly streams',
       'imageUrl': 'https://c.saavncdn.com/artists/Mohammed_Rafi_500x500.jpg',
       'query': 'Mohammed Rafi classic romantic hits',
-      'keywords': 'mohammed rafi mohd rafi rafi sahab purane gaane gulabi aankhen',
+      'keywords':
+          'mohammed rafi mohd rafi rafi sahab purane gaane gulabi aankhen',
     },
     {
       'id': 'art_kumarsanu',
@@ -208,14 +229,16 @@ class MusicRepository {
       'listeners': '25M+ monthly streams',
       'imageUrl': 'https://c.saavncdn.com/artists/Sonu_Nigam_500x500.jpg',
       'query': 'Sonu Nigam romantic hits',
-      'keywords': 'sonu nigam kal ho naa ho abhi mujh mein kahin sandese aate hai',
+      'keywords':
+          'sonu nigam kal ho naa ho abhi mujh mein kahin sandese aate hai',
     },
     {
       'id': 'art_apdhillon',
       'name': 'AP Dhillon',
       'role': 'Punjabi Wave Leader',
       'listeners': '22M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/AP_Dhillon_002_20220623062306_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/AP_Dhillon_002_20220623062306_500x500.jpg',
       'query': 'AP Dhillon hits',
       'keywords': 'ap dhillon brown munde excels with you insane',
     },
@@ -224,7 +247,8 @@ class MusicRepository {
       'name': 'Badshah',
       'role': 'Desi Hip-Hop & Commercial King',
       'listeners': '26M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Badshah_005_20230323061803_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Badshah_005_20230323061803_500x500.jpg',
       'query': 'Badshah party hits',
       'keywords': 'badshah genda phool jugnu kala chashma dj wale babu',
     },
@@ -233,7 +257,8 @@ class MusicRepository {
       'name': 'Neha Kakkar',
       'role': 'Pop & Party Sensation',
       'listeners': '24M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Neha_Kakkar_006_20230323061614_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Neha_Kakkar_006_20230323061614_500x500.jpg',
       'query': 'Neha Kakkar hits',
       'keywords': 'neha kakkar aankh marey dilbar mile ho tum',
     },
@@ -242,16 +267,19 @@ class MusicRepository {
       'name': 'Yo Yo Honey Singh',
       'role': 'OG Desi Hip-Hop Star',
       'listeners': '25M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Yo_Yo_Honey_Singh_002_20230323061849_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Yo_Yo_Honey_Singh_002_20230323061849_500x500.jpg',
       'query': 'Honey Singh hits',
-      'keywords': 'yo yo honey singh honey singh desi kalakaar love dose blue eyes',
+      'keywords':
+          'yo yo honey singh honey singh desi kalakaar love dose blue eyes',
     },
     {
       'id': 'art_armaan',
       'name': 'Armaan Malik',
       'role': 'Prince of Modern Romance',
       'listeners': '20M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Armaan_Malik_004_20230323062228_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Armaan_Malik_004_20230323062228_500x500.jpg',
       'query': 'Armaan Malik romantic hits',
       'keywords': 'armaan malik bol do na zara main hoon hero tera butta bomma',
     },
@@ -260,7 +288,8 @@ class MusicRepository {
       'name': 'Vishal Mishra',
       'role': 'Soul & Passionate Vocalist',
       'listeners': '21M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Vishal_Mishra_003_20230323062432_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Vishal_Mishra_003_20230323062432_500x500.jpg',
       'query': 'Vishal Mishra hits',
       'keywords': 'vishal mishra pehle bhi main kaise hua zihaal e miskin',
     },
@@ -269,7 +298,8 @@ class MusicRepository {
       'name': 'Sunidhi Chauhan',
       'role': 'Powerhouse Diva',
       'listeners': '19M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Sunidhi_Chauhan_003_20230323061528_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Sunidhi_Chauhan_003_20230323061528_500x500.jpg',
       'query': 'Sunidhi Chauhan hits',
       'keywords': 'sunidhi chauhan kamli beedi crazy kiya re',
     },
@@ -278,9 +308,11 @@ class MusicRepository {
       'name': 'Mohit Chauhan',
       'role': 'Soul of Rockstar & Melodies',
       'listeners': '18M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Mohit_Chauhan_003_20230323062512_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Mohit_Chauhan_003_20230323062512_500x500.jpg',
       'query': 'Mohit Chauhan hits',
-      'keywords': 'mohit chauhan tum se hi kun faya kun saadda haq naadan parindey',
+      'keywords':
+          'mohit chauhan tum se hi kun faya kun saadda haq naadan parindey',
     },
     {
       'id': 'art_jagjit',
@@ -289,14 +321,16 @@ class MusicRepository {
       'listeners': '20M+ monthly streams',
       'imageUrl': 'https://c.saavncdn.com/artists/Jagjit_Singh_500x500.jpg',
       'query': 'Jagjit Singh ghazals',
-      'keywords': 'jagjit singh ghazals hothon se chhu lo tum tum itna jo muskura rahe ho',
+      'keywords':
+          'jagjit singh ghazals hothon se chhu lo tum tum itna jo muskura rahe ho',
     },
     {
       'id': 'art_pawan',
       'name': 'Pawan Singh',
       'role': 'Bhojpuri Powerstar',
       'listeners': '22M+ monthly streams',
-      'imageUrl': 'https://c.saavncdn.com/artists/Pawan_Singh_002_20230323063544_500x500.jpg',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Pawan_Singh_002_20230323063544_500x500.jpg',
       'query': 'Pawan Singh hits',
       'keywords': 'pawan singh bhojpuri lollipop lagelu kamariya patre patre',
     },

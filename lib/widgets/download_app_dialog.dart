@@ -93,7 +93,9 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           backgroundColor: Color(0xFF262630),
-          content: Text('Follow the instructions below to add to your Home Screen.'),
+          content: Text(
+            'Follow the instructions below to add to your Home Screen.',
+          ),
         ),
       );
     } finally {
@@ -180,10 +182,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                         SizedBox(height: 2),
                         Text(
                           'Progressive Web App (PWA) & APK',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white54,
-                          ),
+                          style: TextStyle(fontSize: 12, color: Colors.white54),
                         ),
                       ],
                     ),
@@ -191,7 +190,11 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: Colors.white60, size: 22),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white60,
+                    size: 22,
+                  ),
                   splashRadius: 18,
                   tooltip: 'Close',
                 ),
@@ -247,12 +250,16 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Icon(Icons.install_mobile_rounded, size: 22),
                 label: Text(
-                  _isInstalling ? 'Installing Jumbo Music...' : '1-Tap Install Jumbo Music',
+                  _isInstalling
+                      ? 'Installing Jumbo Music...'
+                      : '1-Tap Install Jumbo Music',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -268,19 +275,22 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
             _buildPlatformCard(
               icon: '📱',
               title: 'Android (Chrome / Edge / Samsung)',
-              instructions: 'Tap the ⋮ menu at top right → select "Install app" or "Add to Home screen".',
+              instructions:
+                  'Tap the ⋮ menu at top right → select "Install app" or "Add to Home screen".',
             ),
             const SizedBox(height: 9),
             _buildPlatformCard(
               icon: '🍎',
               title: 'iPhone / iPad (iOS Safari)',
-              instructions: 'Tap the Share button (⎋) at the bottom → select "Add to Home Screen" (➕).',
+              instructions:
+                  'Tap the Share button (⎋) at the bottom → select "Add to Home Screen" (➕).',
             ),
             const SizedBox(height: 9),
             _buildPlatformCard(
               icon: '💻',
               title: 'Desktop (Chrome, Edge, Brave, Mac)',
-              instructions: 'Click the Install icon (⊕) in the browser address bar for desktop app access.',
+              instructions:
+                  'Click the Install icon (⊕) in the browser address bar for desktop app access.',
             ),
           ],
         ),
@@ -303,10 +313,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            icon,
-            style: const TextStyle(fontSize: 20, height: 1.2),
-          ),
+          Text(icon, style: const TextStyle(fontSize: 20, height: 1.2)),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

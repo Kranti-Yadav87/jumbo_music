@@ -81,10 +81,9 @@ class MusicPlayerManager extends ChangeNotifier {
   List<Song> get allSongs => _allSongs;
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
-  Song? get currentSong =>
-      (_currentIndex >= 0 && _currentIndex < _queue.length)
-          ? _queue[_currentIndex]
-          : null;
+  Song? get currentSong => (_currentIndex >= 0 && _currentIndex < _queue.length)
+      ? _queue[_currentIndex]
+      : null;
 
   bool get isPlaying => _isPlaying;
   bool get isBuffering => _isBuffering;
@@ -144,16 +143,15 @@ class MusicPlayerManager extends ChangeNotifier {
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   List<Song> get top50Songs => _allSongs.take(50).toList();
-  List<Song> get newReleases => _newReleases.isNotEmpty ? _newReleases : _onlineTrending.take(20).toList();
+  List<Song> get newReleases => _newReleases.isNotEmpty
+      ? _newReleases
+      : _onlineTrending.take(20).toList();
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
 
   void _init() {
     final db = DatabaseService.instance;
-    final initialOffline = [
-      ...db.downloadedSongs,
-      ...db.favoriteSongs,
-    ];
+    final initialOffline = [...db.downloadedSongs, ...db.favoriteSongs];
 
     final Set<String> seenIds = {};
     _allSongs = [];
@@ -166,8 +164,12 @@ class MusicPlayerManager extends ChangeNotifier {
     _playlists = List.from(MusicRepository.samplePlaylists);
     _queue = List.from(_allSongs);
 
-    // Hydrate state from DatabaseService
+    // Hydrate state from DatabaseService and listen for scope updates
     _hydrateFromDatabase();
+    db.addListener(() {
+      _hydrateFromDatabase();
+      notifyListeners();
+    });
 
     // Register MediaSession lock screen action handlers
     MediaSessionService.registerActionHandler((action, param) {
@@ -188,37 +190,46 @@ class MusicPlayerManager extends ChangeNotifier {
           seek(Duration(seconds: param.toInt()));
           break;
         case 'seekforward':
-          seek(_position + Duration(seconds: param.toInt() > 0 ? param.toInt() : 10));
+          seek(
+            _position +
+                Duration(seconds: param.toInt() > 0 ? param.toInt() : 10),
+          );
           break;
         case 'seekbackward':
-          final target = _position.inSeconds - (param.toInt() > 0 ? param.toInt() : 10);
+          final target =
+              _position.inSeconds - (param.toInt() > 0 ? param.toInt() : 10);
           seek(Duration(seconds: target > 0 ? target : 0));
           break;
       }
     });
 
     // Listen to player state
-    _playerStateSubscription = _audioPlayer.playerStateStream.listen((state) {
-      if (!_isTransitioning && !_isToggling) {
-        _isPlaying = state.playing;
-        _isBuffering = (state.processingState == ProcessingState.buffering ||
-                state.processingState == ProcessingState.loading) &&
-            !state.playing;
-      }
+    _playerStateSubscription = _audioPlayer.playerStateStream.listen(
+      (state) {
+        if (!_isTransitioning && !_isToggling) {
+          _isPlaying = state.playing;
+          _isBuffering =
+              (state.processingState == ProcessingState.buffering ||
+                  state.processingState == ProcessingState.loading) &&
+              !state.playing;
+        }
 
-      MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
+        MediaSessionService.updatePlaybackState(isPlaying: _isPlaying);
 
-      if (state.processingState == ProcessingState.completed && !_isTransitioning) {
-        _handleSongCompletion();
-      }
-      notifyListeners();
-    }, onError: (Object e) {
-      _errorMessage = "Playback error: $e";
-      _isBuffering = false;
-      _isPlaying = false;
-      MediaSessionService.updatePlaybackState(isPlaying: false);
-      notifyListeners();
-    });
+        if (state.processingState == ProcessingState.completed &&
+            !_isTransitioning) {
+          _handleSongCompletion();
+        }
+        notifyListeners();
+      },
+      onError: (Object e) {
+        _errorMessage = "Playback error: $e";
+        _isBuffering = false;
+        _isPlaying = false;
+        MediaSessionService.updatePlaybackState(isPlaying: false);
+        notifyListeners();
+      },
+    );
 
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
@@ -228,7 +239,9 @@ class MusicPlayerManager extends ChangeNotifier {
       }
       final dur = _duration.inSeconds > 0
           ? _duration.inSeconds.toDouble()
-          : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+          : (currentSong != null
+                ? currentSong!.duration.inSeconds.toDouble()
+                : 240.0);
       MediaSessionService.updatePositionState(
         durationSeconds: dur,
         positionSeconds: pos.inSeconds.toDouble(),
@@ -259,8 +272,9 @@ class MusicPlayerManager extends ChangeNotifier {
     });
 
     // Listen to buffer position
-    _bufferedPositionSubscription =
-        _audioPlayer.bufferedPositionStream.listen((buf) {
+    _bufferedPositionSubscription = _audioPlayer.bufferedPositionStream.listen((
+      buf,
+    ) {
       _bufferedPosition = buf;
       notifyListeners();
     });
@@ -277,25 +291,27 @@ class MusicPlayerManager extends ChangeNotifier {
     _volume = (db.getSetting('volume', 1.0) as num).toDouble();
     _playbackSpeed = (db.getSetting('playbackSpeed', 1.0) as num).toDouble();
 
-    if (db.favoriteIds.isNotEmpty) {
-      _favoriteIds.clear();
-      _favoriteIds.addAll(db.favoriteIds);
-    }
+    // Reset favorites
+    _favoriteIds.clear();
+    _favoriteIds.addAll(db.favoriteIds);
 
-    if (db.customPlaylists.isNotEmpty) {
-      for (final p in db.customPlaylists) {
-        if (!_playlists.any((item) => item.id == p.id)) {
-          _playlists.insert(0, p);
-        }
+    // Rebuild custom playlists from db.customPlaylists
+    _playlists.removeWhere(
+      (p) =>
+          p.type == PlaylistType.custom || p.type == PlaylistType.sharedBlend,
+    );
+    for (final p in db.customPlaylists) {
+      if (!_playlists.any((item) => item.id == p.id)) {
+        _playlists.insert(0, p);
       }
     }
 
-    if (db.history.isNotEmpty) {
-      _recentlyPlayed.clear();
-      for (final item in db.history) {
-        if (item['song'] != null && item['song'] is Map<String, dynamic>) {
-          _recentlyPlayed.add(Song.fromJson(item['song'] as Map<String, dynamic>));
-        }
+    _recentlyPlayed.clear();
+    for (final item in db.history) {
+      if (item['song'] != null && item['song'] is Map<String, dynamic>) {
+        _recentlyPlayed.add(
+          Song.fromJson(item['song'] as Map<String, dynamic>),
+        );
       }
     }
 
@@ -319,7 +335,9 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final indiaTop50Result = await MusicApiService.fetchPlaylist('1134543272');
+      final indiaTop50Result = await MusicApiService.fetchPlaylist(
+        '1134543272',
+      );
       final indiaSongs = (indiaTop50Result['songs'] as List<Song>?) ?? [];
 
       final trendingResult = await MusicApiService.fetchPlaylist('110858205');
@@ -333,7 +351,10 @@ class MusicPlayerManager extends ChangeNotifier {
 
       // Fetch live fresh studio new releases (2024-2025 Bollywood / Indian pop)
       try {
-        final newReleasesResult = await MusicApiService.searchLiveSongs('Latest Bollywood Hindi New 2024 2025', limit: 30);
+        final newReleasesResult = await MusicApiService.searchLiveSongs(
+          'Latest Bollywood Hindi New 2024 2025',
+          limit: 30,
+        );
         if (newReleasesResult.isNotEmpty) {
           _newReleases = newReleasesResult;
         }
@@ -345,8 +366,10 @@ class MusicPlayerManager extends ChangeNotifier {
           Playlist(
             id: '1134543272',
             title: indiaTop50Result['name'] ?? 'India Superhits Top 50',
-            description: 'Top trending 50 chartbusters across India (320 kbps Studio)',
-            coverUrl: (indiaTop50Result['coverUrl'] as String?)?.isNotEmpty == true
+            description:
+                'Top trending 50 chartbusters across India (320 kbps Studio)',
+            coverUrl:
+                (indiaTop50Result['coverUrl'] as String?)?.isNotEmpty == true
                 ? indiaTop50Result['coverUrl']
                 : (indiaSongs.first.coverUrl),
             songIds: indiaSongs.map((s) => s.id).toList(),
@@ -360,7 +383,8 @@ class MusicPlayerManager extends ChangeNotifier {
             id: '110858205',
             title: trendingResult['name'] ?? 'Trending Today',
             description: 'Today\'s hottest streaming songs live',
-            coverUrl: (trendingResult['coverUrl'] as String?)?.isNotEmpty == true
+            coverUrl:
+                (trendingResult['coverUrl'] as String?)?.isNotEmpty == true
                 ? trendingResult['coverUrl']
                 : (trendingSongs.first.coverUrl),
             songIds: trendingSongs.map((s) => s.id).toList(),
@@ -407,7 +431,9 @@ class MusicPlayerManager extends ChangeNotifier {
         _onlineTrending = allLiveSongs;
 
         final Set<String> existingIds = _allSongs.map((s) => s.id).toSet();
-        final List<Song> newUnique = allLiveSongs.where((s) => !existingIds.contains(s.id)).toList();
+        final List<Song> newUnique = allLiveSongs
+            .where((s) => !existingIds.contains(s.id))
+            .toList();
         _allSongs = [...newUnique, ..._allSongs];
 
         if (livePlaylists.isNotEmpty) {
@@ -435,7 +461,8 @@ class MusicPlayerManager extends ChangeNotifier {
     // 2. Artist Mix Station
     final rawArtist = song.artist.split(',').first.split('&').first.trim();
     final mainArtist = rawArtist.isNotEmpty ? rawArtist : 'Featured Artist';
-    final artistPlaylistId = 'artist_${mainArtist.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+    final artistPlaylistId =
+        'artist_${mainArtist.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
 
     final artistIndex = _playlists.indexWhere((p) => p.id == artistPlaylistId);
     if (artistIndex != -1) {
@@ -470,7 +497,8 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // 3. Mood / Genre Station
     final genre = song.genre.isNotEmpty ? song.genre : 'Bollywood';
-    final genrePlaylistId = 'genre_${genre.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+    final genrePlaylistId =
+        'genre_${genre.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
 
     final genreIndex = _playlists.indexWhere((p) => p.id == genrePlaylistId);
     if (genreIndex != -1) {
@@ -532,9 +560,14 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
-  Future<void> _infillSmartQueue(Song seedSong, {int targetQueueSize = 60}) async {
+  Future<void> _infillSmartQueue(
+    Song seedSong, {
+    int targetQueueSize = 60,
+  }) async {
     if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_lastInfilledSongId == seedSong.id && _queue.length >= targetQueueSize) return;
+    if (_lastInfilledSongId == seedSong.id && _queue.length >= targetQueueSize) {
+      return;
+    }
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
@@ -542,12 +575,36 @@ class MusicPlayerManager extends ChangeNotifier {
 
     try {
       final songLang = MusicApiService.detectSongLanguage(seedSong);
-      final is70s = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
-      final is80s = songLang == 'Hindi' && !is70s && MusicApiService.is80sEra(seedSong);
-      final is90s = songLang == 'Hindi' && !is70s && !is80s && MusicApiService.is90sMelodyEra(seedSong);
-      final is2000s = songLang == 'Hindi' && !is70s && !is80s && !is90s && MusicApiService.is2000sSong(seedSong);
-      final is2010s = songLang == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && MusicApiService.is2010sSong(seedSong);
-      final isIndie = songLang == 'Hindi' && !is70s && !is80s && !is90s && !is2000s && !is2010s && MusicApiService.isIndieOrSukoonSong(seedSong);
+      final is70s =
+          songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
+      final is80s =
+          songLang == 'Hindi' && !is70s && MusicApiService.is80sEra(seedSong);
+      final is90s =
+          songLang == 'Hindi' &&
+          !is70s &&
+          !is80s &&
+          MusicApiService.is90sMelodyEra(seedSong);
+      final is2000s =
+          songLang == 'Hindi' &&
+          !is70s &&
+          !is80s &&
+          !is90s &&
+          MusicApiService.is2000sSong(seedSong);
+      final is2010s =
+          songLang == 'Hindi' &&
+          !is70s &&
+          !is80s &&
+          !is90s &&
+          !is2000s &&
+          MusicApiService.is2010sSong(seedSong);
+      final isIndie =
+          songLang == 'Hindi' &&
+          !is70s &&
+          !is80s &&
+          !is90s &&
+          !is2000s &&
+          !is2010s &&
+          MusicApiService.isIndieOrSukoonSong(seedSong);
 
       // 1. First immediately seed from local _allSongs strictly matching language & era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
@@ -558,20 +615,41 @@ class MusicPlayerManager extends ChangeNotifier {
           if (candLang != songLang) return false;
 
           if (songLang == 'Hindi') {
-            if (is70s) return MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
-            if (is80s) return MusicApiService.is80sEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
-            if (is90s) return MusicApiService.is90sMelodyEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s);
-            if (is2000s) return MusicApiService.is2000sSong(s) && !MusicApiService.is90sMelodyEra(s);
+            if (is70s) {
+              return MusicApiService.isVintageGoldenEra(s) &&
+                  !MusicApiService.is80sEra(s) &&
+                  !MusicApiService.is90sMelodyEra(s);
+            }
+            if (is80s) {
+              return MusicApiService.is80sEra(s) &&
+                  !MusicApiService.isVintageGoldenEra(s) &&
+                  !MusicApiService.is90sMelodyEra(s);
+            }
+            if (is90s) {
+              return MusicApiService.is90sMelodyEra(s) &&
+                  !MusicApiService.isVintageGoldenEra(s) &&
+                  !MusicApiService.is80sEra(s);
+            }
+            if (is2000s) {
+              return MusicApiService.is2000sSong(s) &&
+                  !MusicApiService.is90sMelodyEra(s);
+            }
             if (is2010s) return MusicApiService.is2010sSong(s);
             if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-            return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
+            return !MusicApiService.isVintageGoldenEra(s) &&
+                !MusicApiService.is80sEra(s) &&
+                !MusicApiService.is90sMelodyEra(s);
           }
           return true;
         }).toList();
-        
+
         localCandidates.sort((a, b) {
-          int scoreA = (a.artist == seedSong.artist ? 3 : 0) + (a.genre == seedSong.genre ? 1 : 0);
-          int scoreB = (b.artist == seedSong.artist ? 3 : 0) + (b.genre == seedSong.genre ? 1 : 0);
+          int scoreA =
+              (a.artist == seedSong.artist ? 3 : 0) +
+              (a.genre == seedSong.genre ? 1 : 0);
+          int scoreB =
+              (b.artist == seedSong.artist ? 3 : 0) +
+              (b.genre == seedSong.genre ? 1 : 0);
           return scoreB.compareTo(scoreA);
         });
 
@@ -583,34 +661,62 @@ class MusicPlayerManager extends ChangeNotifier {
       }
 
       // 2. Fetch fresh smart recommendations concurrently matching exact era and language
-      final freshTracks = await MusicApiService.fetchSmartRecommendations(seedSong, limit: 55);
+      final freshTracks = await MusicApiService.fetchSmartRecommendations(
+        seedSong,
+        limit: 55,
+      );
       if (freshTracks.isNotEmpty) {
-        final Set<String> playedIds = _queue.take(_currentIndex + 1).map((s) => s.id).toSet();
-        final List<Song> newTracks =
-            freshTracks.where((s) => !playedIds.contains(s.id)).toList();
+        final Set<String> playedIds = _queue
+            .take(_currentIndex + 1)
+            .map((s) => s.id)
+            .toSet();
+        final List<Song> newTracks = freshTracks
+            .where((s) => !playedIds.contains(s.id))
+            .toList();
 
         if (newTracks.isNotEmpty) {
           final playedPart = _queue.sublist(0, _currentIndex + 1);
           final upcomingPart = _queue.sublist(_currentIndex + 1);
-          
+
           final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
           final remainingUpcoming = upcomingPart.where((s) {
             if (freshIds.contains(s.id)) return false;
             final candLang = MusicApiService.detectSongLanguage(s);
             if (candLang != songLang) return false;
             if (songLang == 'Hindi') {
-              if (is70s) return MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
-              if (is80s) return MusicApiService.is80sEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
-              if (is90s) return MusicApiService.is90sMelodyEra(s) && !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s);
-              if (is2000s) return MusicApiService.is2000sSong(s) && !MusicApiService.is90sMelodyEra(s);
+              if (is70s) {
+                return MusicApiService.isVintageGoldenEra(s) &&
+                    !MusicApiService.is80sEra(s) &&
+                    !MusicApiService.is90sMelodyEra(s);
+              }
+              if (is80s) {
+                return MusicApiService.is80sEra(s) &&
+                    !MusicApiService.isVintageGoldenEra(s) &&
+                    !MusicApiService.is90sMelodyEra(s);
+              }
+              if (is90s) {
+                return MusicApiService.is90sMelodyEra(s) &&
+                    !MusicApiService.isVintageGoldenEra(s) &&
+                    !MusicApiService.is80sEra(s);
+              }
+              if (is2000s) {
+                return MusicApiService.is2000sSong(s) &&
+                    !MusicApiService.is90sMelodyEra(s);
+              }
               if (is2010s) return MusicApiService.is2010sSong(s);
               if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-              return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is80sEra(s) && !MusicApiService.is90sMelodyEra(s);
+              return !MusicApiService.isVintageGoldenEra(s) &&
+                  !MusicApiService.is80sEra(s) &&
+                  !MusicApiService.is90sMelodyEra(s);
             }
             return true;
           }).toList();
-          
-          _queue = [...playedPart, ...newTracks, ...remainingUpcoming].take(targetQueueSize).toList();
+
+          _queue = [
+            ...playedPart,
+            ...newTracks,
+            ...remainingUpcoming,
+          ].take(targetQueueSize).toList();
 
           // Add to allSongs as well
           final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
@@ -634,7 +740,11 @@ class MusicPlayerManager extends ChangeNotifier {
     _infillSmartQueue(song, targetQueueSize: 60);
   }
 
-  Future<void> playSong(Song song, {List<Song>? newQueue, List<Song>? playlistContext}) async {
+  Future<void> playSong(
+    Song song, {
+    List<Song>? newQueue,
+    List<Song>? playlistContext,
+  }) async {
     _isTransitioning = true;
     _errorMessage = null;
 
@@ -651,10 +761,23 @@ class MusicPlayerManager extends ChangeNotifier {
     }
 
     final songLang = MusicApiService.detectSongLanguage(song);
-    final isVintage = songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(song);
-    final is90s = songLang == 'Hindi' && !isVintage && MusicApiService.is90sMelodyEra(song);
-    final is2000s = songLang == 'Hindi' && !isVintage && !is90s && MusicApiService.is2000sSong(song);
-    final isIndie = songLang == 'Hindi' && !isVintage && !is90s && !is2000s && MusicApiService.isIndieOrSukoonSong(song);
+    final isVintage =
+        songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(song);
+    final is90s =
+        songLang == 'Hindi' &&
+        !isVintage &&
+        MusicApiService.is90sMelodyEra(song);
+    final is2000s =
+        songLang == 'Hindi' &&
+        !isVintage &&
+        !is90s &&
+        MusicApiService.is2000sSong(song);
+    final isIndie =
+        songLang == 'Hindi' &&
+        !isVintage &&
+        !is90s &&
+        !is2000s &&
+        MusicApiService.isIndieOrSukoonSong(song);
 
     // Immediately ensure queue is populated with era & language matched songs if autoplay is active
     if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
@@ -669,14 +792,17 @@ class MusicPlayerManager extends ChangeNotifier {
           if (is90s) return MusicApiService.is90sMelodyEra(s);
           if (is2000s) return MusicApiService.is2000sSong(s);
           if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-          return !MusicApiService.isVintageGoldenEra(s) && !MusicApiService.is90sMelodyEra(s);
+          return !MusicApiService.isVintageGoldenEra(s) &&
+              !MusicApiService.is90sMelodyEra(s);
         }
         return true;
       }).toList();
 
       localCandidates.sort((a, b) {
-        int scoreA = (a.artist == song.artist ? 3 : 0) + (a.genre == song.genre ? 1 : 0);
-        int scoreB = (b.artist == song.artist ? 3 : 0) + (b.genre == song.genre ? 1 : 0);
+        int scoreA =
+            (a.artist == song.artist ? 3 : 0) + (a.genre == song.genre ? 1 : 0);
+        int scoreB =
+            (b.artist == song.artist ? 3 : 0) + (b.genre == song.genre ? 1 : 0);
         return scoreB.compareTo(scoreA);
       });
       _queue.addAll(localCandidates.take(60 - _queue.length));
@@ -746,10 +872,7 @@ class MusicPlayerManager extends ChangeNotifier {
       );
 
       await _audioPlayer.setAudioSource(
-        AudioSource.uri(
-          Uri.parse(song.audioUrl),
-          tag: mediaItem,
-        ),
+        AudioSource.uri(Uri.parse(song.audioUrl), tag: mediaItem),
         preload: true,
       );
       await _audioPlayer.seek(Duration.zero);
@@ -773,8 +896,9 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> playPlaylist(List<Song> songs, {int initialIndex = 0}) async {
     if (songs.isEmpty) return;
     _queue = List.from(songs);
-    final targetIndex =
-        (initialIndex >= 0 && initialIndex < songs.length) ? initialIndex : 0;
+    final targetIndex = (initialIndex >= 0 && initialIndex < songs.length)
+        ? initialIndex
+        : 0;
     await playSong(_queue[targetIndex]);
   }
 
@@ -814,7 +938,9 @@ class MusicPlayerManager extends ChangeNotifier {
     if (_queue.isEmpty) return;
 
     // Proactively infill when within 4 songs of queue end
-    if (_autoplay && currentSong != null && _currentIndex >= _queue.length - 4) {
+    if (_autoplay &&
+        currentSong != null &&
+        _currentIndex >= _queue.length - 4) {
       _infillSmartQueue(currentSong!);
     }
 
@@ -863,7 +989,9 @@ class MusicPlayerManager extends ChangeNotifier {
     _position = newPosition;
     final dur = _duration.inSeconds > 0
         ? _duration.inSeconds.toDouble()
-        : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+        : (currentSong != null
+              ? currentSong!.duration.inSeconds.toDouble()
+              : 240.0);
     MediaSessionService.updatePositionState(
       durationSeconds: dur,
       positionSeconds: newPosition.inSeconds.toDouble(),
@@ -948,7 +1076,9 @@ class MusicPlayerManager extends ChangeNotifier {
     await _audioPlayer.setSpeed(speed);
     final dur = _duration.inSeconds > 0
         ? _duration.inSeconds.toDouble()
-        : (currentSong != null ? currentSong!.duration.inSeconds.toDouble() : 240.0);
+        : (currentSong != null
+              ? currentSong!.duration.inSeconds.toDouble()
+              : 240.0);
     MediaSessionService.updatePositionState(
       durationSeconds: dur,
       positionSeconds: _position.inSeconds.toDouble(),
@@ -1104,7 +1234,10 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Playlist> createPlaylist(String title, {String description = ''}) async {
+  Future<Playlist> createPlaylist(
+    String title, {
+    String description = '',
+  }) async {
     final newPlaylist = await DatabaseService.instance.createPlaylist(
       title,
       description: description,

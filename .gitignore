@@ -51,4 +51,6 @@ local.properties
 flutter/
 _flutter/
 .firebase/
+.jumbo_vault/
+android/build/
 

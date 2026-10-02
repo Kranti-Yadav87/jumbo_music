@@ -22,12 +22,7 @@ class _LibraryTabState extends State<LibraryTab> {
   bool _isAscending = true;
   final TextEditingController _searchController = TextEditingController();
 
-  final List<String> _categories = [
-    'Playlists',
-    'Songs',
-    'Albums',
-    'Artists',
-  ];
+  final List<String> _categories = ['Playlists', 'Songs', 'Albums', 'Artists'];
 
   @override
   void dispose() {
@@ -45,22 +40,44 @@ class _LibraryTabState extends State<LibraryTab> {
           children: [
             Icon(Icons.help_outline_rounded, color: Color(0xFF38BDF8)),
             SizedBox(width: 10),
-            Text('Library & Offline Guide', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            Text(
+              'Library & Offline Guide',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('• Playlists: Create and organize custom and shared blends.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(
+              '• Playlists: Create and organize custom and shared blends.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
             SizedBox(height: 8),
-            Text('• Recently Played: Track all previously listened tracks.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(
+              '• Recently Played: Track all previously listened tracks.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
             SizedBox(height: 8),
-            Text('• Favorites: One-tap access to all liked songs.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(
+              '• Favorites: One-tap access to all liked songs.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
             SizedBox(height: 8),
-            Text('• Cached/Offline: Plays stored stream cache without internet.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(
+              '• Cached/Offline: Plays stored stream cache without internet.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
             SizedBox(height: 8),
-            Text('• Downloads: 320 kbps offline master tracks saved permanently.', style: TextStyle(color: Colors.white70, fontSize: 13)),
+            Text(
+              '• Downloads: 320 kbps offline master tracks saved permanently.',
+              style: TextStyle(color: Colors.white70, fontSize: 13),
+            ),
           ],
         ),
         actions: [
@@ -68,10 +85,15 @@ class _LibraryTabState extends State<LibraryTab> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF38BDF8),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Got it', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Got it',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -79,7 +101,12 @@ class _LibraryTabState extends State<LibraryTab> {
   }
 
   void _shareApp(BuildContext context) {
-    Clipboard.setData(const ClipboardData(text: 'Listen to ad-free HD music and download songs offline on Jumbo Music!'));
+    Clipboard.setData(
+      const ClipboardData(
+        text:
+            'Listen to ad-free HD music and download songs offline on Jumbo Music!',
+      ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('App share link copied to clipboard! ✨'),
@@ -88,7 +115,10 @@ class _LibraryTabState extends State<LibraryTab> {
     );
   }
 
-  void _showCreatePlaylistDialog(BuildContext context, MusicPlayerManager manager) {
+  void _showCreatePlaylistDialog(
+    BuildContext context,
+    MusicPlayerManager manager,
+  ) {
     final titleController = TextEditingController();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -112,9 +142,13 @@ class _LibraryTabState extends State<LibraryTab> {
             style: TextStyle(color: isDark ? Colors.white : Colors.black),
             decoration: InputDecoration(
               hintText: 'Playlist Name',
-              hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+              hintStyle: TextStyle(
+                color: isDark ? Colors.white38 : Colors.black38,
+              ),
               filled: true,
-              fillColor: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFF1F5F9),
+              fillColor: isDark
+                  ? Colors.white.withOpacity(0.06)
+                  : const Color(0xFFF1F5F9),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide.none,
@@ -124,22 +158,33 @@ class _LibraryTabState extends State<LibraryTab> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: isDark ? Colors.white54 : Colors.grey)),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF38BDF8),
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () {
                 final title = titleController.text.trim();
                 if (title.isNotEmpty) {
-                  manager.createPlaylist(title, description: 'Custom Collection');
+                  manager.createPlaylist(
+                    title,
+                    description: 'Custom Collection',
+                  );
                   Navigator.pop(context);
                 }
               },
-              child: const Text('Create', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Create',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         );
@@ -155,7 +200,9 @@ class _LibraryTabState extends State<LibraryTab> {
 
     final bgColor = isDark ? const Color(0xFF081220) : const Color(0xFFF8FAFC);
     final cardColor = isDark ? const Color(0xFF1E2D4A) : Colors.white;
-    final cardBorder = isDark ? const Color(0xFF2B3E63) : const Color(0xFFE2E8F0);
+    final cardBorder = isDark
+        ? const Color(0xFF2B3E63)
+        : const Color(0xFFE2E8F0);
 
     return AnimatedBuilder(
       animation: Listenable.merge([manager, downloadService]),
@@ -193,7 +240,9 @@ class _LibraryTabState extends State<LibraryTab> {
                         Text(
                           'Jumbo Music',
                           style: TextStyle(
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                             fontSize: 22,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
@@ -204,7 +253,9 @@ class _LibraryTabState extends State<LibraryTab> {
                         IconButton(
                           icon: Icon(
                             Icons.help_outline_rounded,
-                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF475569),
                             size: 22,
                           ),
                           tooltip: 'Help & Info',
@@ -214,7 +265,9 @@ class _LibraryTabState extends State<LibraryTab> {
                         IconButton(
                           icon: Icon(
                             Icons.share_outlined,
-                            color: isDark ? Colors.white70 : const Color(0xFF475569),
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF475569),
                             size: 20,
                           ),
                           tooltip: 'Share App',
@@ -238,22 +291,29 @@ class _LibraryTabState extends State<LibraryTab> {
                             fontSize: 28,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
-                            color: isDark ? Colors.white : const Color(0xFF0F172A),
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
                           ),
                         ),
                         // Circular Plus Button (+)
                         GestureDetector(
-                          onTap: () => _showCreatePlaylistDialog(context, manager),
+                          onTap: () =>
+                              _showCreatePlaylistDialog(context, manager),
                           child: Container(
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF263756) : const Color(0xFFE2E8F0),
+                              color: isDark
+                                  ? const Color(0xFF263756)
+                                  : const Color(0xFFE2E8F0),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               Icons.add_rounded,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                               size: 22,
                             ),
                           ),
@@ -281,15 +341,24 @@ class _LibraryTabState extends State<LibraryTab> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6,
+                                  horizontal: 4,
+                                ),
                                 child: Text(
                                   cat,
                                   style: TextStyle(
                                     fontSize: 15,
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                    fontWeight: isSelected
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
                                     color: isSelected
-                                        ? (isDark ? Colors.white : const Color(0xFF0F172A))
-                                        : (isDark ? Colors.white54 : const Color(0xFF94A3B8)),
+                                        ? (isDark
+                                              ? Colors.white
+                                              : const Color(0xFF0F172A))
+                                        : (isDark
+                                              ? Colors.white54
+                                              : const Color(0xFF94A3B8)),
                                   ),
                                 ),
                               ),
@@ -298,7 +367,11 @@ class _LibraryTabState extends State<LibraryTab> {
                                 height: 2.5,
                                 width: 44,
                                 decoration: BoxDecoration(
-                                  color: isSelected ? (isDark ? Colors.white : const Color(0xFF0EA5E9)) : Colors.transparent,
+                                  color: isSelected
+                                      ? (isDark
+                                            ? Colors.white
+                                            : const Color(0xFF0EA5E9))
+                                      : Colors.transparent,
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -315,14 +388,19 @@ class _LibraryTabState extends State<LibraryTab> {
                 // 4. Sub-bar: "4 items AZ" ↓ 📖 🔍 - Screenshot 1
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 4,
+                    ),
                     child: Row(
                       children: [
                         Text(
                           '${_selectedCategory == "Playlists" ? 4 : manager.allSongs.length} items',
                           style: TextStyle(
                             fontSize: 13,
-                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white60
+                                : const Color(0xFF64748B),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -341,13 +419,19 @@ class _LibraryTabState extends State<LibraryTab> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                  color: isDark
+                                      ? Colors.white70
+                                      : const Color(0xFF475569),
                                 ),
                               ),
                               Icon(
-                                _isAscending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
+                                _isAscending
+                                    ? Icons.arrow_downward_rounded
+                                    : Icons.arrow_upward_rounded,
                                 size: 14,
-                                color: isDark ? Colors.white70 : const Color(0xFF475569),
+                                color: isDark
+                                    ? Colors.white70
+                                    : const Color(0xFF475569),
                               ),
                             ],
                           ),
@@ -360,7 +444,9 @@ class _LibraryTabState extends State<LibraryTab> {
                           icon: Icon(
                             Icons.menu_book_rounded,
                             size: 18,
-                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white60
+                                : const Color(0xFF64748B),
                           ),
                           onPressed: () {},
                         ),
@@ -372,12 +458,16 @@ class _LibraryTabState extends State<LibraryTab> {
                           icon: Icon(
                             Icons.search_rounded,
                             size: 20,
-                            color: isDark ? Colors.white60 : const Color(0xFF64748B),
+                            color: isDark
+                                ? Colors.white60
+                                : const Color(0xFF64748B),
                           ),
                           onPressed: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const SearchTab()),
+                              MaterialPageRoute(
+                                builder: (_) => const SearchTab(),
+                              ),
                             );
                           },
                         ),
@@ -410,7 +500,9 @@ class _LibraryTabState extends State<LibraryTab> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const HistoryTab()),
+                              MaterialPageRoute(
+                                builder: (_) => const HistoryTab(),
+                              ),
                             );
                           },
                         ),
@@ -438,7 +530,10 @@ class _LibraryTabState extends State<LibraryTab> {
                             );
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: favPlaylist)),
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: favPlaylist),
+                              ),
                             );
                           },
                         ),
@@ -455,7 +550,9 @@ class _LibraryTabState extends State<LibraryTab> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const CachedOfflineScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const CachedOfflineScreen(),
+                              ),
                             );
                           },
                         ),
@@ -472,7 +569,9 @@ class _LibraryTabState extends State<LibraryTab> {
                           onTap: () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const DownloadedSongsScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const DownloadedSongsScreen(),
+                              ),
                             );
                           },
                         ),
@@ -485,11 +584,16 @@ class _LibraryTabState extends State<LibraryTab> {
                   // Playlists List below the 4 cards
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 6,
+                      ),
                       child: Text(
                         'MY PLAYLISTS & MIXES',
                         style: TextStyle(
-                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                          color: isDark
+                              ? Colors.white54
+                              : const Color(0xFF64748B),
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
@@ -498,230 +602,275 @@ class _LibraryTabState extends State<LibraryTab> {
                     ),
                   ),
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final pl = manager.playlists[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: cardBorder),
-                          ),
-                          child: ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                pl.coverUrl,
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final pl = manager.playlists[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: cardBorder),
+                        ),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              pl.coverUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
                                 width: 48,
                                 height: 48,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 48,
-                                  height: 48,
-                                  color: const Color(0xFF1E293B),
-                                  child: const Icon(Icons.queue_music, color: Colors.white54),
+                                color: const Color(0xFF1E293B),
+                                child: const Icon(
+                                  Icons.queue_music,
+                                  color: Colors.white54,
                                 ),
                               ),
                             ),
-                            title: Text(
-                              pl.title,
-                              style: TextStyle(
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14.5,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${pl.songs.length} songs • ${pl.description}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: Icon(
-                              Icons.arrow_forward_ios_rounded,
-                              size: 14,
-                              color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => PlaylistDetailScreen(playlist: pl),
-                                ),
-                              );
-                            },
                           ),
-                        );
-                      },
-                      childCount: manager.playlists.length,
-                    ),
+                          title: Text(
+                            pl.title,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14.5,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${pl.songs.length} songs • ${pl.description}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            size: 14,
+                            color: isDark
+                                ? Colors.white38
+                                : const Color(0xFF94A3B8),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: pl),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: manager.playlists.length),
                   ),
                 ] else if (_selectedCategory == 'Songs') ...[
                   // Songs List
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final song = manager.allSongs[index];
-                        final isCurrent = manager.currentSong?.id == song.id;
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final song = manager.allSongs[index];
+                      final isCurrent = manager.currentSong?.id == song.id;
 
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isCurrent
-                                  ? const Color(0xFF38BDF8).withOpacity(0.5)
-                                  : cardBorder,
-                            ),
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isCurrent
+                                ? const Color(0xFF38BDF8).withOpacity(0.5)
+                                : cardBorder,
                           ),
-                          child: ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                song.coverUrl,
+                        ),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              song.coverUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
                                 width: 48,
                                 height: 48,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 48,
-                                  height: 48,
-                                  color: const Color(0xFF1E293B),
-                                  child: const Icon(Icons.music_note, color: Colors.white54),
+                                color: const Color(0xFF1E293B),
+                                child: const Icon(
+                                  Icons.music_note,
+                                  color: Colors.white54,
                                 ),
                               ),
                             ),
-                            title: Text(
-                              song.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: isCurrent ? const Color(0xFF38BDF8) : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${song.artist} • ${song.formattedDuration}',
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(
-                                Icons.more_vert_rounded,
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                size: 20,
-                              ),
-                              onPressed: () => TrackOptionsSheet.show(context, song),
-                            ),
-                            onTap: () {
-                              final isCurrent = manager.currentSong?.id == song.id;
-                              if (isCurrent) {
-                                manager.togglePlay();
-                              } else {
-                                manager.playSong(song, newQueue: manager.allSongs);
-                              }
-                            },
                           ),
-                        );
-                      },
-                      childCount: manager.allSongs.length,
-                    ),
+                          title: Text(
+                            song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isCurrent
+                                  ? const Color(0xFF38BDF8)
+                                  : (isDark
+                                        ? Colors.white
+                                        : const Color(0xFF0F172A)),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${song.artist} • ${song.formattedDuration}',
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
+                              fontSize: 12,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: Icon(
+                              Icons.more_vert_rounded,
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
+                              size: 20,
+                            ),
+                            onPressed: () =>
+                                TrackOptionsSheet.show(context, song),
+                          ),
+                          onTap: () {
+                            final isCurrent =
+                                manager.currentSong?.id == song.id;
+                            if (isCurrent) {
+                              manager.togglePlay();
+                            } else {
+                              manager.playSong(
+                                song,
+                                newQueue: manager.allSongs,
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    }, childCount: manager.allSongs.length),
                   ),
                 ] else if (_selectedCategory == 'Albums') ...[
                   // Albums / Mixes List
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final pl = manager.genreMixes[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: cardBorder),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final pl = manager.genreMixes[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: cardBorder),
+                        ),
+                        child: ListTile(
+                          leading: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              pl.coverUrl,
+                              width: 48,
+                              height: 48,
+                              fit: BoxFit.cover,
+                            ),
                           ),
-                          child: ListTile(
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(pl.coverUrl, width: 48, height: 48, fit: BoxFit.cover),
+                          title: Text(
+                            pl.title,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                              fontWeight: FontWeight.bold,
                             ),
-                            title: Text(
-                              pl.title,
-                              style: TextStyle(
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              pl.description,
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: pl)),
-                              );
-                            },
                           ),
-                        );
-                      },
-                      childCount: manager.genreMixes.length,
-                    ),
+                          subtitle: Text(
+                            pl.description,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
+                              fontSize: 12,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: pl),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: manager.genreMixes.length),
                   ),
                 ] else if (_selectedCategory == 'Artists') ...[
                   // Artists List
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final artistMix = manager.artistMixes[index];
-                        return Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: cardColor,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: cardBorder),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final artistMix = manager.artistMixes[index];
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: cardColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: cardBorder),
+                        ),
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            radius: 24,
+                            backgroundImage: NetworkImage(artistMix.coverUrl),
                           ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              radius: 24,
-                              backgroundImage: NetworkImage(artistMix.coverUrl),
+                          title: Text(
+                            artistMix.title,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
-                            title: Text(
-                              artistMix.title,
-                              style: TextStyle(
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              artistMix.description,
-                              style: TextStyle(
-                                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                                fontSize: 12,
-                              ),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: artistMix)),
-                              );
-                            },
                           ),
-                        );
-                      },
-                      childCount: manager.artistMixes.length,
-                    ),
+                          subtitle: Text(
+                            artistMix.description,
+                            style: TextStyle(
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
+                              fontSize: 12,
+                            ),
+                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: artistMix),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    }, childCount: manager.artistMixes.length),
                   ),
                 ],
 
@@ -773,11 +922,7 @@ class _LibraryTabState extends State<LibraryTab> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Center Big Icon
-            Icon(
-              icon,
-              size: 40,
-              color: Colors.white,
-            ),
+            Icon(icon, size: 40, color: Colors.white),
             const SizedBox(height: 14),
             // Title (Recently Played, Favorites, Cached/Offline, Downloads)
             Text(

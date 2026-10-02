@@ -1,13 +1,22 @@
 import 'dart:js_interop';
 
 @JS('jumboMediaUpdateMetadata')
-external void _jsUpdateMetadata(JSString title, JSString artist, JSString album, JSString coverUrl);
+external void _jsUpdateMetadata(
+  JSString title,
+  JSString artist,
+  JSString album,
+  JSString coverUrl,
+);
 
 @JS('jumboMediaUpdatePlaybackState')
 external void _jsUpdatePlaybackState(JSBoolean isPlaying);
 
 @JS('jumboMediaUpdatePositionState')
-external void _jsUpdatePositionState(JSNumber durationSec, JSNumber positionSec, JSNumber speed);
+external void _jsUpdatePositionState(
+  JSNumber durationSec,
+  JSNumber positionSec,
+  JSNumber speed,
+);
 
 @JS('jumboRegisterMediaActionHandler')
 external void _jsRegisterActionHandler(JSFunction callback);

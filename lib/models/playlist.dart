@@ -130,11 +130,11 @@ class Playlist {
       createdAt: json['createdAt'] != null
           ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
-      isCollaborative: json['isCollaborative'] as bool? ?? (pType == PlaylistType.sharedBlend),
+      isCollaborative:
+          json['isCollaborative'] as bool? ??
+          (pType == PlaylistType.sharedBlend),
       collaboratorNames: collabs,
       friendEmail: json['friendEmail'] as String? ?? '',
     );
   }
 }
-
-

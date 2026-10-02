@@ -31,7 +31,8 @@ class ConnectivityService extends ChangeNotifier {
   }
 
   void _updateStatus(List<ConnectivityResult> results) {
-    final offline = results.isEmpty || results.every((r) => r == ConnectivityResult.none);
+    final offline =
+        results.isEmpty || results.every((r) => r == ConnectivityResult.none);
     if (_isOffline != offline) {
       _isOffline = offline;
       notifyListeners();

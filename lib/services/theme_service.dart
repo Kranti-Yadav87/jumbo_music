@@ -22,15 +22,23 @@ class AppThemeManager extends ChangeNotifier {
   }
 
   void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-    DatabaseService.instance.updateSetting('isDarkMode', _themeMode == ThemeMode.dark);
+    _themeMode = _themeMode == ThemeMode.dark
+        ? ThemeMode.light
+        : ThemeMode.dark;
+    DatabaseService.instance.updateSetting(
+      'isDarkMode',
+      _themeMode == ThemeMode.dark,
+    );
     notifyListeners();
   }
 
   void setTheme(ThemeMode mode) {
     if (_themeMode == mode) return;
     _themeMode = mode;
-    DatabaseService.instance.updateSetting('isDarkMode', _themeMode == ThemeMode.dark);
+    DatabaseService.instance.updateSetting(
+      'isDarkMode',
+      _themeMode == ThemeMode.dark,
+    );
     notifyListeners();
   }
 

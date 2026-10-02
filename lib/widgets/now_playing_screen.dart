@@ -41,17 +41,27 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
   }
 
   void _shareSong(BuildContext context, Song song) {
-    Clipboard.setData(ClipboardData(text: '${song.title} by ${song.artist} - Listen on Jumbo Music'));
+    Clipboard.setData(
+      ClipboardData(
+        text: '${song.title} by ${song.artist} - Listen on Jumbo Music',
+      ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Copied "${song.title} - ${song.artist}" to clipboard! Ready to share.'),
+        content: Text(
+          'Copied "${song.title} - ${song.artist}" to clipboard! Ready to share.',
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
-  void _showLyricsSheet(BuildContext context, MusicPlayerManager manager, Song song) {
+  void _showLyricsSheet(
+    BuildContext context,
+    MusicPlayerManager manager,
+    Song song,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -89,7 +99,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
                       child: Row(
                         children: [
-                          const Icon(Icons.lyrics_rounded, color: Color(0xFF38BDF8), size: 22),
+                          const Icon(
+                            Icons.lyrics_rounded,
+                            color: Color(0xFF38BDF8),
+                            size: 22,
+                          ),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
@@ -104,7 +118,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close_rounded, color: Colors.white60),
+                            icon: const Icon(
+                              Icons.close_rounded,
+                              color: Colors.white60,
+                            ),
                             onPressed: () => Navigator.pop(ctx),
                           ),
                         ],
@@ -116,7 +133,13 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                         controller: scrollController,
                         physics: const BouncingScrollPhysics(),
                         slivers: [
-                          _buildSyncedLyricsSliver(context, manager, song, currentPos, totalDur),
+                          _buildSyncedLyricsSliver(
+                            context,
+                            manager,
+                            song,
+                            currentPos,
+                            totalDur,
+                          ),
                         ],
                       ),
                     ),
@@ -180,7 +203,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                           children: [
                             const Row(
                               children: [
-                                Icon(Icons.queue_music_rounded, color: Color(0xFF38BDF8), size: 22),
+                                Icon(
+                                  Icons.queue_music_rounded,
+                                  color: Color(0xFF38BDF8),
+                                  size: 22,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'Up Next Queue',
@@ -207,11 +234,16 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                     if (song != null)
                       SliverToBoxAdapter(
                         child: Container(
-                          margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFF131F38),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF38BDF8).withOpacity(0.4)),
+                            border: Border.all(
+                              color: const Color(0xFF38BDF8).withOpacity(0.4),
+                            ),
                           ),
                           child: ListTile(
                             leading: Stack(
@@ -262,8 +294,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             ),
                             trailing: IconButton(
                               icon: Icon(
-                                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                color: isFav ? const Color(0xFFFF5E7E) : Colors.white70,
+                                isFav
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: isFav
+                                    ? const Color(0xFFFF5E7E)
+                                    : Colors.white70,
                                 size: 22,
                               ),
                               onPressed: () => manager.toggleFavorite(song.id),
@@ -278,59 +314,64 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
                     // Queue List
                     SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final item = queue[index];
-                          final isCurrent = song != null && item.id == song.id;
-                          if (isCurrent) return const SizedBox.shrink();
+                      delegate: SliverChildBuilderDelegate((context, index) {
+                        final item = queue[index];
+                        final isCurrent = song != null && item.id == song.id;
+                        if (isCurrent) return const SizedBox.shrink();
 
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                              leading: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: AppCachedImage(
-                                  imageUrl: item.coverUrl,
-                                  width: 44,
-                                  height: 44,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                              title: Text(
-                                item.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              subtitle: Text(
-                                '${item.artist} • ${item.formattedDuration}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white54,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.more_vert_rounded, color: Colors.white54),
-                                onPressed: () => TrackOptionsSheet.show(context, item),
-                              ),
-                              onTap: () => manager.playSong(item),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 2,
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 2,
                             ),
-                          );
-                        },
-                        childCount: queue.length,
-                      ),
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: AppCachedImage(
+                                imageUrl: item.coverUrl,
+                                width: 44,
+                                height: 44,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                            title: Text(
+                              item.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${item.artist} • ${item.formattedDuration}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 12,
+                              ),
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Colors.white54,
+                              ),
+                              onPressed: () =>
+                                  TrackOptionsSheet.show(context, item),
+                            ),
+                            onTap: () => manager.playSong(item),
+                          ),
+                        );
+                      }, childCount: queue.length),
                     ),
 
-                    const SliverToBoxAdapter(
-                      child: SizedBox(height: 40),
-                    ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 40)),
                   ],
                 );
               },
@@ -375,7 +416,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
           behavior: HitTestBehavior.translucent,
           onVerticalDragEnd: (details) {
             // Swiping UP opens the Queue sheet
-            if (details.primaryVelocity != null && details.primaryVelocity! < -180) {
+            if (details.primaryVelocity != null &&
+                details.primaryVelocity! < -180) {
               _showQueueSheet(context, manager);
             }
           },
@@ -391,7 +433,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Color(0xFF0B192E), // Deep midnight blue tint from Screenshot 2
+                          Color(
+                            0xFF0B192E,
+                          ), // Deep midnight blue tint from Screenshot 2
                           Color(0xFF081220),
                           Color(0xFF040810),
                         ],
@@ -430,14 +474,23 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                     builder: (context, constraints) {
                       final screenHeight = constraints.maxHeight;
                       final screenWidth = constraints.maxWidth;
-                      final maxAllowedWidth = (screenWidth - 48).clamp(200.0, 340.0);
-                      final coverSize = (screenHeight * 0.38).clamp(200.0, maxAllowedWidth);
+                      final maxAllowedWidth = (screenWidth - 48).clamp(
+                        200.0,
+                        340.0,
+                      );
+                      final coverSize = (screenHeight * 0.38).clamp(
+                        200.0,
+                        maxAllowedWidth,
+                      );
 
                       return Column(
                         children: [
                           // 1. TOP BAR: Down Arrow (v) + "PLAYING FROM SELECTION" / "Random Selection" + 3-dots (:) - Screenshot 2
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 4,
+                            ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -467,7 +520,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        song.album.isNotEmpty ? '"${song.album}"' : '"Random Selection"',
+                                        song.album.isNotEmpty
+                                            ? '"${song.album}"'
+                                            : '"Random Selection"',
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         textAlign: TextAlign.center,
@@ -488,7 +543,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                     color: Colors.white,
                                     size: 22,
                                   ),
-                                  onPressed: () => TrackOptionsSheet.show(context, song),
+                                  onPressed: () =>
+                                      TrackOptionsSheet.show(context, song),
                                 ),
                               ],
                             ),
@@ -510,7 +566,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                     offset: const Offset(0, 15),
                                   ),
                                   BoxShadow(
-                                    color: const Color(0xFF38BDF8).withOpacity(0.12),
+                                    color: const Color(
+                                      0xFF38BDF8,
+                                    ).withOpacity(0.12),
                                     blurRadius: 20,
                                     offset: const Offset(0, 5),
                                   ),
@@ -542,10 +600,21 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
                                 // Download Pill Button (Saves offline in app)
                                 _buildActionPill(
-                                  icon: isDl ? Icons.check_circle_rounded : (isDling ? Icons.hourglass_top_rounded : Icons.download_rounded),
-                                  label: isDl ? 'DOWNLOADED' : (isDling ? 'SAVING...' : 'DOWNLOAD'),
-                                  iconColor: isDl ? const Color(0xFF10B981) : Colors.white,
-                                  onTap: () => downloadService.downloadSong(song, context: context),
+                                  icon: isDl
+                                      ? Icons.check_circle_rounded
+                                      : (isDling
+                                            ? Icons.hourglass_top_rounded
+                                            : Icons.download_rounded),
+                                  label: isDl
+                                      ? 'DOWNLOADED'
+                                      : (isDling ? 'SAVING...' : 'DOWNLOAD'),
+                                  iconColor: isDl
+                                      ? const Color(0xFF10B981)
+                                      : Colors.white,
+                                  onTap: () => downloadService.downloadSong(
+                                    song,
+                                    context: context,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
 
@@ -553,7 +622,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 _buildActionPill(
                                   icon: Icons.article_outlined,
                                   label: 'LYRICS',
-                                  onTap: () => _showLyricsSheet(context, manager, song),
+                                  onTap: () =>
+                                      _showLyricsSheet(context, manager, song),
                                 ),
                               ],
                             ),
@@ -569,7 +639,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
@@ -601,12 +672,19 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 // Like Heart Button (🤍 / ❤️)
                                 IconButton(
                                   icon: Icon(
-                                    isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                    color: isFav ? const Color(0xFFFF5E7E) : Colors.white,
+                                    isFav
+                                        ? Icons.favorite_rounded
+                                        : Icons.favorite_border_rounded,
+                                    color: isFav
+                                        ? const Color(0xFFFF5E7E)
+                                        : Colors.white,
                                     size: 26,
                                   ),
-                                  tooltip: isFav ? 'Remove from favorites' : 'Add to favorites',
-                                  onPressed: () => manager.toggleFavorite(song.id),
+                                  tooltip: isFav
+                                      ? 'Remove from favorites'
+                                      : 'Add to favorites',
+                                  onPressed: () =>
+                                      manager.toggleFavorite(song.id),
                                 ),
                               ],
                             ),
@@ -623,26 +701,44 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
                                     trackHeight: 3.5,
-                                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                                    overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 7,
+                                    ),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 14,
+                                    ),
                                     activeTrackColor: Colors.white,
-                                    inactiveTrackColor: Colors.white.withOpacity(0.2),
+                                    inactiveTrackColor: Colors.white
+                                        .withOpacity(0.2),
                                     thumbColor: Colors.white,
                                   ),
                                   child: Slider(
                                     min: 0.0,
-                                    max: max(1.0, totalDur.inMilliseconds.toDouble()),
-                                    value: (_dragValue ?? currentPos.inMilliseconds.toDouble()).clamp(
-                                      0.0,
-                                      max(1.0, totalDur.inMilliseconds.toDouble()),
+                                    max: max(
+                                      1.0,
+                                      totalDur.inMilliseconds.toDouble(),
                                     ),
+                                    value:
+                                        (_dragValue ??
+                                                currentPos.inMilliseconds
+                                                    .toDouble())
+                                            .clamp(
+                                              0.0,
+                                              max(
+                                                1.0,
+                                                totalDur.inMilliseconds
+                                                    .toDouble(),
+                                              ),
+                                            ),
                                     onChanged: (val) {
                                       setState(() {
                                         _dragValue = val;
                                       });
                                     },
                                     onChangeEnd: (val) {
-                                      manager.seek(Duration(milliseconds: val.toInt()));
+                                      manager.seek(
+                                        Duration(milliseconds: val.toInt()),
+                                      );
                                       setState(() {
                                         _dragValue = null;
                                       });
@@ -650,9 +746,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   ),
                                 ),
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
                                   child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         _formatTime(currentPos),
@@ -689,7 +788,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 IconButton(
                                   icon: Icon(
                                     Icons.shuffle_rounded,
-                                    color: manager.isShuffle ? const Color(0xFF38BDF8) : Colors.white60,
+                                    color: manager.isShuffle
+                                        ? const Color(0xFF38BDF8)
+                                        : Colors.white60,
                                     size: 24,
                                   ),
                                   tooltip: 'Shuffle',
@@ -728,7 +829,9 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(0.4),
+                                            color: Colors.black.withOpacity(
+                                              0.4,
+                                            ),
                                             blurRadius: 14,
                                             offset: const Offset(0, 4),
                                           ),
@@ -736,23 +839,39 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                       ),
                                       child: Center(
                                         child: AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 150),
-                                          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                                          child: (manager.isBuffering && !manager.isPlaying)
+                                          duration: const Duration(
+                                            milliseconds: 150,
+                                          ),
+                                          transitionBuilder: (child, anim) =>
+                                              ScaleTransition(
+                                                scale: anim,
+                                                child: child,
+                                              ),
+                                          child:
+                                              (manager.isBuffering &&
+                                                  !manager.isPlaying)
                                               ? const SizedBox(
                                                   key: ValueKey('buffering'),
                                                   width: 26,
                                                   height: 26,
                                                   child: CircularProgressIndicator(
                                                     strokeWidth: 2.8,
-                                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                    valueColor:
+                                                        AlwaysStoppedAnimation<
+                                                          Color
+                                                        >(Colors.white),
                                                   ),
                                                 )
                                               : Icon(
                                                   manager.isPlaying
                                                       ? Icons.pause_rounded
-                                                      : Icons.play_arrow_rounded,
-                                                  key: ValueKey(manager.isPlaying ? 'pause' : 'play'),
+                                                      : Icons
+                                                            .play_arrow_rounded,
+                                                  key: ValueKey(
+                                                    manager.isPlaying
+                                                        ? 'pause'
+                                                        : 'play',
+                                                  ),
                                                   color: Colors.white,
                                                   size: 38,
                                                 ),
@@ -778,8 +897,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   icon: Icon(
                                     manager.autoplay
                                         ? Icons.all_inclusive_rounded
-                                        : (manager.loopMode == LoopMode.one ? Icons.repeat_one_rounded : Icons.repeat_rounded),
-                                    color: manager.autoplay || manager.loopMode != LoopMode.off
+                                        : (manager.loopMode == LoopMode.one
+                                              ? Icons.repeat_one_rounded
+                                              : Icons.repeat_rounded),
+                                    color:
+                                        manager.autoplay ||
+                                            manager.loopMode != LoopMode.off
                                         ? const Color(0xFF38BDF8)
                                         : Colors.white60,
                                     size: 24,
@@ -797,7 +920,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                           GestureDetector(
                             onTap: () => _showQueueSheet(context, manager),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 24),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 24,
+                              ),
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -848,19 +974,12 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.09),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.12),
-            width: 0.8,
-          ),
+          border: Border.all(color: Colors.white.withOpacity(0.12), width: 0.8),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              size: 15,
-              color: iconColor,
-            ),
+            Icon(icon, size: 15, color: iconColor),
             const SizedBox(width: 6),
             Text(
               label,
@@ -904,75 +1023,76 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       sliver: SliverList(
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final line = lrcLines[index];
-            final isCurrent = index == activeIndex;
-            final isPast = index < activeIndex;
+        delegate: SliverChildBuilderDelegate((context, index) {
+          final line = lrcLines[index];
+          final isCurrent = index == activeIndex;
+          final isPast = index < activeIndex;
 
-            final timeStr =
-                '${line.timestamp.inMinutes}:${(line.timestamp.inSeconds % 60).toString().padLeft(2, '0')}';
+          final timeStr =
+              '${line.timestamp.inMinutes}:${(line.timestamp.inSeconds % 60).toString().padLeft(2, '0')}';
 
-            return InkWell(
-              borderRadius: BorderRadius.circular(14),
-              onTap: () {
-                manager.seek(line.timestamp);
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 250),
-                margin: const EdgeInsets.symmetric(vertical: 5),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isCurrent
-                      ? const Color(0xFF1E2D4A).withOpacity(0.85)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  border: isCurrent
-                      ? Border.all(color: const Color(0xFF38BDF8).withOpacity(0.5))
-                      : null,
-                ),
-                child: Row(
-                  children: [
-                    if (isCurrent) ...[
-                      EqualizerBars(
-                        isPlaying: manager.isPlaying,
-                        color: const Color(0xFF38BDF8),
-                        height: 14,
-                      ),
-                      const SizedBox(width: 10),
-                    ] else ...[
-                      Text(
-                        timeStr,
-                        style: TextStyle(
-                          color: isPast ? Colors.white30 : Colors.white24,
-                          fontSize: 11,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    Expanded(
-                      child: Text(
-                        line.text,
-                        style: TextStyle(
-                          color: isCurrent
-                              ? const Color(0xFF38BDF8)
-                              : isPast
-                                  ? Colors.white70
-                                  : Colors.white30,
-                          fontSize: isCurrent ? 17 : 15,
-                          fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
-                          height: 1.4,
-                        ),
+          return InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              manager.seek(line.timestamp);
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              margin: const EdgeInsets.symmetric(vertical: 5),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isCurrent
+                    ? const Color(0xFF1E2D4A).withOpacity(0.85)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                border: isCurrent
+                    ? Border.all(
+                        color: const Color(0xFF38BDF8).withOpacity(0.5),
+                      )
+                    : null,
+              ),
+              child: Row(
+                children: [
+                  if (isCurrent) ...[
+                    EqualizerBars(
+                      isPlaying: manager.isPlaying,
+                      color: const Color(0xFF38BDF8),
+                      height: 14,
+                    ),
+                    const SizedBox(width: 10),
+                  ] else ...[
+                    Text(
+                      timeStr,
+                      style: TextStyle(
+                        color: isPast ? Colors.white30 : Colors.white24,
+                        fontSize: 11,
+                        fontFamily: 'monospace',
                       ),
                     ),
+                    const SizedBox(width: 12),
                   ],
-                ),
+                  Expanded(
+                    child: Text(
+                      line.text,
+                      style: TextStyle(
+                        color: isCurrent
+                            ? const Color(0xFF38BDF8)
+                            : isPast
+                            ? Colors.white70
+                            : Colors.white30,
+                        fontSize: isCurrent ? 17 : 15,
+                        fontWeight: isCurrent
+                            ? FontWeight.bold
+                            : FontWeight.w500,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
-          childCount: lrcLines.length,
-        ),
+            ),
+          );
+        }, childCount: lrcLines.length),
       ),
     );
   }
