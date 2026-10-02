@@ -773,7 +773,6 @@ class DatabaseService extends ChangeNotifier {
       }
 
       if (_friends.isEmpty) {
-        // Start with clean empty friends list or offline sample contact
         await _flushFriends();
       }
     } catch (_) {}
@@ -784,6 +783,18 @@ class DatabaseService extends ChangeNotifier {
       final list = _friends.map((f) => f.toJson()).toList();
       await StorageEngine.setItem(_scopedKey('friends'), jsonEncode(list));
     } catch (_) {}
+  }
+
+  Future<void> saveFriendLocally(Friend friend) async {
+    _friends.removeWhere((f) => f.id == friend.id || f.email.toLowerCase() == friend.email.toLowerCase());
+    _friends.insert(0, friend);
+    addNotification(
+      title: 'New Friend Connected',
+      message: '${friend.name} (${friend.email}) is now in your friends list.',
+      type: 'friend',
+    );
+    notifyListeners();
+    await _flushFriends();
   }
 
   Future<Friend> addFriend(String email, {String? name}) async {
@@ -799,34 +810,19 @@ class DatabaseService extends ChangeNotifier {
     }
 
     final newFriend = Friend(
-      id: 'f_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'f_${cleanEmail.hashCode.abs()}',
       name: displayName,
       email: cleanEmail,
       avatarInitials: displayName.isNotEmpty
           ? displayName[0].toUpperCase()
           : 'F',
-      currentSongTitle: 'Kahani Suno 2.0',
-      currentSongArtist: 'Kaifi Khalil',
-      currentSongId: '3',
-      currentSongCover:
-          'https://c.saavncdn.com/editorial/BestOfIndieHindi_20230324103126_500x500.jpg',
+      currentSongTitle: '',
+      currentSongArtist: '',
       isOnline: true,
-      isListening: true,
+      isListening: false,
     );
 
-    _friends.removeWhere(
-      (f) => f.email.toLowerCase() == cleanEmail.toLowerCase(),
-    );
-    _friends.insert(0, newFriend);
-
-    addNotification(
-      title: 'New Friend Added',
-      message: '$displayName ($cleanEmail) is now connected with you.',
-      type: 'friend',
-    );
-
-    notifyListeners();
-    await _flushFriends();
+    await saveFriendLocally(newFriend);
     return newFriend;
   }
 

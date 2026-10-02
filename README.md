@@ -1,91 +1,77 @@
-# Jumbo Music 🎵 — Professional Music Streaming & Player App
+# Jumbo Music 🎵 — Professional Music Streaming & Social Player App
 
-A high-performance, commercial-grade music streaming and player app built with Flutter & Material 3.
+A high-performance, commercial-grade music streaming and player app built with **Flutter & Material 3**, **Firebase Auth + Cloud Firestore**, and a **custom music catalog API** with local caching and offline persistence.
 
 ---
 
-## 🌟 Professional Features
+## 🌟 Key Features
 
-### 1. Live Worldwide & Indian Music Search & Streaming
-- Real-time online music searching powered by the Apple/iTunes Music API.
-- Search **ANY** artist, singer, song, or album (e.g. *Arijit Singh, Diljit Dosanjh, Sidhu Moosewala, Shreya Ghoshal, Badshah, AP Dhillon, Taylor Swift, The Weeknd*).
-- 600x600 HD album artwork upscaling with instant, crystal-clear 256/320 kbps streaming audio.
-- Pre-loaded with dynamic trending Bollywood and Global hits.
+### 1. Real-time Social Presence & Friends Jam
+- **Live Firestore Presence**: Authenticated users broadcast their active listening status (`currentSongTitle`, `currentSongArtist`, `currentSongCover`, `isListening`, `isOnline`) in real time.
+- **Listen Together & Live Jam Rooms**: Synchronize playback with friends instantly or share a room code (`JUMBO-SYNC-XXXX`) for joint listening sessions.
+- **Collaborative Duo Blend Playlists**: Synchronized playlists stored in Cloud Firestore where multiple friends can add and stream songs together.
+- **Modular Friends Screen**: Broken down into maintainable submodules (`friend_listening_tile.dart`, `shared_playlist_dialog.dart`, `live_jam_dialog.dart`, `add_friend_dialog.dart`).
 
-### 2. Studio Now Playing Player
-- **Vinyl Spin & Pulse**: Dynamic turntable vinyl animation while playback is active.
-- **Interactive Scrubbing / Seek Bar**: High-precision slider with elapsed time and total duration.
-- **Smart Controls**: Previous (restarts if elapsed > 3s, otherwise jumps to previous), Hero Play/Pause button with glowing gradient ring, Next, Shuffle mode, Repeat modes (Off, All, One).
+### 2. Real Offline Disk Downloads & Airplane Mode Playback
+- **Persistent Local File Storage**: Songs downloaded via `DownloadService` are saved directly to local storage using `path_provider` (`FileDownloader`).
+- **Offline Playback Engine**: `MusicPlayerManager` automatically detects when a downloaded file exists locally and streams directly from disk (`Uri.file(...)`) without requiring any internet connection.
+- **Atomic Downloads**: Writes to a `.part` temporary file first so incomplete downloads are never corrupted.
+
+### 3. Android Hardware Equalizer (EQ) Presets
+- **Real Hardware Equalizer**: Utilizes `AndroidEqualizer` in `AudioPipeline` for true DSP sound modification on Android devices.
+- **Pure Math Presets**: Mathematically calibrated frequency gain curves (`EqPresets`) for:
+  - `Normal` (Flat reference response)
+  - `Bass Boost` (Low-frequency enhancement)
+  - `Vocal Booster` (Mid-range voice clarity)
+  - `Acoustic` (Warm acoustic balance)
+  - `Electronic` (V-shaped energetic response)
+  - `Rock` (Punchy punch & highs)
+
+### 4. Studio Player & Lock Screen Media Controls
+- **Lock Screen & Notification Controls**: Integrated with `JustAudioBackground` and `MediaSessionService` for lock-screen controls, scrub bars, and metadata.
 - **Bedtime Sleep Timer**: 15m, 30m, 45m, 60m, or "End of Current Song" with live countdown badge.
-- **Equalizer / Sound Presets**: Normal, Bass Boost, Vocal Booster, Acoustic, Electronic, Rock.
-- **Volume & Mute Slider**: Integrated volume control with one-tap instant mute.
-- **Synchronized Lyrics Drawer**: Slide-up sheet to read song lyrics.
-- **Queue Management**: Swipe to delete from queue, tap to jump, and clear queue options.
-- **Track Information Sheet**: Inspect title, artist, album, genre, release year, and audio bitrate.
+- **Synchronized Lyrics Drawer**: Slide-up sheet to read synced song lyrics (LRC).
+- **Docked Mini-Player**: Floats above navigation with real-time waveform equalizer animation and expandable player.
 
-### 3. Floating Docked Mini-Player
-- Floats above the bottom navigation bar.
-- Shows current song cover art, title, artist, animated equalizer sound waves, and quick play/pause/skip actions.
-- Top edge linear progress indicator.
-- Tap to smoothly expand into the full-screen player.
-
-### 4. 4 Core Multi-Tab Sections
-1. **Home**: Dynamic greeting (Good Morning / Afternoon / Evening), Featured Track Hero card, Genre filter chips (Bollywood, Lo-Fi, EDM, Acoustic, Chill, Pop), Curated Playlists scroll, Recently Played cards, and Ranked Trending tracks.
-2. **Live Search & Explore**: Real-time live search with debounced typing, quick top artist chips (*Arijit Singh, Diljit Dosanjh, etc.*), and vibrant category cards.
-3. **Library & Playlists**: Liked Songs quick access, curated playlists (Late Night Lo-Fi, Bollywood Sukoon, High Octane EDM, Acoustic & Chillout), and custom playlist creation dialog.
-4. **Favorites**: One-tap "Play All" for all liked tracks, instant heart toggle.
-
-### 5. Android 14+ Background Audio & APK Readiness
-- Configured with `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, and `POST_NOTIFICATIONS` in `AndroidManifest.xml` so audio continues playing uninterrupted even when the screen is locked or the app is in the background.
-- Clean application ID `com.jumbomusic.app` and release signing setup.
+### 5. Crash Reporting & Observability
+- **Centralized Error Boundaries**: `CrashReportingService` captures Flutter widget errors (`FlutterError.onError`) and unhandled asynchronous exceptions (`PlatformDispatcher.instance.onError`).
+- **Ready for Firebase Crashlytics & Sentry**: Hooked into the root application runner (`CrashReportingService.runWithCrashReporting`).
 
 ---
 
-## 📱 How to Build the APK
+## 🚀 Setup & Commands
 
-### Option 1: Via Flutter CLI
-Make sure Flutter is in your PATH, then run:
 ```bash
-# Get dependencies
+# 1. Install dependencies
 flutter pub get
 
-# Build Release APK
+# 2. Run static analysis (0 warnings guaranteed)
+flutter analyze --no-fatal-infos
+
+# 3. Run full test suite
+flutter test
+
+# 4. Run on Chrome (Web)
+flutter run -d chrome
+
+# 5. Build Web Release
+flutter build web --release --base-href /
+
+# 6. Build Android APK
 flutter build apk --release
 ```
-The generated APK will be located at:
-`build/app/outputs/flutter-apk/app-release.apk`
 
-### Option 2: Via Android Studio (Installed on your Mac)
-1. Open **Android Studio** (`/Applications/Android Studio.app`).
-2. Click **Open** and select `/Users/suraj/Downloads/jumbo_music-main`.
-3. In the top menu, go to **Build** → **Flutter** → **Build APK** (or **Build** → **Generate Signed Bundle / APK**).
-4. Transfer the resulting `.apk` file to any Android phone to install and enjoy!
+### Custom Music API Configuration
+Override the music backend endpoint without modifying code using `--dart-define`:
+```bash
+flutter run --dart-define=SPOTIFY_ENDPOINT=https://<project>.supabase.co/functions/v1/spotify \
+            --dart-define=SPOTIFY_ANON_KEY=<anon-key>
+```
 
 ---
 
-## 📁 Architecture Overview
-
-```
-lib/
-├── data/
-│   └── music_repository.dart       # Catalog of songs, genres, playlists & lyrics
-├── models/
-│   ├── playlist.dart               # Playlist data model
-│   └── song.dart                   # Enhanced Song model with HD artwork & metadata
-├── screens/
-│   ├── favorites_tab.dart          # Liked tracks tab with Play All
-│   ├── home_tab.dart               # Home screen with greeting, banner & genres
-│   ├── library_tab.dart            # Playlists, Liked Songs & Custom Playlists
-│   ├── main_navigation_screen.dart # Root Bottom Navigation controller
-│   ├── playlist_detail_screen.dart # Playlist tracks & playback view
-│   └── search_tab.dart             # Live online iTunes search & artist explorer
-├── services/
-│   ├── music_api_service.dart      # Real-time online music search client
-│   └── music_player_manager.dart   # Central audio & state manager (ChangeNotifier)
-├── widgets/
-│   ├── equalizer_bars.dart         # Animated sound wave bars
-│   ├── mini_player.dart            # Floating mini player
-│   ├── now_playing_screen.dart     # Full-screen studio player
-│   └── song_tile.dart              # Individual track tile with animations
-└── main.dart                       # App initialization & theme setup
+## 🔒 Cloud Firestore Security Rules
+Deploy Firestore security rules for user profile presence and shared playlists:
+```bash
+firebase deploy --only firestore:rules
 ```

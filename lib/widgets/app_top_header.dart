@@ -102,7 +102,7 @@ class AppTopHeader extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    '${manager.soundPreset} • Lossless 320 kbps',
+                    '${manager.soundPreset} preset',
                     style: TextStyle(
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                       fontSize: 12,

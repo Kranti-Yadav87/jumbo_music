@@ -8,58 +8,52 @@ import 'config/app_config.dart';
 import 'services/database_service.dart';
 import 'services/theme_service.dart';
 import 'services/connectivity_service.dart';
+import 'services/presence_service.dart';
+import 'services/crash_reporting_service.dart';
 import 'screens/auth_gate.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  await CrashReportingService.runWithCrashReporting(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // Set up global crash & error logging boundary
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('Global Flutter Error: ${details.exceptionAsString()}');
-  };
+    // Initialize native background audio notification controls
+    if (!kIsWeb) {
+      try {
+        await JustAudioBackground.init(
+          androidNotificationChannelId: AppConfig.audioNotificationChannelId,
+          androidNotificationChannelName: AppConfig.audioNotificationChannelName,
+          androidNotificationOngoing: true,
+          androidShowNotificationBadge: true,
+        );
+      } catch (e) {
+        debugPrint('JustAudioBackground init note: $e');
+      }
+    }
 
-  PlatformDispatcher.instance.onError = (error, stack) {
-    debugPrint('Global Platform Error: $error\n$stack');
-    return true;
-  };
-
-  // Initialize native background audio notification controls
-  if (!kIsWeb) {
+    // Initialize Firebase
     try {
-      await JustAudioBackground.init(
-        androidNotificationChannelId: AppConfig.audioNotificationChannelId,
-        androidNotificationChannelName: AppConfig.audioNotificationChannelName,
-        androidNotificationOngoing: true,
-        androidShowNotificationBadge: true,
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
       );
     } catch (e) {
-      debugPrint('JustAudioBackground init note: $e');
+      debugPrint('Firebase initialization note: $e');
     }
-  }
 
-  // Initialize Firebase
-  try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
+    // Initialize persistent database engine, presence sync & network observer
+    await DatabaseService.instance.init();
+    PresenceService.instance.init();
+    ConnectivityService.instance; // warm-up connectivity listener
+
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: Color(0xFF000000),
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
     );
-  } catch (e) {
-    debugPrint('Firebase initialization note: $e');
-  }
-
-  // Initialize persistent database engine & network observer
-  await DatabaseService.instance.init();
-  ConnectivityService.instance; // warm-up connectivity listener
-
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF000000),
-      systemNavigationBarIconBrightness: Brightness.light,
-    ),
-  );
-  runApp(const JumboMusicApp());
+    runApp(const JumboMusicApp());
+  });
 }
 
 class JumboMusicApp extends StatelessWidget {

@@ -647,7 +647,9 @@ class _TrackOptionsSheetState extends State<TrackOptionsSheet> {
                             style: TextStyle(color: Colors.white, fontSize: 15),
                           ),
                           subtitle: Text(
-                            manager.soundPreset,
+                            manager.equalizerSupported
+                                ? manager.soundPreset
+                                : '${manager.soundPreset} • Android app only',
                             style: const TextStyle(
                               color: Color(0xFF8E8E93),
                               fontSize: 12,

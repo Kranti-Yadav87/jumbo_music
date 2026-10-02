@@ -8,13 +8,34 @@ import '../data/music_repository.dart';
 import 'music_api_service.dart';
 import 'privacy_security_service.dart';
 import 'database_service.dart';
+import 'download_service.dart';
+import 'eq_presets.dart';
+import 'presence_service.dart';
 import 'media_session_service.dart';
 
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
   factory MusicPlayerManager() => _instance;
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  static bool get _isAndroidNative =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  /// Real hardware equalizer. just_audio only supports it on Android.
+  final AndroidEqualizer? _equalizer = _isAndroidNative
+      ? AndroidEqualizer()
+      : null;
+  bool get equalizerSupported => _equalizer != null;
+
+  late final AudioPlayer _audioPlayer = _buildPlayer();
+
+  AudioPlayer _buildPlayer() {
+    final eq = _equalizer;
+    return AudioPlayer(
+      audioPipeline: eq == null
+          ? null
+          : AudioPipeline(androidAudioEffects: [eq]),
+    );
+  }
 
   List<Song> _allSongs = [];
   List<Song> _queue = [];
@@ -37,14 +58,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   // Sound Preset / Equalizer
   String _soundPreset = 'Normal';
-  final List<String> soundPresets = [
-    'Normal',
-    'Bass Boost',
-    'Vocal Booster',
-    'Acoustic',
-    'Electronic',
-    'Rock',
-  ];
+  final List<String> soundPresets = EqPresets.names;
 
   // Sleep Timer
   Timer? _sleepTimer;
@@ -215,6 +229,14 @@ class MusicPlayerManager extends ChangeNotifier {
 
         MediaSessionService.updatePlaybackState(isPlaying: state.playing);
 
+        // Synchronize live presence to Firestore
+        PresenceService.instance.updateListeningStatus(
+          song: currentSong,
+          isPlaying: state.playing,
+          isIncognito:
+              DatabaseService.instance.getSetting('incognitoMode') == true,
+        );
+
         if (state.processingState == ProcessingState.completed &&
             !_isTransitioning) {
           _handleSongCompletion();
@@ -226,6 +248,10 @@ class MusicPlayerManager extends ChangeNotifier {
         _isBuffering = false;
         _isPlaying = false;
         MediaSessionService.updatePlaybackState(isPlaying: false);
+        PresenceService.instance.updateListeningStatus(
+          song: null,
+          isPlaying: false,
+        );
         notifyListeners();
       },
     );
@@ -871,10 +897,17 @@ class MusicPlayerManager extends ChangeNotifier {
         duration: song.duration.inSeconds > 0 ? song.duration : null,
       );
 
+      // Prefer the real offline file when this song was downloaded.
+      final localPath = await DownloadService().playablePathFor(song.id);
+      final sourceUri = localPath != null
+          ? Uri.file(localPath)
+          : Uri.parse(song.audioUrl);
+
       await _audioPlayer.setAudioSource(
-        AudioSource.uri(Uri.parse(song.audioUrl), tag: mediaItem),
+        AudioSource.uri(sourceUri, tag: mediaItem),
         preload: true,
       );
+      unawaited(_applyEqualizerPreset());
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
@@ -1102,7 +1135,29 @@ class MusicPlayerManager extends ChangeNotifier {
   void setSoundPreset(String preset) {
     if (soundPresets.contains(preset)) {
       _soundPreset = preset;
+      unawaited(_applyEqualizerPreset());
       notifyListeners();
+    }
+  }
+
+  /// Applies the selected preset to the Android hardware equalizer.
+  Future<void> _applyEqualizerPreset() async {
+    final eq = _equalizer;
+    if (eq == null) return;
+    try {
+      final params = await eq.parameters;
+      final gains = EqPresets.gainsFor(
+        _soundPreset,
+        bandCount: params.bands.length,
+        minDb: params.minDecibels,
+        maxDb: params.maxDecibels,
+      );
+      for (var i = 0; i < params.bands.length; i++) {
+        await params.bands[i].setGain(gains[i]);
+      }
+      await eq.setEnabled(_soundPreset != 'Normal');
+    } catch (e) {
+      debugPrint('Equalizer note: $e');
     }
   }
 

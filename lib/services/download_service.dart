@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/song.dart';
 import 'database_service.dart';
+import 'download_utils.dart';
+import 'storage/file_downloader.dart';
 
 class DownloadItem {
   final Song song;
@@ -46,17 +48,22 @@ class DownloadService extends ChangeNotifier {
             db.removeDownload(song.id);
             continue;
           }
+          // Older versions only simulated downloads (no file on disk). Drop them
+          // so the library never claims a song is offline when it is not.
+          final savedPath = (item['localPath'] as String?) ?? '';
+          if (savedPath.isEmpty || savedPath.startsWith('offline_storage/')) {
+            db.removeDownload(song.id);
+            continue;
+          }
           final dAt = item['downloadedAt'] != null
               ? DateTime.tryParse(item['downloadedAt'] as String) ??
                     DateTime.now()
               : DateTime.now();
           _downloadedItems[song.id] = DownloadItem(
             song: song,
-            fileSize: (item['fileSize'] as String?) ?? '10.2 MB',
+            fileSize: (item['fileSize'] as String?) ?? '',
             downloadedAt: dAt,
-            localPath:
-                (item['localPath'] as String?) ??
-                'offline_storage/${song.id}.mp3',
+            localPath: savedPath,
           );
         }
       }
@@ -87,7 +94,38 @@ class DownloadService extends ChangeNotifier {
     return null;
   }
 
+  void _toast(BuildContext? context, String message, {Color? color}) {
+    if (context == null || !context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: color ?? const Color(0xFF262630),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        content: Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+        ),
+      ),
+    );
+  }
+
+  /// Path of the downloaded file when it really exists on disk, else null
+  /// (caller then streams from the network).
+  Future<String?> playablePathFor(String songId) async {
+    final item = _downloadedItems[songId];
+    if (item == null || !FileDownloader.isSupported) return null;
+    if (await FileDownloader.exists(item.localPath)) return item.localPath;
+    return null;
+  }
+
   Future<void> downloadSong(Song song, {BuildContext? context}) async {
+    if (!FileDownloader.isSupported) {
+      _toast(
+        context,
+        'Offline downloads are available in the Android and desktop apps.',
+      );
+      return;
+    }
     if (song.audioUrl.trim().isEmpty ||
         (!song.audioUrl.startsWith('http://') &&
             !song.audioUrl.startsWith('https://'))) {
@@ -177,7 +215,7 @@ class DownloadService extends ChangeNotifier {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Downloading "${song.title}" (320 kbps MP3)...',
+                  'Downloading "${song.title}" ...',
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ),
@@ -187,26 +225,36 @@ class DownloadService extends ChangeNotifier {
       );
     }
 
-    // Simulate realistic 320kbps progress and cache storage
-    await Future.delayed(const Duration(milliseconds: 1200));
+    final DownloadedFile file;
+    try {
+      file = await FileDownloader.download(song.audioUrl, song.id);
+    } catch (e) {
+      debugPrint('Download failed for ${song.id}: $e');
+      _downloadingIds.remove(song.id);
+      notifyListeners();
+      if (context != null && context.mounted) {
+        _toast(
+          context,
+          'Download failed for "${song.title}". Check your connection and try again.',
+          color: const Color(0xFF3B1D1D),
+        );
+      }
+      return;
+    }
 
-    // Calculate approximate 320kbps MP3 file size
-    final sec = song.duration.inSeconds > 0 ? song.duration.inSeconds : 240;
-    final mb = (sec * 320 / 8 / 1024).clamp(3.5, 25.0);
-    final sizeStr = '${mb.toStringAsFixed(1)} MB';
+    final sizeStr = formatBytes(file.bytes);
 
     _downloadedItems[song.id] = DownloadItem(
       song: song,
       fileSize: sizeStr,
       downloadedAt: DateTime.now(),
-      localPath: 'offline_storage/${song.id}.mp3',
+      localPath: file.path,
     );
 
-    // Persist to DatabaseService
     DatabaseService.instance.saveDownload(
       song: song,
       fileSize: sizeStr,
-      localPath: 'offline_storage/${song.id}.mp3',
+      localPath: file.path,
     );
 
     _downloadingIds.remove(song.id);
@@ -242,7 +290,7 @@ class DownloadService extends ChangeNotifier {
                       ),
                     ),
                     Text(
-                      '$sizeStr • 320 kbps Master • Saved to Library > Downloaded',
+                      '$sizeStr • Saved to Library > Downloaded',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 11,
@@ -259,14 +307,16 @@ class DownloadService extends ChangeNotifier {
   }
 
   void removeDownload(String songId) {
-    _downloadedItems.remove(songId);
+    final item = _downloadedItems.remove(songId);
+    if (item != null) unawaited(FileDownloader.delete(item.localPath));
     DatabaseService.instance.removeDownload(songId);
     notifyListeners();
   }
 
   void clearAllDownloads() {
-    for (final id in _downloadedItems.keys) {
-      DatabaseService.instance.removeDownload(id);
+    for (final entry in _downloadedItems.entries) {
+      DatabaseService.instance.removeDownload(entry.key);
+      unawaited(FileDownloader.delete(entry.value.localPath));
     }
     _downloadedItems.clear();
     notifyListeners();
