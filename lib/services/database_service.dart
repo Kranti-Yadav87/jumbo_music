@@ -650,9 +650,11 @@ class DatabaseService extends ChangeNotifier {
   // 7. USER PROFILE & AUTHENTICATION STORE (Scoped)
   // -------------------------------------------------------------
   bool get isLoggedIn => _isLoggedIn;
-  String get userId => _userId.isNotEmpty
-      ? _userId
-      : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
+  String get userId => _isLoggedIn
+      ? (_userId.isNotEmpty
+          ? _userId
+          : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}')
+      : '';
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get userAvatarUrl => _userAvatarUrl;
