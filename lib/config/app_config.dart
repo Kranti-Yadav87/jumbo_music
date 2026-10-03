@@ -39,6 +39,13 @@ class AppConfig {
       'com.jumbomusic.app.channel.audio';
   static const String audioNotificationChannelName = 'Jumbo Music Playback';
 
+  /// Web Client ID / Server Client ID for Google Sign-In backend authentication
+  static const String googleServerClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue:
+        '375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com',
+  );
+
   /// Headers map for Supabase API calls
   static Map<String, String> get apiHeaders => {
     'apikey': supabaseAnonKey,

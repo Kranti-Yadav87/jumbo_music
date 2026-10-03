@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import '../config/app_config.dart';
 import 'database_service.dart';
 import 'firestore_sync_service.dart';
 
@@ -20,6 +21,9 @@ class AuthService {
     final msg = error.toString();
     if (msg.contains('unauthorized-domain')) {
       return 'This domain is not authorized for OAuth operations. Please verify authorized domains in Firebase Console.';
+    } else if (msg.contains('reauth failed') ||
+        msg.contains('requires-recent-login')) {
+      return 'Re-authentication failed or session expired. Please log in again.';
     } else if (msg.contains('popup-closed-by-user') ||
         msg.contains('cancelled-popup-request')) {
       return 'Sign-in cancelled. Please try again.';
@@ -43,8 +47,6 @@ class AuthService {
       return 'Network connection issue. Please check your internet connection.';
     } else if (msg.contains('user-disabled')) {
       return 'This user account has been deactivated.';
-    } else if (msg.contains('requires-recent-login')) {
-      return 'This security action requires recent login. Please re-authenticate.';
     }
     return msg.contains(']') ? msg.split(']').last.trim() : msg;
   }
@@ -52,7 +54,9 @@ class AuthService {
   Future<void> _ensureGoogleSignInInitialized() async {
     if (_isGoogleSignInInitialized) return;
     try {
-      await GoogleSignIn.instance.initialize();
+      await GoogleSignIn.instance.initialize(
+        serverClientId: AppConfig.googleServerClientId,
+      );
       _isGoogleSignInInitialized = true;
     } catch (e) {
       debugPrint('GoogleSignIn initialize note: $e');
@@ -76,9 +80,21 @@ class AuthService {
             .authenticate(scopeHint: const ['email', 'profile']);
 
         final idToken = account.authentication.idToken;
-        final authClient = await account.authorizationClient
-            .authorizationForScopes(const ['email', 'profile']);
-        final accessToken = authClient?.accessToken;
+        if (idToken == null || idToken.isEmpty) {
+          throw FirebaseAuthException(
+            code: 'null-id-token',
+            message: 'Google Sign-In failed: No ID Token returned from identity provider.',
+          );
+        }
+
+        String? accessToken;
+        try {
+          final authClient = await account.authorizationClient
+              .authorizationForScopes(const ['email', 'profile']);
+          accessToken = authClient?.accessToken;
+        } catch (e) {
+          debugPrint('Optional accessToken fetch note: $e');
+        }
 
         final AuthCredential credential = GoogleAuthProvider.credential(
           accessToken: accessToken,

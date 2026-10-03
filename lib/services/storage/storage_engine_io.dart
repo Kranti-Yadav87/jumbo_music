@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class PlatformStorage {
   static final Map<String, String> _memCache = {};
@@ -7,11 +8,19 @@ class PlatformStorage {
   static Future<void> _ensureDir() async {
     if (_dir != null) return;
     try {
-      _dir = Directory('.jumbo_vault');
+      final base = await getApplicationDocumentsDirectory();
+      _dir = Directory('${base.path}${Platform.pathSeparator}.jumbo_vault');
       if (!await _dir!.exists()) {
         await _dir!.create(recursive: true);
       }
-    } catch (_) {}
+    } catch (_) {
+      try {
+        _dir = Directory('.jumbo_vault');
+        if (!await _dir!.exists()) {
+          await _dir!.create(recursive: true);
+        }
+      } catch (_) {}
+    }
   }
 
   static Future<String?> getItem(String key) async {

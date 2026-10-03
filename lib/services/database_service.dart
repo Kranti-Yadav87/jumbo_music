@@ -259,6 +259,7 @@ class DatabaseService extends ChangeNotifier {
   // 7. USER PROFILE & AUTHENTICATION STORE (Scoped)
   // -------------------------------------------------------------
   bool get isLoggedIn => _isLoggedIn;
+  bool get isGuest => !_isLoggedIn;
   String get userId => _isLoggedIn
       ? (_userId.isNotEmpty
           ? _userId
@@ -357,6 +358,9 @@ class DatabaseService extends ChangeNotifier {
     await _flushProfile();
     notifyListeners();
   }
+
+  /// Explicitly enter guest mode
+  Future<void> loginAsGuest() => logout();
 
   Future<void> updateProfile({
     String? name,
