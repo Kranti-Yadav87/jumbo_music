@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
-import 'lrc_parser.dart';
 
 /// Lyrics Service responsible for fetching, caching, and parsing synced (LRC) & plain lyrics
 class LyricsService {
