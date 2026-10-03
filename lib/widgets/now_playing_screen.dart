@@ -6,10 +6,11 @@ import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
 import '../services/share_service.dart';
-import '../services/lrc_parser.dart';
 import 'app_cached_image.dart';
-import 'equalizer_bars.dart';
 import 'track_options_sheet.dart';
+import 'now_playing/now_playing_action_pill.dart';
+import 'now_playing/now_playing_lyrics_sheet.dart';
+import 'now_playing/now_playing_queue_sheet.dart';
 
 class NowPlayingScreen extends StatefulWidget {
   const NowPlayingScreen({super.key});
@@ -27,20 +28,6 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
   }
 
-  String _formatQueueDuration(List<Song> songs) {
-    int totalSec = 0;
-    for (final s in songs) {
-      totalSec += s.duration.inSeconds > 0 ? s.duration.inSeconds : 210;
-    }
-    final h = totalSec ~/ 3600;
-    final m = (totalSec % 3600) ~/ 60;
-    final s = totalSec % 60;
-    if (h > 0) {
-      return '${h}h ${m}m ${s}s';
-    }
-    return '${m}m ${s}s';
-  }
-
   void _shareSong(BuildContext context, Song song) {
     ShareService.shareSong(context, song);
   }
@@ -50,324 +37,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     MusicPlayerManager manager,
     Song song,
   ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF0D1424),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.72,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) {
-            return AnimatedBuilder(
-              animation: manager,
-              builder: (context, _) {
-                final currentPos = manager.position;
-                final totalDur = manager.duration.inSeconds > 0
-                    ? manager.duration
-                    : song.duration;
-
-                return Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.lyrics_rounded,
-                            color: Color(0xFF38BDF8),
-                            size: 22,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Lyrics • ${song.title}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.close_rounded,
-                              color: Colors.white60,
-                            ),
-                            onPressed: () => Navigator.pop(ctx),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Divider(color: Colors.white12, height: 1),
-                    Expanded(
-                      child: CustomScrollView(
-                        controller: scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          _buildSyncedLyricsSliver(
-                            context,
-                            manager,
-                            song,
-                            currentPos,
-                            totalDur,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
+    NowPlayingLyricsSheet.show(context, manager, song);
   }
 
   void _showQueueSheet(BuildContext context, MusicPlayerManager manager) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF090F1C),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      builder: (ctx) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.78,
-          minChildSize: 0.45,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) {
-            return AnimatedBuilder(
-              animation: manager,
-              builder: (context, _) {
-                final song = manager.currentSong;
-                final queue = manager.queue;
-                final isFav = song != null && manager.isFavorite(song.id);
-
-                return CustomScrollView(
-                  controller: scrollController,
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    // Drag Handle
-                    SliverToBoxAdapter(
-                      child: Center(
-                        child: Container(
-                          margin: const EdgeInsets.only(top: 12, bottom: 8),
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: Colors.white24,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    // Queue Header Title
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 10),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.queue_music_rounded,
-                                  color: Color(0xFF38BDF8),
-                                  size: 22,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Up Next Queue',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              '${queue.length} songs • ${_formatQueueDuration(queue)}',
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    if (song != null)
-                      SliverToBoxAdapter(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF131F38),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFF38BDF8).withOpacity(0.4),
-                            ),
-                          ),
-                          child: ListTile(
-                            leading: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: AppCachedImage(
-                                    imageUrl: song.coverUrl,
-                                    width: 44,
-                                    height: 44,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: EqualizerBars(
-                                    isPlaying: manager.isPlaying,
-                                    color: const Color(0xFF38BDF8),
-                                    height: 14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            title: Text(
-                              song.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            subtitle: Text(
-                              'Now Playing • ${song.artist}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF38BDF8),
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(
-                                isFav
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFav
-                                    ? const Color(0xFFFF5E7E)
-                                    : Colors.white70,
-                                size: 22,
-                              ),
-                              onPressed: () => manager.toggleFavorite(song.id),
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    const SliverToBoxAdapter(
-                      child: Divider(color: Colors.white12, height: 20),
-                    ),
-
-                    // Queue List
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final item = queue[index];
-                        final isCurrent = song != null && item.id == song.id;
-                        if (isCurrent) return const SizedBox.shrink();
-
-                        return Container(
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 2,
-                          ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 2,
-                            ),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: AppCachedImage(
-                                imageUrl: item.coverUrl,
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            title: Text(
-                              item.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${item.artist} • ${item.formattedDuration}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 12,
-                              ),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.more_vert_rounded,
-                                color: Colors.white54,
-                              ),
-                              onPressed: () =>
-                                  TrackOptionsSheet.show(context, item),
-                            ),
-                            onTap: () => manager.playSong(item),
-                          ),
-                        );
-                      }, childCount: queue.length),
-                    ),
-
-                    const SliverToBoxAdapter(child: SizedBox(height: 40)),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
+    NowPlayingQueueSheet.show(context, manager);
   }
 
   @override
@@ -579,7 +253,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 // Share Pill Button
-                                _buildActionPill(
+                                NowPlayingActionPill(
                                   icon: Icons.reply_rounded,
                                   label: 'SHARE',
                                   onTap: () => _shareSong(context, song),
@@ -587,7 +261,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 const SizedBox(width: 10),
 
                                 // Download Pill Button (Saves offline in app)
-                                _buildActionPill(
+                                NowPlayingActionPill(
                                   icon: isDl
                                       ? Icons.check_circle_rounded
                                       : (isDling
@@ -607,7 +281,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 const SizedBox(width: 10),
 
                                 // Lyrics Pill Button
-                                _buildActionPill(
+                                NowPlayingActionPill(
                                   icon: Icons.article_outlined,
                                   label: 'LYRICS',
                                   onTap: () =>
@@ -638,7 +312,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 22,
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: FontWeight.w900,
                                           letterSpacing: -0.3,
                                         ),
                                       ),
@@ -647,17 +321,20 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         song.artist,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.65),
+                                        style: const TextStyle(
+                                          color: Color(
+                                            0xFF94A3B8,
+                                          ), // Subdued Slate Grey from Screenshot 2
                                           fontSize: 15,
-                                          fontWeight: FontWeight.w400,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                                 const SizedBox(width: 12),
-                                // Like Heart Button (🤍 / ❤️)
+
+                                // Glowing Favorite Button
                                 IconButton(
                                   icon: Icon(
                                     isFav
@@ -665,22 +342,24 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         : Icons.favorite_border_rounded,
                                     color: isFav
                                         ? const Color(0xFFFF5E7E)
-                                        : Colors.white,
-                                    size: 26,
+                                        : Colors.white60,
+                                    size: 28,
                                   ),
                                   tooltip: isFav
-                                      ? 'Remove from favorites'
-                                      : 'Add to favorites',
-                                  onPressed: () =>
-                                      manager.toggleFavorite(song.id),
+                                      ? 'Remove from Favorites'
+                                      : 'Add to Favorites',
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    manager.toggleFavorite(song.id);
+                                  },
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
 
-                          // 5. PROGRESS SLIDER & TIMESTAMPS (0:26 / 4:28) - Screenshot 2
+                          // 5. SEEK SLIDER BAR + REAL-TIME DURATION (Screenshot 2: Glowing cyan progress line)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Column(
@@ -689,35 +368,39 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                 SliderTheme(
                                   data: SliderTheme.of(context).copyWith(
                                     trackHeight: 3.5,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 7,
+                                    activeTrackColor: const Color(
+                                      0xFF38BDF8,
+                                    ), // Glowing Light Sky Blue from Screenshot 2
+                                    inactiveTrackColor: Colors.white.withOpacity(
+                                      0.15,
                                     ),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 14,
-                                    ),
-                                    activeTrackColor: Colors.white,
-                                    inactiveTrackColor: Colors.white
-                                        .withOpacity(0.2),
                                     thumbColor: Colors.white,
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 6.0,
+                                    ),
+                                    overlayColor: const Color(
+                                      0xFF38BDF8,
+                                    ).withOpacity(0.2),
+                                    overlayShape: const RoundSliderOverlayShape(
+                                      overlayRadius: 14.0,
+                                    ),
                                   ),
                                   child: Slider(
+                                    value: (_dragValue ??
+                                            currentPos.inMilliseconds
+                                                .toDouble())
+                                        .clamp(
+                                          0.0,
+                                          max(
+                                            1.0,
+                                            totalDur.inMilliseconds.toDouble(),
+                                          ),
+                                        ),
                                     min: 0.0,
                                     max: max(
                                       1.0,
                                       totalDur.inMilliseconds.toDouble(),
                                     ),
-                                    value:
-                                        (_dragValue ??
-                                                currentPos.inMilliseconds
-                                                    .toDouble())
-                                            .clamp(
-                                              0.0,
-                                              max(
-                                                1.0,
-                                                totalDur.inMilliseconds
-                                                    .toDouble(),
-                                              ),
-                                            ),
                                     onChanged: (val) {
                                       setState(() {
                                         _dragValue = val;
@@ -733,6 +416,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                     },
                                   ),
                                 ),
+
+                                // Time Stamps: 0:00 (left) vs -3:24 (right) matching Screenshot 2
                                 Padding(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 12,
@@ -742,19 +427,34 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        _formatTime(currentPos),
+                                        _formatTime(
+                                          _dragValue != null
+                                              ? Duration(
+                                                  milliseconds:
+                                                      _dragValue!.toInt(),
+                                                )
+                                              : currentPos,
+                                        ),
                                         style: TextStyle(
-                                          color: Colors.white.withOpacity(0.65),
+                                          color: Colors.white.withOpacity(0.55),
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w600,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
                                         ),
                                       ),
                                       Text(
-                                        _formatTime(totalDur),
+                                        totalDur > currentPos
+                                            ? '-${_formatTime(totalDur - (_dragValue != null ? Duration(milliseconds: _dragValue!.toInt()) : currentPos))}'
+                                            : _formatTime(totalDur),
                                         style: TextStyle(
-                                          color: Colors.white.withOpacity(0.65),
+                                          color: Colors.white.withOpacity(0.55),
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w500,
+                                          fontWeight: FontWeight.w600,
+                                          fontFeatures: const [
+                                            FontFeature.tabularFigures(),
+                                          ],
                                         ),
                                       ),
                                     ],
@@ -764,13 +464,14 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
 
-                          // 6. PLAYBACK CONTROLS: Shuffle, Previous, Big Play/Pause, Next, Loop - Screenshot 2
+                          // 6. BOTTOM CONTROLS ROW: Shuffle | Prev | Play/Pause Big Button | Next | Repeat
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
                                 // Shuffle Button
                                 IconButton(
@@ -796,7 +497,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   onPressed: () => manager.previous(),
                                 ),
 
-                                // BIG Circular Play / Pause Button - Screenshot 2
+                                // CENTER BIG PLAY / PAUSE BUTTON (Navy blue circle with thin white border) - Screenshot 2
                                 Material(
                                   color: Colors.transparent,
                                   child: InkWell(
@@ -944,144 +645,6 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
           ),
         );
       },
-    );
-  }
-
-  // Quick Action Pill Builder matching Screenshot 2 ([SHARE] [DOWNLOAD] [LYRICS])
-  Widget _buildActionPill({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color iconColor = Colors.white,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(24),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.09),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withOpacity(0.12), width: 0.8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 15, color: iconColor),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11.5,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSyncedLyricsSliver(
-    BuildContext context,
-    MusicPlayerManager manager,
-    Song song,
-    Duration currentPos,
-    Duration totalDur,
-  ) {
-    final lrcLines = LrcParser.parse(song.lyrics, totalDuration: totalDur);
-    final activeIndex = LrcParser.findActiveIndex(lrcLines, currentPos);
-
-    if (lrcLines.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(
-            child: Text(
-              'No lyrics available for this track',
-              style: TextStyle(color: Colors.white54, fontSize: 14),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      sliver: SliverList(
-        delegate: SliverChildBuilderDelegate((context, index) {
-          final line = lrcLines[index];
-          final isCurrent = index == activeIndex;
-          final isPast = index < activeIndex;
-
-          final timeStr =
-              '${line.timestamp.inMinutes}:${(line.timestamp.inSeconds % 60).toString().padLeft(2, '0')}';
-
-          return InkWell(
-            borderRadius: BorderRadius.circular(14),
-            onTap: () {
-              manager.seek(line.timestamp);
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 250),
-              margin: const EdgeInsets.symmetric(vertical: 5),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: isCurrent
-                    ? const Color(0xFF1E2D4A).withOpacity(0.85)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
-                border: isCurrent
-                    ? Border.all(
-                        color: const Color(0xFF38BDF8).withOpacity(0.5),
-                      )
-                    : null,
-              ),
-              child: Row(
-                children: [
-                  if (isCurrent) ...[
-                    EqualizerBars(
-                      isPlaying: manager.isPlaying,
-                      color: const Color(0xFF38BDF8),
-                      height: 14,
-                    ),
-                    const SizedBox(width: 10),
-                  ] else ...[
-                    Text(
-                      timeStr,
-                      style: TextStyle(
-                        color: isPast ? Colors.white30 : Colors.white24,
-                        fontSize: 11,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  Expanded(
-                    child: Text(
-                      line.text,
-                      style: TextStyle(
-                        color: isCurrent
-                            ? const Color(0xFF38BDF8)
-                            : isPast
-                            ? Colors.white70
-                            : Colors.white30,
-                        fontSize: isCurrent ? 17 : 15,
-                        fontWeight: isCurrent
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }, childCount: lrcLines.length),
-      ),
     );
   }
 }
