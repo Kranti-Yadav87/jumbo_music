@@ -1,0 +1,64 @@
+part of '../database_service.dart';
+
+// -------------------------------------------------------------
+// 11. DATA EXPORT, LOCAL WIPE & ACCOUNT DATA DELETION
+// -------------------------------------------------------------
+extension DatabaseServiceExport on DatabaseService {
+  Future<String> exportAllDataJson() async {
+    final export = {
+      'app': 'Jumbo Music',
+      'exportedAt': DateTime.now().toIso8601String(),
+      'scope': _currentScope,
+      'profile': {
+        'name': _userName,
+        'email': _userEmail,
+        'bio': _userBio,
+        'userId': _userId,
+      },
+      'friends': _friends.map((f) => f.toJson()).toList(),
+      'favorites': _favoriteSongsMap.values.map((s) => s.toJson()).toList(),
+      'customPlaylists': _customPlaylists.map((p) => p.toJson()).toList(),
+      'downloads': _downloadsMap.values.toList(),
+      'history': _historyList,
+      'searchHistory': _searchHistory,
+      'settings': _settings,
+    };
+    return const JsonEncoder.withIndent('  ').convert(export);
+  }
+
+  /// Wipe data for the currently active scope
+  Future<void> clearAllUserData() async {
+    _clearMemoryStores();
+    await Future.wait([
+      StorageEngine.removeItem(_scopedKey('favorites')),
+      StorageEngine.removeItem(_scopedKey('playlists')),
+      StorageEngine.removeItem(_scopedKey('downloads')),
+      StorageEngine.removeItem(_scopedKey('history')),
+      StorageEngine.removeItem(_scopedKey('search_history')),
+      StorageEngine.removeItem(_scopedKey('friends')),
+      StorageEngine.removeItem(_scopedKey('notifications')),
+      StorageEngine.removeItem(_scopedKey('profile')),
+    ]);
+    notify();
+  }
+
+  /// Delete local stored data for a specific user UID (called during complete account deletion)
+  Future<void> deleteScopedLocalData(String uid) async {
+    final targetScope = uid.startsWith('user_') ? uid : 'user_$uid';
+    await Future.wait([
+      StorageEngine.removeItem('jumbo_${targetScope}_favorites'),
+      StorageEngine.removeItem('jumbo_${targetScope}_playlists'),
+      StorageEngine.removeItem('jumbo_${targetScope}_downloads'),
+      StorageEngine.removeItem('jumbo_${targetScope}_history'),
+      StorageEngine.removeItem('jumbo_${targetScope}_search_history'),
+      StorageEngine.removeItem('jumbo_${targetScope}_friends'),
+      StorageEngine.removeItem('jumbo_${targetScope}_notifications'),
+      StorageEngine.removeItem('jumbo_${targetScope}_profile'),
+      StorageEngine.removeItem('jumbo_${targetScope}_settings'),
+    ]);
+    if (_currentScope == targetScope) {
+      _clearMemoryStores();
+      notify();
+    }
+  }
+}
