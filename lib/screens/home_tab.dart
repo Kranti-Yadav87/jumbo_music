@@ -126,7 +126,6 @@ class _HomeTabState extends State<HomeTab> {
     return AnimatedBuilder(
       animation: Listenable.merge([manager, downloadService]),
       builder: (context, _) {
-        final playlists = manager.playlists;
         final newReleases = manager.newReleases;
         final isOffline =
             manager.onlineTrending.isEmpty && !manager.isLoadingTrending;
