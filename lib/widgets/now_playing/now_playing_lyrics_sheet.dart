@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
+import '../../services/lyrics_service.dart';
 import '../../services/lrc_parser.dart';
 import '../equalizer_bars.dart';
 
@@ -79,18 +80,33 @@ class NowPlayingLyricsSheet {
                     ),
                     const Divider(color: Colors.white12, height: 1),
                     Expanded(
-                      child: CustomScrollView(
-                        controller: scrollController,
-                        physics: const BouncingScrollPhysics(),
-                        slivers: [
-                          buildSyncedLyricsSliver(
-                            context,
-                            manager,
-                            song,
-                            currentPos,
-                            totalDur,
-                          ),
-                        ],
+                      child: FutureBuilder<String?>(
+                        future: LyricsService.instance.fetch(song),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+                              ),
+                            );
+                          }
+                          final lyricsText = snapshot.data ?? '';
+                          return CustomScrollView(
+                            controller: scrollController,
+                            physics: const BouncingScrollPhysics(),
+                            slivers: [
+                              buildSyncedLyricsSliver(
+                                context,
+                                manager,
+                                song,
+                                lyricsText,
+                                currentPos,
+                                totalDur,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -107,10 +123,11 @@ class NowPlayingLyricsSheet {
     BuildContext context,
     MusicPlayerManager manager,
     Song song,
+    String rawLyrics,
     Duration currentPos,
     Duration totalDur,
   ) {
-    final lrcLines = LrcParser.parse(song.lyrics, totalDuration: totalDur);
+    final lrcLines = LrcParser.parse(rawLyrics, totalDuration: totalDur);
     final activeIndex = LrcParser.findActiveIndex(lrcLines, currentPos);
 
     if (lrcLines.isEmpty) {

@@ -39,6 +39,7 @@ class DatabaseService extends ChangeNotifier {
 
   // User Profile & Authentication
   bool _isLoggedIn = false;
+  bool _isGuest = false;
   String _userId = '';
   String _userEmail = 'guest.listener@jumbomusic.app';
   String _userName = 'Guest Explorer';
@@ -253,14 +254,14 @@ class DatabaseService extends ChangeNotifier {
   }
 
   Future<void> saveSetting(String key, dynamic value) =>
-      updateSetting(key, value);
+    updateSetting(key, value);
 
   // -------------------------------------------------------------
   // 7. USER PROFILE & AUTHENTICATION STORE (Scoped)
   // -------------------------------------------------------------
   bool get isLoggedIn => _isLoggedIn;
-  bool get isGuest => !_isLoggedIn;
-  String get userId => _isLoggedIn
+  bool get isGuest => _isLoggedIn && _isGuest;
+  String get userId => (_isLoggedIn && !_isGuest)
       ? (_userId.isNotEmpty
           ? _userId
           : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}')
@@ -287,16 +288,16 @@ class DatabaseService extends ChangeNotifier {
       if (raw != null && raw.isNotEmpty) {
         final Map<String, dynamic> data = jsonDecode(raw);
         _isLoggedIn = data['isLoggedIn'] as bool? ?? false;
-        // The shared "guest" scope means "signed out" - never auto-login from it.
-        if (_currentScope == 'guest') _isLoggedIn = false;
+        _isGuest = data['isGuest'] as bool? ?? false;
+        if (_currentScope == 'guest' && !_isGuest) _isLoggedIn = false;
         _userId = data['userId'] as String? ?? '';
         _userName =
             data['name'] as String? ??
-            (_isLoggedIn ? 'User' : 'Guest Explorer');
+            (_isLoggedIn ? (_isGuest ? 'Guest Explorer' : 'User') : 'Guest Explorer');
         _userEmail =
             data['email'] as String? ??
             (_isLoggedIn
-                ? 'user@jumbomusic.app'
+                ? (_isGuest ? 'guest.listener@jumbomusic.app' : 'user@jumbomusic.app')
                 : 'guest.listener@jumbomusic.app');
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
         _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
@@ -308,6 +309,7 @@ class DatabaseService extends ChangeNotifier {
     try {
       final map = {
         'isLoggedIn': _isLoggedIn,
+        'isGuest': _isGuest,
         'userId': _userId,
         'name': _userName,
         'email': _userEmail,
@@ -318,6 +320,21 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Explicitly enter guest mode
+  Future<void> loginAsGuest() async {
+    await switchUserScope(null);
+    await clearAllUserData();
+    _isGuest = true;
+    _isLoggedIn = true;
+    _userName = 'Guest Explorer';
+    _userEmail = 'guest.listener@jumbomusic.app';
+    _userId = '';
+    _userAvatarUrl = '';
+    _userBio = 'Music Lover • Jumbo Listener';
+    await _flushProfile();
+    notifyListeners();
+  }
+
   Future<void> login({
     required String email,
     required String name,
@@ -325,6 +342,7 @@ class DatabaseService extends ChangeNotifier {
     String? userId,
     String? uid,
   }) async {
+    _isGuest = false;
     _isLoggedIn = true;
     _userEmail = email.trim();
     _userName = name.trim().isNotEmpty ? name.trim() : email.split('@').first;
@@ -339,6 +357,8 @@ class DatabaseService extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    final wasGuest = _isGuest;
+    _isGuest = false;
     _isLoggedIn = false;
     _userName = 'Guest Explorer';
     _userEmail = 'guest.listener@jumbomusic.app';
@@ -346,10 +366,15 @@ class DatabaseService extends ChangeNotifier {
     _userAvatarUrl = '';
     _userBio = 'Music Lover • Jumbo Listener';
 
+    if (wasGuest) {
+      await clearAllUserData();
+    }
+
     // Switch storage scope back to guest without clearing the previous user's files
     await switchUserScope(null);
 
     // Loading the guest scope may restore old values; force signed-out state.
+    _isGuest = false;
     _isLoggedIn = false;
     _userName = 'Guest Explorer';
     _userEmail = 'guest.listener@jumbomusic.app';
@@ -358,9 +383,6 @@ class DatabaseService extends ChangeNotifier {
     await _flushProfile();
     notifyListeners();
   }
-
-  /// Explicitly enter guest mode
-  Future<void> loginAsGuest() => logout();
 
   Future<void> updateProfile({
     String? name,

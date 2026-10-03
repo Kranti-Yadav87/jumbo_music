@@ -174,16 +174,7 @@ class SongParserUtils {
         releaseYear: year,
         quality: '320 kbps Studio HD',
         isLiveStream: true,
-        lyrics:
-            '''
-[Live Streamed via Aura/JioSaavn Engine]
-Title: $name
-Artist: $artist
-Album: $album
-Audio Stream: 320 kbps Original Master
-
-🎵 Playing live high-quality uninterrupted stream with Jumbo Music!
-''',
+        lyrics: (item['lyrics'] as String?)?.trim() ?? '',
       );
     } catch (_) {
       return null;

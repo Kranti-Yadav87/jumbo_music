@@ -17,6 +17,10 @@ class LyricsService {
   /// Expose immutable view of cache for diagnostics/testing
   Map<String, String> get cache => Map.unmodifiable(_cache);
 
+  /// Alias for [getLyrics] to fetch lyrics for a [song]
+  Future<String?> fetch(Song song, {bool forceRefresh = false}) =>
+      getLyrics(song, forceRefresh: forceRefresh);
+
   /// Retrieves lyrics for a [song]. Checks in-memory cache first, then song's embedded
   /// lyrics, then attempts external lookup via LRCLIB if needed.
   Future<String?> getLyrics(Song song, {bool forceRefresh = false}) async {

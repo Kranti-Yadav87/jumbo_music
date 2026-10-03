@@ -26,6 +26,9 @@ void main() {
       expect(result, contains('Accha chalta hoon'));
       expect(service.cache.containsKey('song_lrc_1'), isTrue);
       expect(service.isSynced(result), isTrue);
+
+      final fetchResult = await service.fetch(songWithLyrics);
+      expect(fetchResult, equals(result));
     });
 
     test('cacheLyrics and clearCache operate properly', () {

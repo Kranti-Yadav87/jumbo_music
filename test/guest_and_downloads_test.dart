@@ -29,14 +29,15 @@ void main() {
       downloadService.hydrateFromDatabase();
     });
 
-    test('isGuest and loginAsGuest properly reset user profile and scope', () async {
-      // 1. Initial guest state
+    test('isGuest and loginAsGuest properly set guest state and isolate scopes', () async {
+      // 1. Explicitly login as guest
+      await db.loginAsGuest();
       expect(db.isGuest, isTrue);
-      expect(db.isLoggedIn, isFalse);
+      expect(db.isLoggedIn, isTrue);
       expect(db.userName, equals('Guest Explorer'));
       expect(db.userId, isEmpty);
 
-      // 2. Simulate login
+      // 2. Simulate authenticated user login
       await db.login(
         email: 'listener@jumbo.app',
         name: 'Jumbo Fan',
@@ -47,35 +48,49 @@ void main() {
       expect(db.userName, equals('Jumbo Fan'));
       expect(db.userId, isNotEmpty);
 
-      // 3. Switch back via loginAsGuest
+      // 3. Logout sets isLoggedIn to false and isGuest to false
+      await db.logout();
+      expect(db.isLoggedIn, isFalse);
+      expect(db.isGuest, isFalse);
+
+      // 4. Re-enter guest mode via loginAsGuest
       await db.loginAsGuest();
       expect(db.isGuest, isTrue);
-      expect(db.isLoggedIn, isFalse);
+      expect(db.isLoggedIn, isTrue);
       expect(db.userName, equals('Guest Explorer'));
       expect(db.userId, isEmpty);
     });
 
-    test('Guest downloads remain preserved and isolated from signed-in user', () async {
-      // 1. Save download in guest mode
+    test('User downloads remain preserved and isolated between user scopes', () async {
+      // 1. Sign in as user A and save download
+      await db.login(
+        email: 'userA@jumbo.app',
+        name: 'User A',
+        uid: 'user_A',
+      );
       await db.saveDownload(
         song: testSong,
         fileSize: '3.4 MB',
-        localPath: '/mock/storage/offline_guest.mp3',
+        localPath: '/mock/storage/offline_userA.mp3',
       );
       expect(db.isDownloaded(testSong.id), isTrue);
       expect(downloadService.isDownloaded(testSong.id), isTrue);
 
-      // 2. Sign in as authenticated user
+      // 2. Sign in as user B - downloads should not leak
       await db.login(
-        email: 'listener@jumbo.app',
-        name: 'Jumbo Fan',
-        uid: 'user_fan_101',
+        email: 'userB@jumbo.app',
+        name: 'User B',
+        uid: 'user_B',
       );
       expect(db.isDownloaded(testSong.id), isFalse);
       expect(downloadService.isDownloaded(testSong.id), isFalse);
 
-      // 3. Return to guest mode
-      await db.loginAsGuest();
+      // 3. Switch back to user A - download is preserved
+      await db.login(
+        email: 'userA@jumbo.app',
+        name: 'User A',
+        uid: 'user_A',
+      );
       expect(db.isDownloaded(testSong.id), isTrue);
       expect(downloadService.isDownloaded(testSong.id), isTrue);
     });

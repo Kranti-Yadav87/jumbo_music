@@ -63,13 +63,7 @@ class ITunesSearchService {
               releaseYear: year,
               quality: '256 kbps AAC HD',
               isLiveStream: true,
-              lyrics: '''
-[Live Streamed Track]
-Title: $trackName
-Artist: $artistName
-Album: $albumName
-Genre: $genre
-''',
+              lyrics: '',
             ),
           );
         }
