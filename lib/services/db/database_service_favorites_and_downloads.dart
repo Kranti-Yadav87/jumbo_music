@@ -21,6 +21,18 @@ extension DatabaseServiceFavorites on DatabaseService {
             final song = Song.fromJson(item);
             _favoriteIds.add(song.id);
             _favoriteSongsMap[song.id] = song;
+          } else if (item is String && item.isNotEmpty) {
+            _favoriteIds.add(item);
+            _favoriteSongsMap[item] = Song(
+              id: item,
+              title: 'Track $item',
+              artist: 'Unknown Artist',
+              album: '',
+              duration: Duration.zero,
+              audioUrl: '',
+              coverUrl: '',
+              isFavorite: true,
+            );
           }
         }
       }
