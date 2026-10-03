@@ -5,17 +5,31 @@ service cloud.firestore {
     function signedIn() { return request.auth != null; }
     function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
 
-    // User profile document: authenticated users can read to discover friends & live presence.
-    // Only the user themselves can write or update their profile/presence.
+    // PRIVATE: only the owner can read/write their account data (incl. email).
     match /users/{userId} {
-      allow read: if signedIn();
-      allow write: if isOwner(userId);
+      allow read, write: if isOwner(userId);
 
-      // Private subcollections strictly restricted to the owning user
       match /favorites/{songId}     { allow read, write: if isOwner(userId); }
       match /playlists/{playlistId} { allow read, write: if isOwner(userId); }
       match /history/{historyId}    { allow read, write: if isOwner(userId); }
       match /friends/{friendId}     { allow read, write: if isOwner(userId); }
+    }
+
+    // PUBLIC (minimal): display name + lowercase email so people can be found
+    // by exact email. Bulk listing is blocked (queries may return 1 result).
+    match /public_profiles/{uid} {
+      allow get: if signedIn();
+      allow list: if signedIn() && request.query.limit <= 1;
+      allow create, update: if isOwner(uid) &&
+        request.resource.data.keys().hasOnly(['displayName', 'emailLower', 'updatedAt']);
+      allow delete: if isOwner(uid);
+    }
+
+    // LIVE PRESENCE: readable one-by-one by id (no listing, no email inside).
+    match /presence/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow write: if isOwner(uid);
     }
 
     // Collaborative shared playlists
@@ -35,6 +49,6 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    // Default deny
+    // Everything else is denied by default.
   }
 }

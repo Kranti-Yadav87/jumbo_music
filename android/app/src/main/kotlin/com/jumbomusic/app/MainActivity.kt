@@ -1,4 +1,4 @@
-package com.example.jumbo_music
+package com.jumbomusic.app
 
 import com.ryanheise.audioservice.AudioServiceActivity
 

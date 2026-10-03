@@ -5,6 +5,7 @@ import 'package:just_audio/just_audio.dart';
 import '../models/song.dart';
 import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
+import '../services/share_service.dart';
 import '../services/lrc_parser.dart';
 import 'app_cached_image.dart';
 import 'equalizer_bars.dart';
@@ -41,20 +42,7 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
   }
 
   void _shareSong(BuildContext context, Song song) {
-    Clipboard.setData(
-      ClipboardData(
-        text: '${song.title} by ${song.artist} - Listen on Jumbo Music',
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Copied "${song.title} - ${song.artist}" to clipboard! Ready to share.',
-        ),
-        behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    ShareService.shareSong(context, song);
   }
 
   void _showLyricsSheet(

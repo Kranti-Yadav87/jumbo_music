@@ -13,5 +13,7 @@ class FileDownloader {
 
   static Future<bool> exists(String path) async => false;
 
+  static Future<Uri?> playableUri(String path) async => null;
+
   static Future<void> delete(String path) async {}
 }

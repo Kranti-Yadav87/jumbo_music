@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../services/firestore_sync_service.dart';
@@ -61,7 +62,14 @@ class AuthGate extends StatelessWidget {
             if (db.isLoggedIn) {
               return const MainNavigationScreen();
             }
-            return const LoginScreen();
+            // Login is the root screen: back must leave the app, never open Home.
+            return PopScope(
+              canPop: false,
+              onPopInvokedWithResult: (didPop, result) {
+                if (!didPop) SystemNavigator.pop();
+              },
+              child: const LoginScreen(),
+            );
           },
         );
       },

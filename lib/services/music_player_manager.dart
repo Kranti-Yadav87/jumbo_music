@@ -156,9 +156,8 @@ class MusicPlayerManager extends ChangeNotifier {
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   List<Song> get top50Songs => _allSongs.take(50).toList();
-  List<Song> get newReleases => _newReleases.isNotEmpty
-      ? _newReleases
-      : _onlineTrending.take(20).toList();
+  /// Genuinely new songs only (no trending fallback).
+  List<Song> get newReleases => _newReleases;
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
 
@@ -372,14 +371,11 @@ class MusicPlayerManager extends ChangeNotifier {
       final duetsResult = await MusicApiService.fetchPlaylist('159470188');
       final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
 
-      // Fetch live fresh studio new releases (2024-2025 Bollywood / Indian pop)
+      // Fresh releases only (this year / last year, newest first)
       try {
-        final newReleasesResult = await MusicApiService.searchLiveSongs(
-          'Latest Bollywood Hindi New 2024 2025',
-          limit: 30,
-        );
-        if (newReleasesResult.isNotEmpty) {
-          _newReleases = newReleasesResult;
+        final fresh = await MusicApiService.fetchNewReleases(limit: 30);
+        if (fresh.isNotEmpty) {
+          _newReleases = fresh;
         }
       } catch (_) {}
 
@@ -891,10 +887,8 @@ class MusicPlayerManager extends ChangeNotifier {
       );
 
       // Prefer the real offline file when this song was downloaded.
-      final localPath = await DownloadService().playablePathFor(song.id);
-      final sourceUri = localPath != null
-          ? Uri.file(localPath)
-          : Uri.parse(song.audioUrl);
+      final offlineUri = await DownloadService().playableUriFor(song.id);
+      final sourceUri = offlineUri ?? Uri.parse(song.audioUrl);
 
       await _audioPlayer.setAudioSource(
         AudioSource.uri(sourceUri, tag: mediaItem),
@@ -905,7 +899,10 @@ class MusicPlayerManager extends ChangeNotifier {
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
       await _audioPlayer.setLoopMode(_loopMode);
-      await _audioPlayer.play();
+      // NOTE: just_audio's play() only completes when playback stops, so it
+      // must never be awaited here (it kept the player "busy" for the whole
+      // song and broke next/previous + play/pause).
+      _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
     } catch (e) {
@@ -928,6 +925,18 @@ class MusicPlayerManager extends ChangeNotifier {
     await playSong(_queue[targetIndex]);
   }
 
+  /// Starts playback without waiting for it to finish.
+  void _startPlayback() {
+    unawaited(
+      _audioPlayer.play().catchError((Object e) {
+        _errorMessage = 'Playback error: $e';
+        _isPlaying = false;
+        _isBuffering = false;
+        notifyListeners();
+      }),
+    );
+  }
+
   Future<void> togglePlay() async {
     if (currentSong == null && _allSongs.isNotEmpty) {
       await playSong(_allSongs[0]);
@@ -947,7 +956,7 @@ class MusicPlayerManager extends ChangeNotifier {
         if (_position >= _duration && _duration > Duration.zero) {
           await _audioPlayer.seek(Duration.zero);
         }
-        await _audioPlayer.play();
+        _startPlayback();
       }
     } catch (e) {
       _errorMessage = "Playback toggle error: $e";
@@ -1039,7 +1048,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
       if (_loopMode == LoopMode.one) {
         await _audioPlayer.seek(Duration.zero);
-        await _audioPlayer.play();
+        _startPlayback();
         _isTransitioning = false;
         return;
       }

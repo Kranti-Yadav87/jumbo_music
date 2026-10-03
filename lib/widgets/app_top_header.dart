@@ -257,6 +257,20 @@ class AppTopHeader extends StatelessWidget {
 
                 const Spacer(),
 
+                // Dark / Light mode toggle (always visible at the top)
+                IconButton(
+                  padding: const EdgeInsets.all(8),
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF334155),
+                    size: 24,
+                  ),
+                  tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                  onPressed: () => AppThemeManager.instance.toggleTheme(),
+                ),
+                const SizedBox(width: 4),
+
                 // 2. Search Icon
                 IconButton(
                   padding: const EdgeInsets.all(8),

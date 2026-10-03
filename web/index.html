@@ -165,6 +165,41 @@
       return !!window.deferredPwaPrompt;
     };
 
+
+    // === Offline audio downloads (Cache Storage) ===
+    var JUMBO_AUDIO_CACHE = 'jumbo-offline-audio-v1';
+    function jumboAudioKey(id) { return '/offline-audio/' + encodeURIComponent(id); }
+    window.jumboOfflineSave = async function(url, id) {
+      try {
+        var res = await fetch(url, { mode: 'cors' });
+        if (!res.ok) return -1;
+        var size = (await res.clone().blob()).size;
+        var cache = await caches.open(JUMBO_AUDIO_CACHE);
+        await cache.put(jumboAudioKey(id), res);
+        return size;
+      } catch (e) { return -1; }
+    };
+    window.jumboOfflineHas = async function(id) {
+      try {
+        var cache = await caches.open(JUMBO_AUDIO_CACHE);
+        return !!(await cache.match(jumboAudioKey(id)));
+      } catch (e) { return false; }
+    };
+    window.jumboOfflineObjectUrl = async function(id) {
+      try {
+        var cache = await caches.open(JUMBO_AUDIO_CACHE);
+        var res = await cache.match(jumboAudioKey(id));
+        if (!res) return '';
+        return URL.createObjectURL(await res.blob());
+      } catch (e) { return ''; }
+    };
+    window.jumboOfflineDelete = async function(id) {
+      try {
+        var cache = await caches.open(JUMBO_AUDIO_CACHE);
+        return await cache.delete(jumboAudioKey(id));
+      } catch (e) { return false; }
+    };
+
     window.jumboDownloadUrl = function(url) {
       try {
         var a = document.createElement('a');

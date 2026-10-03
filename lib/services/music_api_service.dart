@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../config/app_config.dart';
+import 'release_filter.dart';
 
 class MusicApiService {
   static String get _endpoint => AppConfig.supabaseEndpoint;
@@ -127,7 +128,7 @@ class MusicApiService {
 
       final durationSec =
           int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
-      final year = item['year']?.toString() ?? '2025';
+      final year = item['year']?.toString().trim() ?? '';
 
       // Extract language from metadata if present
       String rawLang =
@@ -150,6 +151,16 @@ class MusicApiService {
         normalizedLang = 'Bhojpuri';
       } else if (rawLang.contains('haryanvi')) {
         normalizedLang = 'Haryanvi';
+      } else if (rawLang.contains('marathi')) {
+        normalizedLang = 'Marathi';
+      } else if (rawLang.contains('bengali') || rawLang.contains('bangla')) {
+        normalizedLang = 'Bengali';
+      } else if (rawLang.contains('gujarati')) {
+        normalizedLang = 'Gujarati';
+      } else if (rawLang.contains('kannada')) {
+        normalizedLang = 'Kannada';
+      } else if (rawLang.contains('malayalam')) {
+        normalizedLang = 'Malayalam';
       }
 
       return Song(
@@ -295,6 +306,48 @@ Audio Stream: 320 kbps Original Master
   static Future<List<Song>> fetch90sDuets() async {
     final result = await fetchPlaylist('159470188');
     return (result['songs'] as List<Song>?) ?? [];
+  }
+
+  /// Languages shown on the home screen (label -> search phrase).
+  static const Map<String, String> homeLanguages = {
+    'Hindi': 'latest hindi songs',
+    'English': 'english pop hits',
+    'Punjabi': 'latest punjabi songs',
+    'Bhojpuri': 'latest bhojpuri songs',
+    'Tamil': 'latest tamil songs',
+    'Telugu': 'latest telugu songs',
+    'Marathi': 'latest marathi songs',
+    'Bengali': 'latest bengali songs',
+    'Gujarati': 'latest gujarati songs',
+    'Kannada': 'latest kannada songs',
+    'Malayalam': 'latest malayalam songs',
+    'Haryanvi': 'latest haryanvi songs',
+  };
+
+  /// Songs for one home-screen language row.
+  static Future<List<Song>> fetchByLanguage(String language, {int limit = 25}) {
+    final phrase = homeLanguages[language] ?? 'latest $language songs';
+    return searchLiveSongs(phrase, limit: limit);
+  }
+
+  /// Only songs released this year (or last year if there are too few).
+  static Future<List<Song>> fetchNewReleases({int limit = 30}) async {
+    final year = DateTime.now().year;
+    final queries = <String>[
+      'new songs $year',
+      'new hindi songs $year',
+      'new punjabi songs $year',
+      'new english songs $year',
+      'new bhojpuri songs $year',
+    ];
+    final lists = await Future.wait(
+      queries.map((q) => searchLiveSongs(q, limit: 25).catchError((_) => <Song>[])),
+    );
+    return ReleaseFilter.pickNewReleases(
+      lists.expand((e) => e).toList(),
+      year: year,
+      maxItems: limit,
+    );
   }
 
   /// iTunes fallback

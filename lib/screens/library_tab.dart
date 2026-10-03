@@ -1,3 +1,4 @@
+import '../services/share_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/playlist.dart';
@@ -101,18 +102,7 @@ class _LibraryTabState extends State<LibraryTab> {
   }
 
   void _shareApp(BuildContext context) {
-    Clipboard.setData(
-      const ClipboardData(
-        text:
-            'Listen to ad-free HD music and download songs offline on Jumbo Music!',
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('App share link copied to clipboard! ✨'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ShareService.shareApp(context);
   }
 
   void _showCreatePlaylistDialog(

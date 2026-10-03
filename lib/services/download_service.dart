@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/song.dart';
 import 'database_service.dart';
@@ -109,20 +110,19 @@ class DownloadService extends ChangeNotifier {
     );
   }
 
-  /// Path of the downloaded file when it really exists on disk, else null
+  /// Playable address of the offline copy when it really exists, else null
   /// (caller then streams from the network).
-  Future<String?> playablePathFor(String songId) async {
+  Future<Uri?> playableUriFor(String songId) async {
     final item = _downloadedItems[songId];
     if (item == null || !FileDownloader.isSupported) return null;
-    if (await FileDownloader.exists(item.localPath)) return item.localPath;
-    return null;
+    return FileDownloader.playableUri(item.localPath);
   }
 
   Future<void> downloadSong(Song song, {BuildContext? context}) async {
     if (!FileDownloader.isSupported) {
       _toast(
         context,
-        'Offline downloads are available in the Android and desktop apps.',
+        'Offline downloads are not supported on this device.',
       );
       return;
     }
@@ -235,7 +235,9 @@ class DownloadService extends ChangeNotifier {
       if (context != null && context.mounted) {
         _toast(
           context,
-          'Download failed for "${song.title}". Check your connection and try again.',
+  kIsWeb
+            ? 'Browser is song ko download nahi kar paya (source blocked). Android app me offline download kaam karega.'
+            : 'Download failed for "${song.title}". Check your connection and try again.',
           color: const Color(0xFF3B1D1D),
         );
       }

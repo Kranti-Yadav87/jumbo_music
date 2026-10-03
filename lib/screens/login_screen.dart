@@ -912,7 +912,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               Text(
-                                'Official APK & Web App (v2.0.0 Pro)',
+                                'Official APK & Web App (v2.0.0)',
                                 style: TextStyle(
                                   color: Colors.white54,
                                   fontSize: 11,

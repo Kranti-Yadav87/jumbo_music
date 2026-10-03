@@ -75,3 +75,32 @@ Deploy Firestore security rules for user profile presence and shared playlists:
 ```bash
 firebase deploy --only firestore:rules
 ```
+
+
+---
+
+## What's new in this build
+- **Home**: Continue Playing, Songs by Language (Hindi, English, Punjabi, Bhojpuri, Tamil, Telugu, Marathi, Bengali, Gujarati, Kannada, Malayalam, Haryanvi), Mood Mixes, and a New Releases row that shows *only* this year's songs.
+- **Dark / light toggle** in the top bar.
+- **Real share sheet** (WhatsApp, Instagram, ...) for songs and the app.
+- **Offline downloads** on Android/desktop (files) *and* web (browser Cache Storage, only if the audio host allows CORS).
+- **Play / pause fix**: playback is no longer awaited (the old code blocked next/prev and auto-advance).
+- **Logout fix**: signing out always returns to the Login screen; back on Login exits the app.
+- **Privacy**: `users/{uid}` is private. Friends search uses `public_profiles` (name + email, no bulk listing) and `presence` (read by id only).
+
+## Android APK link (fixing the 404)
+The in-app button opens `https://github.com/Kranti-Yadav87/jumbo_music/releases/latest/download/app-release.apk`.
+That file exists only after the **Build & Publish Android APK** workflow succeeds once:
+1. Push to `main` (or run the workflow manually in the Actions tab).
+2. Wait until it creates a Release containing `app-release.apk`.
+3. The in-app link then works. Override with `--dart-define=APK_URL=...` if you host the APK elsewhere.
+
+Optional signing secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+
+## After pulling this update
+```bash
+flutter pub get
+flutter analyze
+flutter test
+firebase deploy --only firestore:rules   # new privacy rules
+```

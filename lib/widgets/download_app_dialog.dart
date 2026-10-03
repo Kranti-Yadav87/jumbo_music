@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../config/app_config.dart';
 import '../services/pwa_install_helper.dart';
 
 /// Shows the Download & Install App modal dialog or bottom sheet
@@ -245,7 +246,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                 ),
                 onPressed: () {
                   downloadFile(
-                    'https://github.com/Kranti-Yadav87/jumbo_music/releases/latest/download/app-release.apk',
+                    AppConfig.apkDownloadUrl,
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -257,7 +258,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                           SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Downloading Jumbo Music Android APK (v2.0.0 Pro)...',
+                              'Downloading Jumbo Music Android APK (v${AppConfig.appVersion})...',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,

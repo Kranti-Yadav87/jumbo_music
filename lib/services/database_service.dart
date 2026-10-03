@@ -675,6 +675,8 @@ class DatabaseService extends ChangeNotifier {
       if (raw != null && raw.isNotEmpty) {
         final Map<String, dynamic> data = jsonDecode(raw);
         _isLoggedIn = data['isLoggedIn'] as bool? ?? false;
+        // The shared "guest" scope means "signed out" - never auto-login from it.
+        if (_currentScope == 'guest') _isLoggedIn = false;
         _userId = data['userId'] as String? ?? '';
         _userName =
             data['name'] as String? ??
@@ -734,6 +736,14 @@ class DatabaseService extends ChangeNotifier {
 
     // Switch storage scope back to guest without clearing the previous user's files
     await switchUserScope(null);
+
+    // Loading the guest scope may restore old values; force signed-out state.
+    _isLoggedIn = false;
+    _userName = 'Guest Explorer';
+    _userEmail = 'guest.listener@jumbomusic.app';
+    _userId = '';
+    _userAvatarUrl = '';
+    await _flushProfile();
     notifyListeners();
   }
 

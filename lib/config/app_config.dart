@@ -19,11 +19,24 @@ class AppConfig {
 
   /// App name & version metadata
   static const String appName = 'Jumbo Music';
-  static const String appVersion = '2.0.0 Pro';
+  static const String appVersion = '2.0.0';
+
+  /// Public web address used in share messages on mobile/desktop.
+  static const String webAppUrl = String.fromEnvironment(
+    'WEB_APP_URL',
+    defaultValue: 'https://jumbo-music-ff58c.web.app',
+  );
+
+  /// Android APK published by .github/workflows/build-apk.yml
+  static const String apkDownloadUrl = String.fromEnvironment(
+    'APK_URL',
+    defaultValue:
+        'https://github.com/Kranti-Yadav87/jumbo_music/releases/latest/download/app-release.apk',
+  );
 
   /// Default notification channel ID for background audio
   static const String audioNotificationChannelId =
-      'com.example.jumbo_music.channel.audio';
+      'com.jumbomusic.app.channel.audio';
   static const String audioNotificationChannelName = 'Jumbo Music Playback';
 
   /// Headers map for Supabase API calls

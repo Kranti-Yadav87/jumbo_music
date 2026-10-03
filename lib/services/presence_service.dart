@@ -56,8 +56,11 @@ class PresenceService extends ChangeNotifier {
       _auth?.authStateChanges().listen((user) {
         if (user != null) {
           _startListeningToFriends(user.uid);
+          unawaited(_publishPublicProfile(user));
           unawaited(setOnline(true));
+          _startHeartbeat();
         } else {
+          _heartbeat?.cancel();
           _stopListeningToFriends();
           _liveFriendsMap.clear();
           _liveFriends = [];
@@ -66,6 +69,41 @@ class PresenceService extends ChangeNotifier {
       });
     } catch (e) {
       debugPrint('PresenceService init note: $e');
+    }
+  }
+
+  Timer? _heartbeat;
+
+  /// Keeps `lastSeen` fresh so friends never see a stale "online" state.
+  void _startHeartbeat() {
+    _heartbeat?.cancel();
+    _heartbeat = Timer.periodic(const Duration(minutes: 2), (_) async {
+      final uid = currentUid;
+      final fs = _firestore;
+      if (uid == null || fs == null) return;
+      try {
+        await fs.collection('presence').doc(uid).set({
+          'isOnline': true,
+          'lastSeen': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      } catch (_) {}
+    });
+  }
+
+  /// Only a display name + lowercase email (for exact-match friend search)
+  /// is public. Everything else stays in the private `users/{uid}` document.
+  Future<void> _publishPublicProfile(User user) async {
+    final fs = _firestore;
+    final email = user.email?.trim().toLowerCase();
+    if (fs == null || email == null || email.isEmpty) return;
+    try {
+      await fs.collection('public_profiles').doc(user.uid).set({
+        'displayName': user.displayName ?? email.split('@').first,
+        'emailLower': email,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('PresenceService publicProfile note: $e');
     }
   }
 
@@ -80,7 +118,7 @@ class PresenceService extends ChangeNotifier {
     if (uid == null || fs == null) return;
 
     try {
-      final docRef = fs.collection('users').doc(uid);
+      final docRef = fs.collection('presence').doc(uid);
       if (!isPlaying || song == null || isIncognito) {
         await docRef.set({
           'isListening': false,
@@ -113,9 +151,9 @@ class PresenceService extends ChangeNotifier {
     if (uid == null || fs == null) return;
 
     try {
-      await fs.collection('users').doc(uid).set({
+      await fs.collection('presence').doc(uid).set({
         'isOnline': online,
-        'isListening': online ? null : false,
+        if (!online) 'isListening': false,
         'lastSeen': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
@@ -131,8 +169,8 @@ class PresenceService extends ChangeNotifier {
 
     try {
       final query = await fs
-          .collection('users')
-          .where('email', isEqualTo: cleanEmail)
+          .collection('public_profiles')
+          .where('emailLower', isEqualTo: cleanEmail)
           .limit(1)
           .get();
 
@@ -149,14 +187,8 @@ class PresenceService extends ChangeNotifier {
       return Friend(
         id: friendUid,
         name: name,
-        email: (data['email'] as String?) ?? cleanEmail,
+        email: (data['emailLower'] as String?) ?? cleanEmail,
         avatarInitials: initials,
-        currentSongTitle: (data['currentSongTitle'] as String?) ?? '',
-        currentSongArtist: (data['currentSongArtist'] as String?) ?? '',
-        currentSongId: (data['currentSongId'] as String?) ?? '',
-        currentSongCover: (data['currentSongCover'] as String?) ?? '',
-        isOnline: (data['isOnline'] as bool?) ?? true,
-        isListening: (data['isListening'] as bool?) ?? false,
       );
     } catch (e) {
       debugPrint('PresenceService searchUserByEmail note: $e');
@@ -269,18 +301,24 @@ class PresenceService extends ChangeNotifier {
 
           if (!_friendUserSubs.containsKey(friendId)) {
             _friendUserSubs[friendId] = fs
-                .collection('users')
+                .collection('presence')
                 .doc(friendId)
                 .snapshots()
                 .listen((userDoc) {
               if (userDoc.exists && userDoc.data() != null) {
                 final uData = userDoc.data()!;
-                final displayName = (uData['displayName'] as String?) ??
-                    (friendName.isNotEmpty ? friendName : 'Friend');
+                final displayName =
+                    friendName.isNotEmpty ? friendName : 'Friend';
+                final seen = uData['lastSeen'];
+                final fresh =
+                    seen is Timestamp &&
+                    DateTime.now().difference(seen.toDate()) <
+                        const Duration(minutes: 5);
+                final online = fresh && ((uData['isOnline'] as bool?) ?? false);
                 final f = Friend(
                   id: friendId,
                   name: displayName,
-                  email: (uData['email'] as String?) ?? friendEmail,
+                  email: friendEmail,
                   avatarInitials: displayName.isNotEmpty
                       ? displayName[0].toUpperCase()
                       : 'F',
@@ -289,8 +327,9 @@ class PresenceService extends ChangeNotifier {
                       (uData['currentSongArtist'] as String?) ?? '',
                   currentSongId: (uData['currentSongId'] as String?) ?? '',
                   currentSongCover: (uData['currentSongCover'] as String?) ?? '',
-                  isOnline: (uData['isOnline'] as bool?) ?? true,
-                  isListening: (uData['isListening'] as bool?) ?? false,
+                  isOnline: online,
+                  isListening:
+                      online && ((uData['isListening'] as bool?) ?? false),
                 );
                 _liveFriendsMap[friendId] = f;
               } else {

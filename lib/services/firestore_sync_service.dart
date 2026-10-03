@@ -365,6 +365,11 @@ class FirestoreSyncService {
 
   /// Delete all cloud user data for GDPR / Account Deletion
   Future<void> deleteUserDataFromCloud(String uid) async {
+    try {
+      final fs = FirebaseFirestore.instance;
+      await fs.collection('presence').doc(uid).delete();
+      await fs.collection('public_profiles').doc(uid).delete();
+    } catch (_) {}
     cancelRealtimeListeners();
     try {
       final userDocRef = _firestore.collection('users').doc(uid);
