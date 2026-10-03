@@ -13,9 +13,16 @@ import 'eq_presets.dart';
 import 'presence_service.dart';
 import 'media_session_service.dart';
 
+part 'player/music_player_sleep_timer.dart';
+part 'player/music_player_equalizer_delegate.dart';
+part 'player/music_player_library_sync.dart';
+part 'player/music_player_queue_delegate.dart';
+
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
   factory MusicPlayerManager() => _instance;
+
+  void notify() => notifyListeners();
 
   static bool get _isAndroidNative =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -150,13 +157,14 @@ class MusicPlayerManager extends ChangeNotifier {
       _playlists.where((p) => p.type == PlaylistType.artistMix).toList();
   List<Playlist> get genreMixes =>
       _playlists.where((p) => p.type == PlaylistType.genreMix).toList();
+  List<Playlist> get moodMixes =>
+      _playlists.where((p) => p.type == PlaylistType.genreMix).toList();
   List<Playlist> get smartMixes =>
       _playlists.where((p) => p.type == PlaylistType.smartMix).toList();
   List<Playlist> get userPlaylists =>
       _playlists.where((p) => p.type == PlaylistType.custom).toList();
   List<Song> get onlineTrending => _onlineTrending;
   List<Song> get top50Songs => _allSongs.take(50).toList();
-  /// Genuinely new songs only (no trending fallback).
   List<Song> get newReleases => _newReleases;
   bool get isLoadingTrending => _isLoadingTrending;
   String? get errorMessage => _errorMessage;
@@ -183,35 +191,16 @@ class MusicPlayerManager extends ChangeNotifier {
       notifyListeners();
     });
 
-    // Register MediaSession lock screen action handlers
-    MediaSessionService.registerActionHandler((action, param) {
-      switch (action) {
-        case 'play':
-          if (!_isPlaying) togglePlay();
-          break;
-        case 'pause':
-          if (_isPlaying) togglePlay();
-          break;
-        case 'next':
-          next();
-          break;
-        case 'previous':
-          previous();
-          break;
-        case 'seek':
-          seek(Duration(seconds: param.toInt()));
-          break;
-        case 'seekforward':
-          seek(
-            _position +
-                Duration(seconds: param.toInt() > 0 ? param.toInt() : 10),
-          );
-          break;
-        case 'seekbackward':
-          final target =
-              _position.inSeconds - (param.toInt() > 0 ? param.toInt() : 10);
-          seek(Duration(seconds: target > 0 ? target : 0));
-          break;
+    DownloadService().addListener(() {
+      final downloaded = DownloadService().downloadedSongs;
+      if (downloaded.isNotEmpty) {
+        final Set<String> ids = _allSongs.map((s) => s.id).toSet();
+        for (final dl in downloaded) {
+          if (!ids.contains(dl.id)) {
+            _allSongs.insert(0, dl);
+          }
+        }
+        notifyListeners();
       }
     });
 
@@ -269,31 +258,24 @@ class MusicPlayerManager extends ChangeNotifier {
         positionSeconds: pos.inSeconds.toDouble(),
         playbackRate: _playbackSpeed,
       );
-
-      // Web Audio fallback: if song reaches the end, trigger completion seamlessly
-      if (_duration > const Duration(seconds: 2) &&
-          pos >= _duration - const Duration(milliseconds: 300) &&
-          _isPlaying &&
-          !_isTransitioning) {
-        _handleSongCompletion();
-      }
       notifyListeners();
     });
 
     // Listen to duration
     _durationSubscription = _audioPlayer.durationStream.listen((dur) {
-      if (dur != null) {
+      if (dur != null && dur > Duration.zero) {
         _duration = dur;
+        final posSec = _position.inSeconds.toDouble();
         MediaSessionService.updatePositionState(
           durationSeconds: dur.inSeconds.toDouble(),
-          positionSeconds: _position.inSeconds.toDouble(),
+          positionSeconds: posSec,
           playbackRate: _playbackSpeed,
         );
         notifyListeners();
       }
     });
 
-    // Listen to buffer position
+    // Listen to buffered position
     _bufferedPositionSubscription = _audioPlayer.bufferedPositionStream.listen((
       buf,
     ) {
@@ -301,7 +283,6 @@ class MusicPlayerManager extends ChangeNotifier {
       notifyListeners();
     });
 
-    // Asynchronously fetch online trending songs with fallback
     fetchOnlineTrending();
   }
 
@@ -313,11 +294,9 @@ class MusicPlayerManager extends ChangeNotifier {
     _volume = (db.getSetting('volume', 1.0) as num).toDouble();
     _playbackSpeed = (db.getSetting('playbackSpeed', 1.0) as num).toDouble();
 
-    // Reset favorites
     _favoriteIds.clear();
     _favoriteIds.addAll(db.favoriteIds);
 
-    // Rebuild custom playlists from db.customPlaylists
     _playlists.removeWhere(
       (p) =>
           p.type == PlaylistType.custom || p.type == PlaylistType.sharedBlend,
@@ -337,7 +316,6 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    // Ensure all downloaded songs are part of _allSongs on startup for offline playback
     final downloaded = db.downloadedSongs;
     if (downloaded.isNotEmpty) {
       final Set<String> ids = _allSongs.map((s) => s.id).toSet();
@@ -371,7 +349,6 @@ class MusicPlayerManager extends ChangeNotifier {
       final duetsResult = await MusicApiService.fetchPlaylist('159470188');
       final duetsSongs = (duetsResult['songs'] as List<Song>?) ?? [];
 
-      // Fresh releases only (this year / last year, newest first)
       try {
         final fresh = await MusicApiService.fetchNewReleases(limit: 30);
         if (fresh.isNotEmpty) {
@@ -467,292 +444,6 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateDynamicLibrary(Song song) {
-    // 1. Recently Played (up to 40) - Skipped if Incognito Mode is active for privacy
-    if (!PrivacySecurityService().isIncognitoMode) {
-      _recentlyPlayed.removeWhere((s) => s.id == song.id);
-      _recentlyPlayed.insert(0, song);
-      if (_recentlyPlayed.length > 40) {
-        _recentlyPlayed.removeLast();
-      }
-    }
-
-    // 2. Artist Mix Station
-    final rawArtist = song.artist.split(',').first.split('&').first.trim();
-    final mainArtist = rawArtist.isNotEmpty ? rawArtist : 'Featured Artist';
-    final artistPlaylistId =
-        'artist_${mainArtist.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
-
-    final artistIndex = _playlists.indexWhere((p) => p.id == artistPlaylistId);
-    if (artistIndex != -1) {
-      final existing = _playlists[artistIndex];
-      final updatedSongs = List<Song>.from(existing.songs);
-      if (!updatedSongs.any((s) => s.id == song.id)) {
-        updatedSongs.insert(0, song);
-      }
-      final updatedIds = List<String>.from(existing.songIds);
-      if (!updatedIds.contains(song.id)) {
-        updatedIds.insert(0, song.id);
-      }
-      _playlists[artistIndex] = existing.copyWith(
-        songIds: updatedIds,
-        songs: updatedSongs,
-        coverUrl: song.coverUrl.isNotEmpty ? song.coverUrl : existing.coverUrl,
-      );
-    } else {
-      _playlists.insert(
-        0,
-        Playlist(
-          id: artistPlaylistId,
-          title: '$mainArtist Radio',
-          description: 'Non-stop top tracks by $mainArtist & related artists',
-          coverUrl: song.coverUrl,
-          songIds: [song.id],
-          songs: [song],
-          type: PlaylistType.artistMix,
-        ),
-      );
-    }
-
-    // 3. Mood / Genre Station
-    final genre = song.genre.isNotEmpty ? song.genre : 'Bollywood';
-    final genrePlaylistId =
-        'genre_${genre.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
-
-    final genreIndex = _playlists.indexWhere((p) => p.id == genrePlaylistId);
-    if (genreIndex != -1) {
-      final existing = _playlists[genreIndex];
-      final updatedSongs = List<Song>.from(existing.songs);
-      if (!updatedSongs.any((s) => s.id == song.id)) {
-        updatedSongs.insert(0, song);
-      }
-      final updatedIds = List<String>.from(existing.songIds);
-      if (!updatedIds.contains(song.id)) {
-        updatedIds.insert(0, song.id);
-      }
-      _playlists[genreIndex] = existing.copyWith(
-        songIds: updatedIds,
-        songs: updatedSongs,
-      );
-    } else {
-      _playlists.insert(
-        0,
-        Playlist(
-          id: genrePlaylistId,
-          title: '$genre Station',
-          description: 'Endless $genre rhythms & live beats',
-          coverUrl: song.coverUrl,
-          songIds: [song.id],
-          songs: [song],
-          type: PlaylistType.genreMix,
-        ),
-      );
-    }
-
-    // 4. "Made For You" Daily Smart Mix
-    const smartMixId = 'smart_mix_daily';
-    final smartIndex = _playlists.indexWhere((p) => p.id == smartMixId);
-    if (smartIndex != -1) {
-      final existing = _playlists[smartIndex];
-      final updatedSongs = List<Song>.from(existing.songs);
-      if (!updatedSongs.any((s) => s.id == song.id)) {
-        updatedSongs.insert(0, song);
-        if (updatedSongs.length > 30) updatedSongs.removeLast();
-      }
-      _playlists[smartIndex] = existing.copyWith(
-        songs: updatedSongs,
-        songIds: updatedSongs.map((s) => s.id).toList(),
-      );
-    } else {
-      _playlists.insert(
-        0,
-        Playlist(
-          id: smartMixId,
-          title: 'Daily Smart Mix',
-          description: 'Personalized mix based on your listening journey',
-          coverUrl: song.coverUrl,
-          songIds: [song.id],
-          songs: [song],
-          type: PlaylistType.smartMix,
-        ),
-      );
-    }
-  }
-
-  Future<void> _infillSmartQueue(
-    Song seedSong, {
-    int targetQueueSize = 60,
-  }) async {
-    if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_lastInfilledSongId == seedSong.id &&
-        _queue.length >= targetQueueSize) {
-      return;
-    }
-    _lastInfilledSongId = seedSong.id;
-
-    _isLoadingRecommendations = true;
-    notifyListeners();
-
-    try {
-      final songLang = MusicApiService.detectSongLanguage(seedSong);
-      final is70s =
-          songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
-      final is80s =
-          songLang == 'Hindi' && !is70s && MusicApiService.is80sEra(seedSong);
-      final is90s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          MusicApiService.is90sMelodyEra(seedSong);
-      final is2000s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          MusicApiService.is2000sSong(seedSong);
-      final is2010s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          !is2000s &&
-          MusicApiService.is2010sSong(seedSong);
-      final isIndie =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          !is2000s &&
-          !is2010s &&
-          MusicApiService.isIndieOrSukoonSong(seedSong);
-
-      // 1. First immediately seed from local _allSongs strictly matching language & era
-      if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
-        final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-        final localCandidates = _allSongs.where((s) {
-          if (currentQueueIds.contains(s.id)) return false;
-          final candLang = MusicApiService.detectSongLanguage(s);
-          if (candLang != songLang) return false;
-
-          if (songLang == 'Hindi') {
-            if (is70s) {
-              return MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is80s) {
-              return MusicApiService.is80sEra(s) &&
-                  !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is90s) {
-              return MusicApiService.is90sMelodyEra(s) &&
-                  !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s);
-            }
-            if (is2000s) {
-              return MusicApiService.is2000sSong(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is2010s) return MusicApiService.is2010sSong(s);
-            if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-            return !MusicApiService.isVintageGoldenEra(s) &&
-                !MusicApiService.is80sEra(s) &&
-                !MusicApiService.is90sMelodyEra(s);
-          }
-          return true;
-        }).toList();
-
-        localCandidates.sort((a, b) {
-          int scoreA =
-              (a.artist == seedSong.artist ? 3 : 0) +
-              (a.genre == seedSong.genre ? 1 : 0);
-          int scoreB =
-              (b.artist == seedSong.artist ? 3 : 0) +
-              (b.genre == seedSong.genre ? 1 : 0);
-          return scoreB.compareTo(scoreA);
-        });
-
-        final needed = targetQueueSize - _queue.length;
-        if (needed > 0 && localCandidates.isNotEmpty) {
-          _queue.addAll(localCandidates.take(needed));
-          notifyListeners();
-        }
-      }
-
-      // 2. Fetch fresh smart recommendations concurrently matching exact era and language
-      final freshTracks = await MusicApiService.fetchSmartRecommendations(
-        seedSong,
-        limit: 55,
-      );
-      if (freshTracks.isNotEmpty) {
-        final Set<String> playedIds = _queue
-            .take(_currentIndex + 1)
-            .map((s) => s.id)
-            .toSet();
-        final List<Song> newTracks = freshTracks
-            .where((s) => !playedIds.contains(s.id))
-            .toList();
-
-        if (newTracks.isNotEmpty) {
-          final playedPart = _queue.sublist(0, _currentIndex + 1);
-          final upcomingPart = _queue.sublist(_currentIndex + 1);
-
-          final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
-          final remainingUpcoming = upcomingPart.where((s) {
-            if (freshIds.contains(s.id)) return false;
-            final candLang = MusicApiService.detectSongLanguage(s);
-            if (candLang != songLang) return false;
-            if (songLang == 'Hindi') {
-              if (is70s) {
-                return MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is80sEra(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is80s) {
-                return MusicApiService.is80sEra(s) &&
-                    !MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is90s) {
-                return MusicApiService.is90sMelodyEra(s) &&
-                    !MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is80sEra(s);
-              }
-              if (is2000s) {
-                return MusicApiService.is2000sSong(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is2010s) return MusicApiService.is2010sSong(s);
-              if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-              return !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            return true;
-          }).toList();
-
-          _queue = [
-            ...playedPart,
-            ...newTracks,
-            ...remainingUpcoming,
-          ].take(targetQueueSize).toList();
-
-          // Add to allSongs as well
-          final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
-          for (final track in newTracks) {
-            if (!allIds.contains(track.id)) {
-              _allSongs.add(track);
-            }
-          }
-        }
-      }
-    } catch (_) {}
-
-    _isLoadingRecommendations = false;
-    notifyListeners();
-  }
-
   /// Plays a song selected from Search and automatically builds a focused,
   /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre.
   Future<void> playSongFromSearch(Song song) async {
@@ -768,7 +459,6 @@ class MusicPlayerManager extends ChangeNotifier {
     _isTransitioning = true;
     _errorMessage = null;
 
-    // Ensure song is in _allSongs
     if (!_allSongs.any((s) => s.id == song.id)) {
       _allSongs.insert(0, song);
     }
@@ -799,7 +489,6 @@ class MusicPlayerManager extends ChangeNotifier {
         !is2000s &&
         MusicApiService.isIndieOrSukoonSong(song);
 
-    // Immediately ensure queue is populated with era & language matched songs if autoplay is active
     if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
       final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
       final localCandidates = _allSongs.where((s) {
@@ -828,7 +517,6 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue.addAll(localCandidates.take(60 - _queue.length));
     }
 
-    // Keep queue focused around 50-60 songs max
     if (_queue.length > 60) {
       final currentIdxInQueue = _queue.indexWhere((s) => s.id == song.id);
       if (currentIdxInQueue != -1) {
@@ -843,12 +531,10 @@ class MusicPlayerManager extends ChangeNotifier {
     final index = _queue.indexWhere((s) => s.id == song.id);
     _currentIndex = index != -1 ? index : 0;
 
-    // Record to history and persist via DatabaseService
     _recentlyPlayed.removeWhere((item) => item.id == song.id);
     _recentlyPlayed.insert(0, song);
     DatabaseService.instance.addHistory(song);
 
-    // Dynamic library generation & Smart queue infill
     _updateDynamicLibrary(song);
     if (_autoplay) {
       _infillSmartQueue(song, targetQueueSize: 60);
@@ -876,7 +562,6 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
-      // 1. Set new audio source with preload & native lock screen metadata
       final mediaItem = MediaItem(
         id: song.id,
         album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
@@ -886,7 +571,6 @@ class MusicPlayerManager extends ChangeNotifier {
         duration: song.duration.inSeconds > 0 ? song.duration : null,
       );
 
-      // Prefer the real offline file when this song was downloaded.
       final offlineUri = await DownloadService().playableUriFor(song.id);
       final sourceUri = offlineUri ?? Uri.parse(song.audioUrl);
 
@@ -899,9 +583,6 @@ class MusicPlayerManager extends ChangeNotifier {
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
       await _audioPlayer.setLoopMode(_loopMode);
-      // NOTE: just_audio's play() only completes when playback stops, so it
-      // must never be awaited here (it kept the player "busy" for the whole
-      // song and broke next/previous + play/pause).
       _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
@@ -925,7 +606,6 @@ class MusicPlayerManager extends ChangeNotifier {
     await playSong(_queue[targetIndex]);
   }
 
-  /// Starts playback without waiting for it to finish.
   void _startPlayback() {
     unawaited(
       _audioPlayer.play().catchError((Object e) {
@@ -968,7 +648,6 @@ class MusicPlayerManager extends ChangeNotifier {
   Future<void> next() async {
     if (_queue.isEmpty) return;
 
-    // Proactively infill when within 6 songs of queue end
     if (_autoplay &&
         currentSong != null &&
         _currentIndex >= _queue.length - 6) {
@@ -1059,18 +738,15 @@ class MusicPlayerManager extends ChangeNotifier {
         return;
       }
 
-      // Normal or Autoplay flow
       if (_currentIndex < _queue.length - 1) {
         _isTransitioning = false;
         await next();
       } else if (_autoplay && currentSong != null) {
-        // Proactively fetch fresh songs and continue uninterrupted playback
         await _infillSmartQueue(currentSong!);
         _isTransitioning = false;
         if (_currentIndex < _queue.length - 1) {
           await next();
         } else {
-          // If queue ended, loop back from start
           await playSong(_queue[0]);
         }
       } else {
@@ -1115,235 +791,6 @@ class MusicPlayerManager extends ChangeNotifier {
       playbackRate: _playbackSpeed,
     );
     notifyListeners();
-  }
-
-  // Volume & Mute Controls
-  Future<void> setVolume(double val) async {
-    _volume = val.clamp(0.0, 1.0);
-    _isMuted = _volume == 0.0;
-    await _audioPlayer.setVolume(_volume);
-    notifyListeners();
-  }
-
-  Future<void> toggleMute() async {
-    if (_isMuted) {
-      _volume = _preMuteVolume > 0.0 ? _preMuteVolume : 0.8;
-      _isMuted = false;
-    } else {
-      _preMuteVolume = _volume;
-      _volume = 0.0;
-      _isMuted = true;
-    }
-    await _audioPlayer.setVolume(_volume);
-    notifyListeners();
-  }
-
-  // Sound Preset Control
-  void setSoundPreset(String preset) {
-    if (soundPresets.contains(preset)) {
-      _soundPreset = preset;
-      unawaited(_applyEqualizerPreset());
-      notifyListeners();
-    }
-  }
-
-  /// Applies the selected preset to the Android hardware equalizer.
-  Future<void> _applyEqualizerPreset() async {
-    final eq = _equalizer;
-    if (eq == null) return;
-    try {
-      final params = await eq.parameters;
-      final gains = EqPresets.gainsFor(
-        _soundPreset,
-        bandCount: params.bands.length,
-        minDb: params.minDecibels,
-        maxDb: params.maxDecibels,
-      );
-      for (var i = 0; i < params.bands.length; i++) {
-        await params.bands[i].setGain(gains[i]);
-      }
-      await eq.setEnabled(_soundPreset != 'Normal');
-    } catch (e) {
-      debugPrint('Equalizer note: $e');
-    }
-  }
-
-  // Sleep Timer Engine
-  void setSleepTimer(Duration duration) {
-    cancelSleepTimer();
-    _sleepSecondsRemaining = duration.inSeconds;
-    _sleepAfterCurrentSong = false;
-    notifyListeners();
-
-    _sleepTicker = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_sleepSecondsRemaining > 0) {
-        _sleepSecondsRemaining--;
-        notifyListeners();
-      } else {
-        cancelSleepTimer();
-        _audioPlayer.pause();
-      }
-    });
-  }
-
-  void setSleepTimerAfterSong() {
-    cancelSleepTimer();
-    _sleepAfterCurrentSong = true;
-    notifyListeners();
-  }
-
-  void cancelSleepTimer() {
-    _sleepTimer?.cancel();
-    _sleepTicker?.cancel();
-    _sleepTimer = null;
-    _sleepTicker = null;
-    _sleepSecondsRemaining = 0;
-    _sleepAfterCurrentSong = false;
-    notifyListeners();
-  }
-
-  // Queue Management
-  void removeFromQueue(int index) {
-    if (index < 0 || index >= _queue.length) return;
-    if (index == _currentIndex) {
-      next();
-    }
-    _queue.removeAt(index);
-    if (_currentIndex > index) {
-      _currentIndex--;
-    }
-    notifyListeners();
-  }
-
-  void reorderQueue(int oldIndex, int newIndex) {
-    if (oldIndex < newIndex) {
-      newIndex -= 1;
-    }
-    final item = _queue.removeAt(oldIndex);
-    _queue.insert(newIndex, item);
-    if (_currentIndex == oldIndex) {
-      _currentIndex = newIndex;
-    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
-      _currentIndex--;
-    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
-      _currentIndex++;
-    }
-    notifyListeners();
-  }
-
-  void clearQueue() {
-    final current = currentSong;
-    _queue.clear();
-    if (current != null) {
-      _queue.add(current);
-      _currentIndex = 0;
-    } else {
-      _currentIndex = -1;
-    }
-    notifyListeners();
-  }
-
-  Future<void> toggleFavorite(String songId) async {
-    Song? song;
-    try {
-      song = _allSongs.firstWhere((s) => s.id == songId);
-    } catch (_) {
-      try {
-        song = _queue.firstWhere((s) => s.id == songId);
-      } catch (_) {
-        song = currentSong;
-      }
-    }
-
-    if (song != null) {
-      await DatabaseService.instance.toggleFavorite(song);
-      _favoriteIds.clear();
-      _favoriteIds.addAll(DatabaseService.instance.favoriteIds);
-      notifyListeners();
-    } else {
-      if (_favoriteIds.contains(songId)) {
-        _favoriteIds.remove(songId);
-      } else {
-        _favoriteIds.add(songId);
-      }
-      notifyListeners();
-    }
-  }
-
-  bool isFavorite(String songId) => _favoriteIds.contains(songId);
-
-  Future<void> clearPlaybackHistory() async {
-    _recentlyPlayed.clear();
-    await DatabaseService.instance.clearHistory();
-    notifyListeners();
-  }
-
-  Future<void> clearAllUserData() async {
-    _recentlyPlayed.clear();
-    _favoriteIds.clear();
-    _playlists.removeWhere((p) => p.type == PlaylistType.custom);
-    await DatabaseService.instance.clearAllUserData();
-    notifyListeners();
-  }
-
-  Future<Playlist> createPlaylist(
-    String title, {
-    String description = '',
-  }) async {
-    final newPlaylist = await DatabaseService.instance.createPlaylist(
-      title,
-      description: description,
-    );
-    _playlists.insert(0, newPlaylist);
-    notifyListeners();
-    return newPlaylist;
-  }
-
-  Future<void> deletePlaylist(String playlistId) async {
-    await DatabaseService.instance.deletePlaylist(playlistId);
-    _playlists.removeWhere((p) => p.id == playlistId);
-    notifyListeners();
-  }
-
-  Future<void> addSongToPlaylist(String playlistId, String songId) async {
-    Song? song;
-    try {
-      song = _allSongs.firstWhere((s) => s.id == songId);
-    } catch (_) {
-      try {
-        song = _queue.firstWhere((s) => s.id == songId);
-      } catch (_) {
-        song = currentSong;
-      }
-    }
-
-    if (song != null) {
-      await DatabaseService.instance.addSongToPlaylist(playlistId, song);
-      final index = _playlists.indexWhere((p) => p.id == playlistId);
-      if (index != -1) {
-        final p = _playlists[index];
-        if (!p.songIds.contains(songId)) {
-          _playlists[index] = p.copyWith(
-            songIds: [...p.songIds, songId],
-            songs: [...p.songs, song],
-          );
-          notifyListeners();
-        }
-      }
-    }
-  }
-
-  Future<void> removeSongFromPlaylist(String playlistId, String songId) async {
-    await DatabaseService.instance.removeSongFromPlaylist(playlistId, songId);
-    final index = _playlists.indexWhere((p) => p.id == playlistId);
-    if (index != -1) {
-      final p = _playlists[index];
-      _playlists[index] = p.copyWith(
-        songIds: p.songIds.where((id) => id != songId).toList(),
-        songs: p.songs.where((s) => s.id != songId).toList(),
-      );
-      notifyListeners();
-    }
   }
 
   @override
