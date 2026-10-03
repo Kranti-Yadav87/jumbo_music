@@ -6,6 +6,7 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'firebase_options.dart';
 import 'config/app_config.dart';
 import 'services/database_service.dart';
+import 'services/download_service.dart';
 import 'services/theme_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/presence_service.dart';
@@ -41,6 +42,7 @@ void main() async {
 
     // Initialize persistent database engine, presence sync & network observer
     await DatabaseService.instance.init();
+    DownloadService().hydrateFromDatabase();
     PresenceService.instance.init();
     ConnectivityService.instance; // warm-up connectivity listener
 

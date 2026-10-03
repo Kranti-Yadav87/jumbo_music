@@ -38,7 +38,8 @@ class FileDownloader {
   static Future<bool> exists(String path) async {
     if (!path.startsWith(_prefix)) return false;
     try {
-      return (await _jsHas(_idOf(path).toJS).toDart).toDart;
+      final res = (await _jsHas(_idOf(path).toJS).toDart).toDart;
+      return res;
     } catch (_) {
       return false;
     }

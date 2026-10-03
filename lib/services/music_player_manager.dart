@@ -571,8 +571,21 @@ class MusicPlayerManager extends ChangeNotifier {
         duration: song.duration.inSeconds > 0 ? song.duration : null,
       );
 
+      final isDl = DownloadService().isDownloaded(song.id);
       final offlineUri = await DownloadService().playableUriFor(song.id);
-      final sourceUri = offlineUri ?? Uri.parse(song.audioUrl);
+      debugPrint('[Playback] START: "${song.title}" (${song.id}) - isDownloaded: $isDl, offlineUri: $offlineUri');
+
+      final Uri sourceUri;
+      if (offlineUri != null) {
+        sourceUri = offlineUri;
+        debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (local offline copy)');
+      } else {
+        if (isDl) {
+          debugPrint('[Playback] NOTICE: "${song.title}" is in downloaded list but local file not found. Falling back to stream URI.');
+        }
+        sourceUri = Uri.parse(song.audioUrl);
+        debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
+      }
 
       await _audioPlayer.setAudioSource(
         AudioSource.uri(sourceUri, tag: mediaItem),
@@ -587,7 +600,13 @@ class MusicPlayerManager extends ChangeNotifier {
       _isPlaying = true;
       _isBuffering = false;
     } catch (e) {
-      _errorMessage = "Unable to play audio: $e";
+      final isDl = DownloadService().isDownloaded(song.id);
+      if (isDl && await DownloadService().playableUriFor(song.id) == null) {
+        _errorMessage = "Offline audio file for '${song.title}' was not found in local storage. Connect to internet to stream.";
+      } else {
+        _errorMessage = "Unable to play audio: $e";
+      }
+      debugPrint('[Playback] FAILED: $_errorMessage (original: $e)');
       _isBuffering = false;
       _isPlaying = false;
       MediaSessionService.updatePlaybackState(isPlaying: false);

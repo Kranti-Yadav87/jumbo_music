@@ -20,16 +20,53 @@ class DownloadItem {
   });
 }
 
+abstract class FileDownloaderDelegate {
+  bool get isSupported;
+  Future<DownloadedFile> download(String url, String id);
+  Future<bool> exists(String path);
+  Future<Uri?> playableUri(String path);
+  Future<void> delete(String path);
+}
+
+class DefaultFileDownloaderDelegate implements FileDownloaderDelegate {
+  const DefaultFileDownloaderDelegate();
+
+  @override
+  bool get isSupported => FileDownloader.isSupported;
+
+  @override
+  Future<DownloadedFile> download(String url, String id) =>
+      FileDownloader.download(url, id);
+
+  @override
+  Future<bool> exists(String path) => FileDownloader.exists(path);
+
+  @override
+  Future<Uri?> playableUri(String path) => FileDownloader.playableUri(path);
+
+  @override
+  Future<void> delete(String path) => FileDownloader.delete(path);
+}
+
 class DownloadService extends ChangeNotifier {
   static final DownloadService _instance = DownloadService._internal();
   factory DownloadService() => _instance;
+
+  static FileDownloaderDelegate delegate = const DefaultFileDownloaderDelegate();
 
   final Map<String, DownloadItem> _downloadedItems = {};
   final Set<String> _downloadingIds = {};
 
   DownloadService._internal() {
     _hydrateFromDatabase();
+    DatabaseService.instance.addListener(_onDatabaseChanged);
   }
+
+  void _onDatabaseChanged() {
+    _hydrateFromDatabase();
+  }
+
+  void hydrateFromDatabase() => _hydrateFromDatabase();
 
   void _hydrateFromDatabase() {
     final db = DatabaseService.instance;
@@ -40,20 +77,18 @@ class DownloadService extends ChangeNotifier {
       for (final item in savedDownloads) {
         if (item['song'] != null && item['song'] is Map<String, dynamic>) {
           final song = Song.fromJson(item['song'] as Map<String, dynamic>);
-          // Filter out and remove any old mock sample songs
+          // Filter out any old mock sample songs
           if (song.id == 'dl_1' ||
               song.id == 'dl_2' ||
               song.id.startsWith('sample_') ||
               song.title == 'Kesariya Sukoon' ||
               song.title == 'Midnight Lo-Fi Chill') {
-            db.removeDownload(song.id);
             continue;
           }
           // Older versions only simulated downloads (no file on disk). Drop them
           // so the library never claims a song is offline when it is not.
           final savedPath = (item['localPath'] as String?) ?? '';
           if (savedPath.isEmpty || savedPath.startsWith('offline_storage/')) {
-            db.removeDownload(song.id);
             continue;
           }
           final dAt = item['downloadedAt'] != null
@@ -69,6 +104,7 @@ class DownloadService extends ChangeNotifier {
         }
       }
     }
+    notifyListeners();
   }
 
   List<Song> get downloadedSongs =>
@@ -114,12 +150,20 @@ class DownloadService extends ChangeNotifier {
   /// (caller then streams from the network).
   Future<Uri?> playableUriFor(String songId) async {
     final item = _downloadedItems[songId];
-    if (item == null || !FileDownloader.isSupported) return null;
-    return FileDownloader.playableUri(item.localPath);
+    if (item == null || !delegate.isSupported) {
+      debugPrint('[DownloadService] playableUriFor($songId): item is null or delegate not supported');
+      return null;
+    }
+    final exists = await delegate.exists(item.localPath);
+    debugPrint('[DownloadService] EXISTS-CHECK for "$songId" at "${item.localPath}": $exists');
+    if (!exists) return null;
+    final uri = await delegate.playableUri(item.localPath);
+    debugPrint('[DownloadService] PLAYABLE URI for "$songId": $uri');
+    return uri;
   }
 
   Future<void> downloadSong(Song song, {BuildContext? context}) async {
-    if (!FileDownloader.isSupported) {
+    if (!delegate.isSupported) {
       _toast(
         context,
         'Offline downloads are not supported on this device.',
@@ -192,6 +236,7 @@ class DownloadService extends ChangeNotifier {
 
     _downloadingIds.add(song.id);
     notifyListeners();
+    debugPrint('[Download] START: Downloading "${song.title}" (${song.id}) from ${song.audioUrl}');
 
     if (context != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -227,9 +272,11 @@ class DownloadService extends ChangeNotifier {
 
     final DownloadedFile file;
     try {
-      file = await FileDownloader.download(song.audioUrl, song.id);
+      file = await delegate.download(song.audioUrl, song.id);
+      debugPrint('[Download] BYTES: Received ${file.bytes} bytes for "${song.title}" (${song.id})');
+      debugPrint('[Download] SAVED PATH: File saved at "${file.path}" for "${song.title}"');
     } catch (e) {
-      debugPrint('Download failed for ${song.id}: $e');
+      debugPrint('[Download] FAILED for ${song.id}: $e');
       _downloadingIds.remove(song.id);
       notifyListeners();
       if (context != null && context.mounted) {
@@ -309,16 +356,18 @@ class DownloadService extends ChangeNotifier {
   }
 
   void removeDownload(String songId) {
+    debugPrint('[Download] REMOVE: Deleting download for "$songId"');
     final item = _downloadedItems.remove(songId);
-    if (item != null) unawaited(FileDownloader.delete(item.localPath));
+    if (item != null) unawaited(delegate.delete(item.localPath));
     DatabaseService.instance.removeDownload(songId);
     notifyListeners();
   }
 
   void clearAllDownloads() {
+    debugPrint('[Download] CLEAR ALL: Deleting all ${_downloadedItems.length} downloads');
     for (final entry in _downloadedItems.entries) {
       DatabaseService.instance.removeDownload(entry.key);
-      unawaited(FileDownloader.delete(entry.value.localPath));
+      unawaited(delegate.delete(entry.value.localPath));
     }
     _downloadedItems.clear();
     notifyListeners();

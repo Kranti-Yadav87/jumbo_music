@@ -67,11 +67,17 @@ class FileDownloader {
     }
   }
 
-  static Future<bool> exists(String path) => File(path).exists();
+  static Future<bool> exists(String path) async {
+    final res = await File(path).exists();
+    return res;
+  }
 
   /// Address the audio player can open, or null when the file is gone.
   static Future<Uri?> playableUri(String path) async {
-    if (await File(path).exists()) return Uri.file(path);
+    final fileExists = await File(path).exists();
+    if (fileExists) {
+      return Uri.file(path);
+    }
     return null;
   }
 

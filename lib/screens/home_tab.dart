@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import '../services/theme_service.dart';
 import '../services/download_service.dart';
+import '../services/connectivity_service.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/app_footer.dart';
 import '../widgets/app_top_header.dart';
@@ -121,14 +122,15 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
     final downloadService = DownloadService();
+    final connectivity = ConnectivityService.instance;
     final downloadedSongs = downloadService.downloadedSongs;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([manager, downloadService]),
+      animation: Listenable.merge([manager, downloadService, connectivity]),
       builder: (context, _) {
         final newReleases = manager.newReleases;
-        final isOffline =
-            manager.onlineTrending.isEmpty && !manager.isLoadingTrending;
+        final isOffline = connectivity.isOffline ||
+            (manager.onlineTrending.isEmpty && !manager.isLoadingTrending);
 
         return Scaffold(
           backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -181,7 +183,7 @@ class _HomeTabState extends State<HomeTab> {
                           ),
                           child: Icon(
                             isOffline
-                                ? Icons.flight_takeoff_rounded
+                                ? Icons.cloud_off_rounded
                                 : Icons.offline_pin_rounded,
                             color: isOffline
                                 ? const Color(0xFF818CF8)
@@ -196,7 +198,7 @@ class _HomeTabState extends State<HomeTab> {
                             children: [
                               Text(
                                 isOffline
-                                    ? 'Offline Mode Active ✈️'
+                                    ? 'You are offline'
                                     : 'Downloaded Songs Ready ⚡',
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -206,7 +208,9 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                '${downloadedSongs.length} downloaded tracks ready for offline listening without internet.',
+                                isOffline
+                                    ? '${downloadedSongs.length} songs available in Downloads'
+                                    : '${downloadedSongs.length} downloaded tracks ready for offline listening without internet.',
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.7),
                                   fontSize: 11.5,
@@ -239,9 +243,9 @@ class _HomeTabState extends State<HomeTab> {
                               ),
                             );
                           },
-                          child: const Text(
-                            'Open',
-                            style: TextStyle(
+                          child: Text(
+                            isOffline ? 'Downloads' : 'Open',
+                            style: const TextStyle(
                               fontSize: 11.5,
                               fontWeight: FontWeight.bold,
                             ),
