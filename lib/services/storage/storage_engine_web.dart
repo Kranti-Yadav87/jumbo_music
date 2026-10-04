@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import '../crash_reporting_service.dart';
 
 @JS('jumboStorageGet')
 external JSString? _jsStorageGet(JSString key);
@@ -32,13 +33,17 @@ class PlatformStorage {
     _memCache[key] = value;
     try {
       _jsStorageSet(key.toJS, value.toJS);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'storage_engine_web.dart:35');
+    }
   }
 
   static Future<void> removeItem(String key) async {
     _memCache.remove(key);
     try {
       _jsStorageRemove(key.toJS);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'storage_engine_web.dart:42');
+    }
   }
 }

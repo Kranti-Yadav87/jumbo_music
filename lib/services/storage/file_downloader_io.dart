@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'downloaded_file.dart';
+import '../crash_reporting_service.dart';
 
 /// Real offline downloads for Android, iOS and desktop.
 class FileDownloader {
@@ -27,7 +28,9 @@ class FileDownloader {
   /// download never leaves a corrupt "finished" file behind.
   static Future<DownloadedFile> download(String url, String id) async {
     final dir = await _dir();
-    final target = File('${dir.path}${Platform.pathSeparator}${_safeName(id)}.mp3');
+    final target = File(
+      '${dir.path}${Platform.pathSeparator}${_safeName(id)}.mp3',
+    );
     final tmp = File('${target.path}.part');
     final client = http.Client();
     try {
@@ -60,7 +63,9 @@ class FileDownloader {
     } catch (_) {
       try {
         if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(error, 'file_downloader_io.dart:63');
+      }
       rethrow;
     } finally {
       client.close();
@@ -77,7 +82,9 @@ class FileDownloader {
         final candidate = File('${dir.path}${Platform.pathSeparator}$fileName');
         if (await candidate.exists()) return candidate;
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'file_downloader_io.dart:80');
+    }
     return null;
   }
 
@@ -101,6 +108,8 @@ class FileDownloader {
       if (f != null && await f.exists()) {
         await f.delete();
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'file_downloader_io.dart:104');
+    }
   }
 }

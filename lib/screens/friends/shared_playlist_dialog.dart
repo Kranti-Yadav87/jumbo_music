@@ -113,10 +113,7 @@ class SharedPlaylistDialog {
     );
   }
 
-  static void showAddSongBottomSheet(
-    BuildContext context,
-    Playlist playlist,
-  ) {
+  static void showAddSongBottomSheet(BuildContext context, Playlist playlist) {
     final searchCtrl = TextEditingController();
     List<Song> searchResults = [];
     bool isSearching = false;

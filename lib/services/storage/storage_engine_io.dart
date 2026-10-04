@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../crash_reporting_service.dart';
 
 class PlatformStorage {
   static final Map<String, String> _memCache = {};
@@ -19,7 +20,9 @@ class PlatformStorage {
         if (!await _dir!.exists()) {
           await _dir!.create(recursive: true);
         }
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(error, 'storage_engine_io.dart:22');
+      }
     }
   }
 
@@ -35,7 +38,9 @@ class PlatformStorage {
         _memCache[key] = content;
         return content;
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'storage_engine_io.dart:38');
+    }
     return null;
   }
 
@@ -45,7 +50,9 @@ class PlatformStorage {
       await _ensureDir();
       final file = File('${_dir?.path ?? '.'}/$key.json');
       await file.writeAsString(value);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'storage_engine_io.dart:48');
+    }
   }
 
   static Future<void> removeItem(String key) async {
@@ -56,6 +63,8 @@ class PlatformStorage {
       if (await file.exists()) {
         await file.delete();
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'storage_engine_io.dart:59');
+    }
   }
 }

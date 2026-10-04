@@ -294,9 +294,7 @@ class _AuthDialogState extends State<AuthDialog> {
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Email Address',
                   prefixIcon: const Icon(Icons.email_outlined, size: 20),
@@ -331,9 +329,7 @@ class _AuthDialogState extends State<AuthDialog> {
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black87,
-                ),
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
                 decoration: InputDecoration(
                   labelText: 'Password',
                   prefixIcon: const Icon(Icons.lock_outline_rounded, size: 20),

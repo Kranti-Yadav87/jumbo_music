@@ -1,6 +1,6 @@
 # Jumbo Music 🎵 — Professional Music Streaming & Social Player App
 
-A high-performance, commercial-grade music streaming and player app built with **Flutter & Material 3**, **Firebase Auth + Cloud Firestore**, and a **custom music catalog API** with local caching and offline persistence.
+A cross-platform (Android + Web/PWA) music streaming and social player app built with **Flutter & Material 3**, **Firebase Auth + Cloud Firestore**, and a **custom music catalog API** with local caching and offline persistence.
 
 ---
 
@@ -34,8 +34,10 @@ A high-performance, commercial-grade music streaming and player app built with *
 - **Docked Mini-Player**: Floats above navigation with real-time waveform equalizer animation and expandable player.
 
 ### 5. Crash Reporting & Observability
-- **Centralized Error Boundaries**: `CrashReportingService` captures Flutter widget errors (`FlutterError.onError`) and unhandled asynchronous exceptions (`PlatformDispatcher.instance.onError`).
-- **Ready for Firebase Crashlytics & Sentry**: Hooked into the root application runner (`CrashReportingService.runWithCrashReporting`).
+- **Global error boundaries**: `CrashReportingService` captures Flutter framework errors, unhandled async errors and root-zone errors.
+- **Real remote reports (release builds)**: compact, size-limited, rate-limited and de-duplicated reports are written to the write-only Firestore collection `client_errors` (read them in the Firebase console). Disable/enable with `--dart-define=REPORT_ERRORS=false|true`.
+- **No silent failures**: recoverable errors go through `CrashReportingService.swallow(...)` which leaves a breadcrumb that is attached to the next real report.
+- **Legal full-length fallback catalog**: optional Jamendo provider (`--dart-define=JAMENDO_CLIENT_ID=...`).
 
 ---
 
@@ -45,7 +47,7 @@ A high-performance, commercial-grade music streaming and player app built with *
 # 1. Install dependencies
 flutter pub get
 
-# 2. Run static analysis (0 warnings guaranteed)
+# 2. Run static analysis
 flutter analyze --no-fatal-infos
 
 # 3. Run full test suite
@@ -59,6 +61,11 @@ flutter build web --release --base-href /
 
 # 6. Build Android APK
 flutter build apk --release
+```
+
+### Optional build-time configuration
+```bash
+flutter run --dart-define=JAMENDO_CLIENT_ID=<your-jamendo-client-id>
 ```
 
 ### Custom Music API Configuration

@@ -56,7 +56,11 @@ class HomeSectionHeader extends StatelessWidget {
                   color: textColor.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(Icons.arrow_forward_rounded, color: textColor, size: 20),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: textColor,
+                  size: 20,
+                ),
               ),
             ),
         ],

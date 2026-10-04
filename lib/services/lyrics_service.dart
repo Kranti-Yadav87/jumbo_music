@@ -39,7 +39,9 @@ class LyricsService {
     final fetched = await fetchLyricsByQuery(
       title: song.title,
       artist: song.artist,
-      durationSeconds: song.duration.inSeconds > 0 ? song.duration.inSeconds : null,
+      durationSeconds: song.duration.inSeconds > 0
+          ? song.duration.inSeconds
+          : null,
     );
 
     if (fetched != null && fetched.trim().isNotEmpty) {
@@ -69,11 +71,18 @@ class LyricsService {
 
     try {
       final response = await http
-          .get(uri, headers: {'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)'})
+          .get(
+            uri,
+            headers: {
+              'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)',
+            },
+          )
           .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(utf8.decode(response.bodyBytes));
+        final Map<String, dynamic> data = jsonDecode(
+          utf8.decode(response.bodyBytes),
+        );
         final syncedLyrics = data['syncedLyrics'] as String?;
         final plainLyrics = data['plainLyrics'] as String?;
 
@@ -91,7 +100,12 @@ class LyricsService {
   }
 
   /// Manually cache lyrics for a song
-  void cacheLyrics(String songId, String lyrics, {String title = '', String artist = ''}) {
+  void cacheLyrics(
+    String songId,
+    String lyrics, {
+    String title = '',
+    String artist = '',
+  }) {
     final key = _buildCacheKey(songId, title, artist);
     _cache[key] = lyrics.trim();
   }
@@ -114,7 +128,13 @@ class LyricsService {
 
   String _cleanSongTitle(String title) {
     return title
-        .replaceAll(RegExp(r'\(.*?(remix|official|video|audio|lyrics|from).*?\)', caseSensitive: false), '')
+        .replaceAll(
+          RegExp(
+            r'\(.*?(remix|official|video|audio|lyrics|from).*?\)',
+            caseSensitive: false,
+          ),
+          '',
+        )
         .replaceAll(RegExp(r'\[.*?\]'), '')
         .replaceAll(RegExp(r'-.*?from.*', caseSensitive: false), '')
         .trim();

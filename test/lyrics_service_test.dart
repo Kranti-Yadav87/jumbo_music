@@ -11,28 +11,37 @@ void main() {
       service.clearCache();
     });
 
-    test('getLyrics returns embedded song lyrics and populates cache', () async {
-      const songWithLyrics = Song(
-        id: 'song_lrc_1',
-        title: 'Channa Mereya',
-        artist: 'Arijit Singh',
-        duration: Duration(seconds: 289),
-        audioUrl: 'https://example.com/cm.mp3',
-        coverUrl: 'https://example.com/cm.jpg',
-        lyrics: '[00:12.50]Accha chalta hoon\n[00:15.80]Duaaon mein yaad rakhna',
-      );
+    test(
+      'getLyrics returns embedded song lyrics and populates cache',
+      () async {
+        const songWithLyrics = Song(
+          id: 'song_lrc_1',
+          title: 'Channa Mereya',
+          artist: 'Arijit Singh',
+          duration: Duration(seconds: 289),
+          audioUrl: 'https://example.com/cm.mp3',
+          coverUrl: 'https://example.com/cm.jpg',
+          lyrics:
+              '[00:12.50]Accha chalta hoon\n[00:15.80]Duaaon mein yaad rakhna',
+        );
 
-      final result = await service.getLyrics(songWithLyrics);
-      expect(result, contains('Accha chalta hoon'));
-      expect(service.cache.containsKey('song_lrc_1'), isTrue);
-      expect(service.isSynced(result), isTrue);
+        final result = await service.getLyrics(songWithLyrics);
+        expect(result, contains('Accha chalta hoon'));
+        expect(service.cache.containsKey('song_lrc_1'), isTrue);
+        expect(service.isSynced(result), isTrue);
 
-      final fetchResult = await service.fetch(songWithLyrics);
-      expect(fetchResult, equals(result));
-    });
+        final fetchResult = await service.fetch(songWithLyrics);
+        expect(fetchResult, equals(result));
+      },
+    );
 
     test('cacheLyrics and clearCache operate properly', () {
-      service.cacheLyrics('song_123', '[00:01.00]Hello world', title: 'Hello', artist: 'Adele');
+      service.cacheLyrics(
+        'song_123',
+        '[00:01.00]Hello world',
+        title: 'Hello',
+        artist: 'Adele',
+      );
       expect(service.cache.containsKey('song_123'), isTrue);
 
       service.clearCache();

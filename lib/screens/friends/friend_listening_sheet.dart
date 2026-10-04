@@ -77,7 +77,8 @@ class FriendListeningSheet {
                             ),
                           ),
                           Text(
-                            friend.isListening && friend.currentSongTitle.isNotEmpty
+                            friend.isListening &&
+                                    friend.currentSongTitle.isNotEmpty
                                 ? 'Listening to: ${friend.currentSongTitle} • ${friend.currentSongArtist}'
                                 : (friend.isOnline ? 'Online now' : 'Offline'),
                             maxLines: 1,
@@ -120,7 +121,9 @@ class FriendListeningSheet {
                     subtitle: Text(
                       'Sync & play "${friend.currentSongTitle}" in real-time',
                       style: TextStyle(
-                        color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
                         fontSize: 12,
                       ),
                     ),

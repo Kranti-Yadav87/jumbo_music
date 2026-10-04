@@ -22,22 +22,40 @@ class MoodMixesSection extends StatefulWidget {
 
 class _MoodMixesSectionState extends State<MoodMixesSection> {
   static const List<_Mood> _moods = [
-    _Mood('Romance', 'romantic hindi songs', Icons.favorite_rounded,
-        [Color(0xFFEC4899), Color(0xFFBE185D)]),
-    _Mood('Party', 'party songs dance hits', Icons.celebration_rounded,
-        [Color(0xFFF59E0B), Color(0xFFD97706)]),
-    _Mood('Workout', 'workout gym songs', Icons.fitness_center_rounded,
-        [Color(0xFFEF4444), Color(0xFF991B1B)]),
-    _Mood('Chill', 'chill lofi songs', Icons.spa_rounded,
-        [Color(0xFF06B6D4), Color(0xFF0E7490)]),
-    _Mood('Devotional', 'bhajan devotional songs', Icons.self_improvement_rounded,
-        [Color(0xFFF97316), Color(0xFFC2410C)]),
-    _Mood('Sad', 'sad emotional songs', Icons.water_drop_rounded,
-        [Color(0xFF6366F1), Color(0xFF3730A3)]),
-    _Mood('Retro', 'old hindi evergreen songs', Icons.album_rounded,
-        [Color(0xFF8B5CF6), Color(0xFF5B21B6)]),
-    _Mood('Road Trip', 'road trip songs', Icons.directions_car_rounded,
-        [Color(0xFF10B981), Color(0xFF047857)]),
+    _Mood('Romance', 'romantic hindi songs', Icons.favorite_rounded, [
+      Color(0xFFEC4899),
+      Color(0xFFBE185D),
+    ]),
+    _Mood('Party', 'party songs dance hits', Icons.celebration_rounded, [
+      Color(0xFFF59E0B),
+      Color(0xFFD97706),
+    ]),
+    _Mood('Workout', 'workout gym songs', Icons.fitness_center_rounded, [
+      Color(0xFFEF4444),
+      Color(0xFF991B1B),
+    ]),
+    _Mood('Chill', 'chill lofi songs', Icons.spa_rounded, [
+      Color(0xFF06B6D4),
+      Color(0xFF0E7490),
+    ]),
+    _Mood(
+      'Devotional',
+      'bhajan devotional songs',
+      Icons.self_improvement_rounded,
+      [Color(0xFFF97316), Color(0xFFC2410C)],
+    ),
+    _Mood('Sad', 'sad emotional songs', Icons.water_drop_rounded, [
+      Color(0xFF6366F1),
+      Color(0xFF3730A3),
+    ]),
+    _Mood('Retro', 'old hindi evergreen songs', Icons.album_rounded, [
+      Color(0xFF8B5CF6),
+      Color(0xFF5B21B6),
+    ]),
+    _Mood('Road Trip', 'road trip songs', Icons.directions_car_rounded, [
+      Color(0xFF10B981),
+      Color(0xFF047857),
+    ]),
   ];
 
   String? _loadingMood;
@@ -67,7 +85,9 @@ class _MoodMixesSectionState extends State<MoodMixesSection> {
     );
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => PlaylistDetailScreen(playlist: playlist)),
+      MaterialPageRoute(
+        builder: (_) => PlaylistDetailScreen(playlist: playlist),
+      ),
     );
   }
 

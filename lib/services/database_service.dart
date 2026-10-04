@@ -5,6 +5,7 @@ import '../models/playlist.dart';
 import '../models/friend.dart';
 import 'storage/storage_engine.dart';
 import 'firestore_sync_service.dart';
+import 'crash_reporting_service.dart';
 
 part 'db/database_service_favorites_and_downloads.dart';
 part 'db/database_service_playlists.dart';
@@ -239,7 +240,9 @@ class DatabaseService extends ChangeNotifier {
         final Map<String, dynamic> map = jsonDecode(raw);
         _settings.addAll(map);
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:242');
+    }
   }
 
   Future<void> updateSetting(String key, dynamic value) async {
@@ -250,11 +253,13 @@ class DatabaseService extends ChangeNotifier {
         _scopedKey('settings'),
         jsonEncode(_settings),
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:253');
+    }
   }
 
   Future<void> saveSetting(String key, dynamic value) =>
-    updateSetting(key, value);
+      updateSetting(key, value);
 
   // -------------------------------------------------------------
   // 7. USER PROFILE & AUTHENTICATION STORE (Scoped)
@@ -270,6 +275,7 @@ class DatabaseService extends ChangeNotifier {
         ? _userId
         : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
   }
+
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get userAvatarUrl => _userAvatarUrl;
@@ -297,16 +303,22 @@ class DatabaseService extends ChangeNotifier {
         _userId = data['userId'] as String? ?? '';
         _userName =
             data['name'] as String? ??
-            (_isLoggedIn ? (_isGuest ? 'Guest Listener' : 'User') : 'Guest Explorer');
+            (_isLoggedIn
+                ? (_isGuest ? 'Guest Listener' : 'User')
+                : 'Guest Explorer');
         _userEmail =
             data['email'] as String? ??
             (_isLoggedIn
-                ? (_isGuest ? 'guest.listener@jumbomusic.app' : 'user@jumbomusic.app')
+                ? (_isGuest
+                      ? 'guest.listener@jumbomusic.app'
+                      : 'user@jumbomusic.app')
                 : 'guest.listener@jumbomusic.app');
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
         _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:309');
+    }
   }
 
   Future<void> _flushProfile() async {
@@ -321,7 +333,9 @@ class DatabaseService extends ChangeNotifier {
         'bio': _userBio,
       };
       await StorageEngine.setItem(_scopedKey('profile'), jsonEncode(map));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:324');
+    }
   }
 
   /// Explicitly enter guest mode with unique isolated guest ID & storage
@@ -329,7 +343,8 @@ class DatabaseService extends ChangeNotifier {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final randomPart = (nowMs % 90000 + 10000).toString();
     final guestId = customGuestId ?? 'JM-G-$randomPart';
-    final guestScope = 'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
+    final guestScope =
+        'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
 
     await switchUserScope(guestScope);
     await clearAllUserData();

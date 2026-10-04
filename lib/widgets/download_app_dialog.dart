@@ -245,9 +245,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
                   ),
                 ),
                 onPressed: () {
-                  downloadFile(
-                    AppConfig.apkDownloadUrl,
-                  );
+                  downloadFile(AppConfig.apkDownloadUrl);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       backgroundColor: Color(0xFF064E3B),

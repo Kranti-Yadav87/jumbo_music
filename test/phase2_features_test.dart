@@ -38,71 +38,78 @@ void main() {
       expect(db.userName, equals('Guest Explorer'));
     });
 
-    test('ContinuePlayingSection.recentSongs handles current song, history, deduplication and limits', () {
-      const current = Song(
-        id: 'current_1',
-        title: 'Current Song',
-        artist: 'Current Artist',
-        duration: Duration(seconds: 180),
-        audioUrl: 'https://example.com/curr.mp3',
-        coverUrl: '',
-      );
+    test(
+      'ContinuePlayingSection.recentSongs handles current song, history, deduplication and limits',
+      () {
+        const current = Song(
+          id: 'current_1',
+          title: 'Current Song',
+          artist: 'Current Artist',
+          duration: Duration(seconds: 180),
+          audioUrl: 'https://example.com/curr.mp3',
+          coverUrl: '',
+        );
 
-      final history = [
-        {
-          'song': {
-            'id': 'current_1', // duplicate of current
-            'title': 'Current Song',
-            'artist': 'Current Artist',
-            'duration': 180,
-            'audioUrl': 'https://example.com/curr.mp3',
+        final history = [
+          {
+            'song': {
+              'id': 'current_1', // duplicate of current
+              'title': 'Current Song',
+              'artist': 'Current Artist',
+              'duration': 180,
+              'audioUrl': 'https://example.com/curr.mp3',
+            },
           },
-        },
-        {
-          'song': {
-            'id': 'hist_1',
-            'title': 'History Song 1',
-            'artist': 'Artist 1',
-            'duration': 200,
-            'audioUrl': 'https://example.com/h1.mp3',
+          {
+            'song': {
+              'id': 'hist_1',
+              'title': 'History Song 1',
+              'artist': 'Artist 1',
+              'duration': 200,
+              'audioUrl': 'https://example.com/h1.mp3',
+            },
           },
-        },
-        {
-          'song': {
-            'id': 'hist_no_url',
-            'title': 'No Audio Song',
-            'artist': 'Artist 2',
-            'duration': 150,
-            'audioUrl': '', // should be filtered out
+          {
+            'song': {
+              'id': 'hist_no_url',
+              'title': 'No Audio Song',
+              'artist': 'Artist 2',
+              'duration': 150,
+              'audioUrl': '', // should be filtered out
+            },
           },
-        },
-        {
-          'song': 'invalid_map', // malformed entry
-        },
-        {
-          'song': {
-            'id': 'hist_2',
-            'title': 'History Song 2',
-            'artist': 'Artist 2',
-            'duration': 210,
-            'audioUrl': 'https://example.com/h2.mp3',
+          {
+            'song': 'invalid_map', // malformed entry
           },
-        },
-      ];
+          {
+            'song': {
+              'id': 'hist_2',
+              'title': 'History Song 2',
+              'artist': 'Artist 2',
+              'duration': 210,
+              'audioUrl': 'https://example.com/h2.mp3',
+            },
+          },
+        ];
 
-      final result = ContinuePlayingSection.recentSongs(history, current, max: 2);
-      // Expected: max 2 items, current first, hist_1 second, no duplicate current_1
-      expect(result.length, equals(2));
-      expect(result[0].id, equals('current_1'));
-      expect(result[1].id, equals('hist_1'));
+        final result = ContinuePlayingSection.recentSongs(
+          history,
+          current,
+          max: 2,
+        );
+        // Expected: max 2 items, current first, hist_1 second, no duplicate current_1
+        expect(result.length, equals(2));
+        expect(result[0].id, equals('current_1'));
+        expect(result[1].id, equals('hist_1'));
 
-      final allResult = ContinuePlayingSection.recentSongs(history, null);
-      // Without current song: current_1, hist_1, and hist_2 (skips invalid and no-audio)
-      expect(allResult.length, equals(3));
-      expect(allResult[0].id, equals('current_1'));
-      expect(allResult[1].id, equals('hist_1'));
-      expect(allResult[2].id, equals('hist_2'));
-    });
+        final allResult = ContinuePlayingSection.recentSongs(history, null);
+        // Without current song: current_1, hist_1, and hist_2 (skips invalid and no-audio)
+        expect(allResult.length, equals(3));
+        expect(allResult[0].id, equals('current_1'));
+        expect(allResult[1].id, equals('hist_1'));
+        expect(allResult[2].id, equals('hist_2'));
+      },
+    );
 
     test('togglePlay completes promptly without blocking', () async {
       final manager = MusicPlayerManager();

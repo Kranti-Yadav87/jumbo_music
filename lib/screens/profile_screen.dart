@@ -146,10 +146,14 @@ class ProfileScreen extends StatelessWidget {
                               margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF6366F1).withOpacity(0.15),
+                                color: const Color(
+                                  0xFF6366F1,
+                                ).withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: const Color(0xFF6366F1).withOpacity(0.5),
+                                  color: const Color(
+                                    0xFF6366F1,
+                                  ).withOpacity(0.5),
                                 ),
                               ),
                               child: const Row(
@@ -500,7 +504,8 @@ class ProfileScreen extends StatelessWidget {
                                     iconColor: const Color(0xFFA855F7),
                                     count: '$playlistCount',
                                     label: 'Playlists',
-                                    onTap: () => _showPlaylistsSheet(context, manager),
+                                    onTap: () =>
+                                        _showPlaylistsSheet(context, manager),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -912,7 +917,9 @@ class ProfileScreen extends StatelessWidget {
                       child: Text(
                         'No custom playlists yet. Create one from the Library tab!',
                         style: TextStyle(
-                          color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                          color: isDark
+                              ? Colors.white54
+                              : const Color(0xFF64748B),
                           fontSize: 13,
                         ),
                       ),
@@ -938,14 +945,19 @@ class ProfileScreen extends StatelessWidget {
                                 width: 42,
                                 height: 42,
                                 color: const Color(0xFF1E293B),
-                                child: const Icon(Icons.music_note, color: Colors.white54),
+                                child: const Icon(
+                                  Icons.music_note,
+                                  color: Colors.white54,
+                                ),
                               ),
                             ),
                           ),
                           title: Text(
                             pl.title,
                             style: TextStyle(
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark
+                                  ? Colors.white
+                                  : const Color(0xFF0F172A),
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
                             ),
@@ -953,7 +965,9 @@ class ProfileScreen extends StatelessWidget {
                           subtitle: Text(
                             '${pl.songs.length} songs',
                             style: TextStyle(
-                              color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                              color: isDark
+                                  ? Colors.white54
+                                  : const Color(0xFF64748B),
                               fontSize: 12,
                             ),
                           ),
@@ -967,7 +981,8 @@ class ProfileScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => PlaylistDetailScreen(playlist: pl),
+                                builder: (_) =>
+                                    PlaylistDetailScreen(playlist: pl),
                               ),
                             );
                           },

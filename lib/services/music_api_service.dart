@@ -6,6 +6,8 @@ import 'release_filter.dart';
 import 'api/song_parser_utils.dart';
 import 'api/music_tag_classifier.dart';
 import 'api/itunes_search_service.dart';
+import 'api/jamendo_search_service.dart';
+import 'crash_reporting_service.dart';
 
 export 'api/song_parser_utils.dart';
 export 'api/music_tag_classifier.dart';
@@ -78,11 +80,16 @@ class MusicApiService {
         }
         if (songs.isNotEmpty) return songs;
       }
-    } catch (_) {
+    } catch (error) {
       // Fallback below
+      CrashReportingService.swallow(error, 'music_api_service.dart:81');
     }
 
-    // Fallback: iTunes live search
+    // Fallback 1: Jamendo (legal, full-length tracks) when configured
+    final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
+    if (jamendo.isNotEmpty) return jamendo;
+
+    // Fallback 2: iTunes live search (30-second previews)
     return searchOnlineSongsFallback(cleanQuery, limit: limit);
   }
 
@@ -125,7 +132,9 @@ class MusicApiService {
           'songs': songs,
         };
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'music_api_service.dart:128');
+    }
     return {
       'id': playlistId,
       'name': 'Playlist',
@@ -712,7 +721,9 @@ class MusicApiService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'music_api_service.dart:715');
+    }
 
     return recommendations.take(limit).toList();
   }

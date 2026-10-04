@@ -5,6 +5,7 @@ import '../config/app_config.dart';
 import 'database_service.dart';
 import 'firestore_sync_service.dart';
 import 'music_player_manager.dart';
+import 'crash_reporting_service.dart';
 
 class AuthService {
   static final AuthService instance = AuthService._internal();
@@ -31,7 +32,9 @@ class AuthService {
         msg.contains('canceled') ||
         msg.contains('user-cancelled')) {
       return 'Google Sign-In was cancelled.';
-    } else if (msg.contains('10') || msg.contains('12500') || msg.contains('DEVELOPER_ERROR')) {
+    } else if (msg.contains('10') ||
+        msg.contains('12500') ||
+        msg.contains('DEVELOPER_ERROR')) {
       return 'Google Play Services or OAuth SHA-1 configuration check required on device.';
     } else if (msg.contains('popup-blocked')) {
       return 'Sign-in popup was blocked by your browser. Please allow popups for this site and retry.';
@@ -49,7 +52,8 @@ class AuthService {
       return 'Please enter a valid email address.';
     } else if (msg.contains('too-many-requests')) {
       return 'Too many unsuccessful attempts. Please try again in a few minutes.';
-    } else if (msg.contains('network-request-failed') || msg.contains('SocketException')) {
+    } else if (msg.contains('network-request-failed') ||
+        msg.contains('SocketException')) {
       return 'Network connection issue. Please check your internet connection.';
     } else if (msg.contains('user-disabled')) {
       return 'This user account has been deactivated.';
@@ -89,7 +93,8 @@ class AuthService {
         if (idToken == null || idToken.isEmpty) {
           throw FirebaseAuthException(
             code: 'null-id-token',
-            message: 'Google Sign-In failed: No ID Token returned from identity provider.',
+            message:
+                'Google Sign-In failed: No ID Token returned from identity provider.',
           );
         }
 
@@ -235,7 +240,9 @@ class AuthService {
       if (!kIsWeb) {
         try {
           await GoogleSignIn.instance.signOut();
-        } catch (_) {}
+        } catch (error) {
+          CrashReportingService.swallow(error, 'auth_service.dart:238');
+        }
       }
       await DatabaseService.instance.logout();
     } catch (e) {
@@ -277,7 +284,9 @@ class AuthService {
       if (!kIsWeb) {
         try {
           await GoogleSignIn.instance.signOut();
-        } catch (_) {}
+        } catch (error) {
+          CrashReportingService.swallow(error, 'auth_service.dart:280');
+        }
       }
       await DatabaseService.instance.logout();
     } catch (e) {

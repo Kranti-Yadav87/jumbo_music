@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
+import '../services/crash_reporting_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -71,12 +72,15 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ...payload,
         'createdAt': FieldValue.serverTimestamp(),
       });
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'feedback_screen.dart:74');
+    }
 
     // 2. Add in-app confirmation notification
     await db.addNotification(
       title: 'Feedback Received',
-      message: 'Thank you for rating Jumbo Music $_selectedRating/5 stars. We appreciate your feedback!',
+      message:
+          'Thank you for rating Jumbo Music $_selectedRating/5 stars. We appreciate your feedback!',
       type: 'system',
     );
 
@@ -86,33 +90,51 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         context: context,
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF1E1E2E),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Row(
             children: [
-              Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 28),
+              Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF10B981),
+                size: 28,
+              ),
               SizedBox(width: 10),
               Text(
                 'Feedback Sent!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           content: const Text(
             'Thank you for helping us improve Jumbo Music! Your suggestions have been directly recorded.',
-            style: TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.4),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 13.5,
+              height: 1.4,
+            ),
           ),
           actions: [
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFFF5E3A),
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () {
                 Navigator.pop(ctx);
                 Navigator.pop(context);
               },
-              child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Done',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -126,7 +148,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     final db = DatabaseService.instance;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D0D14) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0D0D14)
+          : const Color(0xFFF8FAFC),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF14141E) : Colors.white,
         elevation: 0,
@@ -231,7 +255,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               color: isDark ? const Color(0xFF161622) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : const Color(0xFFE2E8F0),
               ),
             ),
             child: Column(
@@ -249,8 +275,12 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           scale: isFilled ? 1.15 : 1.0,
                           duration: const Duration(milliseconds: 150),
                           child: Icon(
-                            isFilled ? Icons.star_rounded : Icons.star_outline_rounded,
-                            color: isFilled ? const Color(0xFFFFB800) : Colors.white24,
+                            isFilled
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            color: isFilled
+                                ? const Color(0xFFFFB800)
+                                : Colors.white24,
                             size: 40,
                           ),
                         ),
@@ -301,12 +331,16 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   style: TextStyle(
                     fontSize: 12.5,
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF0F172A)),
+                    color: isSelected
+                        ? Colors.white
+                        : (isDark ? Colors.white70 : const Color(0xFF0F172A)),
                   ),
                 ),
                 selected: isSelected,
                 selectedColor: const Color(0xFFFF5E3A),
-                backgroundColor: isDark ? const Color(0xFF161622) : Colors.white,
+                backgroundColor: isDark
+                    ? const Color(0xFF161622)
+                    : Colors.white,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                   side: BorderSide(
@@ -315,7 +349,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         : (isDark ? Colors.white12 : const Color(0xFFE2E8F0)),
                   ),
                 ),
-                onSelected: (_) => setState(() => _selectedCategory = cat['label'] as String),
+                onSelected: (_) =>
+                    setState(() => _selectedCategory = cat['label'] as String),
               );
             }).toList(),
           ),
@@ -339,15 +374,21 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               color: isDark ? const Color(0xFF161622) : Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: isDark ? Colors.white.withOpacity(0.06) : const Color(0xFFE2E8F0),
+                color: isDark
+                    ? Colors.white.withOpacity(0.06)
+                    : const Color(0xFFE2E8F0),
               ),
             ),
             child: TextField(
               controller: _feedbackController,
               maxLines: 5,
-              style: TextStyle(color: isDark ? Colors.white : const Color(0xFF0F172A), fontSize: 14),
+              style: TextStyle(
+                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                fontSize: 14,
+              ),
               decoration: InputDecoration(
-                hintText: 'What do you love? What needs improvement? Suggest any songs, features, or bugs...',
+                hintText:
+                    'What do you love? What needs improvement? Suggest any songs, features, or bugs...',
                 hintStyle: TextStyle(
                   color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
                   fontSize: 13,
@@ -363,7 +404,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           // Submitter Profile Pill
           Row(
             children: [
-              Icon(Icons.account_circle_outlined, size: 14, color: isDark ? Colors.white38 : Colors.grey),
+              Icon(
+                Icons.account_circle_outlined,
+                size: 14,
+                color: isDark ? Colors.white38 : Colors.grey,
+              ),
               const SizedBox(width: 6),
               Text(
                 'Submitting as: ${db.userName} (${db.userId})',
@@ -383,19 +428,28 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
               backgroundColor: const Color(0xFFFF5E3A),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 4,
             ),
             icon: _isSubmitting
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.send_rounded, size: 20),
             label: Text(
               _isSubmitting ? 'Sending...' : 'Submit Feedback',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
             ),
             onPressed: _isSubmitting ? null : _submitFeedback,
           ),

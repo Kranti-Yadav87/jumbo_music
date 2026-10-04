@@ -18,14 +18,24 @@ extension DatabaseServicePlaylists on DatabaseService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_playlists.dart:21',
+      );
+    }
   }
 
   Future<void> _flushPlaylists() async {
     try {
       final list = _customPlaylists.map((p) => p.toJson()).toList();
       await StorageEngine.setItem(_scopedKey('playlists'), jsonEncode(list));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_playlists.dart:28',
+      );
+    }
   }
 
   Future<void> addCustomPlaylist(

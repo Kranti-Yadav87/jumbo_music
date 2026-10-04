@@ -22,7 +22,8 @@ void main() async {
       try {
         await JustAudioBackground.init(
           androidNotificationChannelId: AppConfig.audioNotificationChannelId,
-          androidNotificationChannelName: AppConfig.audioNotificationChannelName,
+          androidNotificationChannelName:
+              AppConfig.audioNotificationChannelName,
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'mipmap/ic_launcher',

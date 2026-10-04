@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'crash_reporting_service.dart';
 
 @JS('jumboMediaUpdateMetadata')
 external void _jsUpdateMetadata(
@@ -35,13 +36,17 @@ class PlatformMediaSession {
   }) {
     try {
       _jsUpdateMetadata(title.toJS, artist.toJS, album.toJS, coverUrl.toJS);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'media_session_service_web.dart:38');
+    }
   }
 
   static void updatePlaybackState({required bool isPlaying}) {
     try {
       _jsUpdatePlaybackState(isPlaying.toJS);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'media_session_service_web.dart:44');
+    }
   }
 
   static void updatePositionState({
@@ -55,7 +60,9 @@ class PlatformMediaSession {
         positionSeconds.toJS,
         playbackRate.toJS,
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'media_session_service_web.dart:58');
+    }
   }
 
   static void registerActionHandler(MediaActionCallback callback) {
@@ -64,7 +71,12 @@ class PlatformMediaSession {
       _handlerRegistered = true;
       try {
         _jsRegisterActionHandler(_handleJsAction.toJS);
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(
+          error,
+          'media_session_service_web.dart:67',
+        );
+      }
     }
   }
 

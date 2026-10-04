@@ -19,7 +19,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:22',
+      );
+    }
   }
 
   Future<void> _flushHistory() async {
@@ -28,7 +33,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         _scopedKey('history'),
         jsonEncode(_historyList),
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:31',
+      );
+    }
   }
 
   Future<void> addHistory(Song song, {bool syncToCloud = true}) async {
@@ -79,7 +89,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:82',
+      );
+    }
   }
 
   Future<void> _flushSearchHistory() async {
@@ -88,7 +103,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         _scopedKey('search_history'),
         jsonEncode(_searchHistory),
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:91',
+      );
+    }
   }
 
   Future<void> addSearchQuery(String query) async {
@@ -150,18 +170,32 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
       }
 
       await _flushFriends();
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:153',
+      );
+    }
   }
 
   Future<void> _flushFriends() async {
     try {
       final list = _friends.map((f) => f.toJson()).toList();
       await StorageEngine.setItem(_scopedKey('friends'), jsonEncode(list));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:160',
+      );
+    }
   }
 
   Future<void> saveFriendLocally(Friend friend) async {
-    _friends.removeWhere((f) => f.id == friend.id || f.email.toLowerCase() == friend.email.toLowerCase());
+    _friends.removeWhere(
+      (f) =>
+          f.id == friend.id ||
+          f.email.toLowerCase() == friend.email.toLowerCase(),
+    );
     _friends.insert(0, friend);
     addNotification(
       title: 'New Friend Connected',
@@ -261,7 +295,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         ]);
         await _flushNotifications();
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:264',
+      );
+    }
   }
 
   Future<void> _flushNotifications() async {
@@ -270,7 +309,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         _scopedKey('notifications'),
         jsonEncode(_notifications),
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:273',
+      );
+    }
   }
 
   Future<void> addNotification({

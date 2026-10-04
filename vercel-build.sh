@@ -48,6 +48,7 @@ echo "=== [3/4] Build web (release) ==="
 DEFINES=()
 if [ -n "${SPOTIFY_ENDPOINT:-}" ]; then DEFINES+=("--dart-define=SPOTIFY_ENDPOINT=${SPOTIFY_ENDPOINT}"); fi
 if [ -n "${SPOTIFY_ANON_KEY:-}" ]; then DEFINES+=("--dart-define=SPOTIFY_ANON_KEY=${SPOTIFY_ANON_KEY}"); fi
+if [ -n "${JAMENDO_CLIENT_ID:-}" ]; then DEFINES+=("--dart-define=JAMENDO_CLIENT_ID=${JAMENDO_CLIENT_ID}"); fi
 flutter build web --release --base-href / "${DEFINES[@]}"
 
 echo "=== [4/4] Verify output ==="

@@ -12,7 +12,9 @@ class AddFriendDialog {
       builder: (ctx) => StatefulBuilder(
         builder: (dialogCtx, setDialogState) => AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1C1C24) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               const Icon(Icons.person_add_rounded, color: Color(0xFFFF5E3A)),
@@ -86,7 +88,9 @@ class AddFriendDialog {
                       if (email.isEmpty || !email.contains('@')) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Please enter a valid email address.'),
+                            content: Text(
+                              'Please enter a valid email address.',
+                            ),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -94,7 +98,9 @@ class AddFriendDialog {
                       }
 
                       setDialogState(() => isSubmitting = true);
-                      final friend = await PresenceService.instance.addFriend(email);
+                      final friend = await PresenceService.instance.addFriend(
+                        email,
+                      );
                       if (dialogCtx.mounted) {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(

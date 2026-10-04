@@ -75,41 +75,53 @@ void main() {
       DownloadService.delegate = const DefaultFileDownloaderDelegate();
     });
 
-    test('save a download -> restart DownloadService -> item still listed', () async {
-      expect(downloadService.downloadedSongs, isEmpty);
-      expect(downloadService.isDownloaded(testSong.id), isFalse);
+    test(
+      'save a download -> restart DownloadService -> item still listed',
+      () async {
+        expect(downloadService.downloadedSongs, isEmpty);
+        expect(downloadService.isDownloaded(testSong.id), isFalse);
 
-      // Download the song via fake downloader
-      await downloadService.downloadSong(testSong);
+        // Download the song via fake downloader
+        await downloadService.downloadSong(testSong);
 
-      expect(downloadService.isDownloaded(testSong.id), isTrue);
-      expect(downloadService.downloadedSongs.length, equals(1));
-      expect(downloadService.downloadedSongs.first.title, equals('Offline Test Track'));
+        expect(downloadService.isDownloaded(testSong.id), isTrue);
+        expect(downloadService.downloadedSongs.length, equals(1));
+        expect(
+          downloadService.downloadedSongs.first.title,
+          equals('Offline Test Track'),
+        );
 
-      // Simulate app restart / new hydration
-      downloadService.hydrateFromDatabase();
+        // Simulate app restart / new hydration
+        downloadService.hydrateFromDatabase();
 
-      expect(downloadService.isDownloaded(testSong.id), isTrue);
-      expect(downloadService.downloadedItems.first.localPath, contains('offline_song_test_dl_1.mp3'));
-      expect(downloadService.downloadedItems.first.fileSize, contains('MB'));
-    });
+        expect(downloadService.isDownloaded(testSong.id), isTrue);
+        expect(
+          downloadService.downloadedItems.first.localPath,
+          contains('offline_song_test_dl_1.mp3'),
+        );
+        expect(downloadService.downloadedItems.first.fileSize, contains('MB'));
+      },
+    );
 
-    test('switch scope -> list changes according to active user scope', () async {
-      // 1. In Guest Scope: save download
-      await downloadService.downloadSong(testSong);
-      expect(downloadService.downloadedSongs.length, equals(1));
+    test(
+      'switch scope -> list changes according to active user scope',
+      () async {
+        // 1. In Guest Scope: save download
+        await downloadService.downloadSong(testSong);
+        expect(downloadService.downloadedSongs.length, equals(1));
 
-      // 2. Switch to authenticated user scope
-      await db.switchUserScope('user_test_scope_1');
-      // DownloadService listener rehydrates automatically on scope switch
-      expect(downloadService.downloadedSongs, isEmpty);
-      expect(downloadService.isDownloaded(testSong.id), isFalse);
+        // 2. Switch to authenticated user scope
+        await db.switchUserScope('user_test_scope_1');
+        // DownloadService listener rehydrates automatically on scope switch
+        expect(downloadService.downloadedSongs, isEmpty);
+        expect(downloadService.isDownloaded(testSong.id), isFalse);
 
-      // 3. Switch back to guest
-      await db.switchUserScope(null);
-      expect(downloadService.downloadedSongs.length, equals(1));
-      expect(downloadService.isDownloaded(testSong.id), isTrue);
-    });
+        // 3. Switch back to guest
+        await db.switchUserScope(null);
+        expect(downloadService.downloadedSongs.length, equals(1));
+        expect(downloadService.isDownloaded(testSong.id), isTrue);
+      },
+    );
 
     test('remove download -> local file delete called on delegate', () async {
       await downloadService.downloadSong(testSong);
