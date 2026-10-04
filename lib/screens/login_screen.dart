@@ -189,18 +189,12 @@ class _LoginScreenState extends State<LoginScreen>
 
   Future<void> _continueAsGuest() async {
     setState(() => _isLoading = true);
-    final randomId =
-        'JM-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-    await DatabaseService.instance.login(
-      email: 'guest.listener@jumbomusic.app',
-      name: 'Guest Explorer',
-      userId: randomId,
-    );
+    await DatabaseService.instance.loginAsGuest();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Exploring in Guest Mode! Sign in anytime to sync cloud playlists ✨',
+            'Guest mode: your data stays on this device only and is cleared when you log out. Sign in to keep and sync it ✨',
           ),
           backgroundColor: Color(0xFF6366F1),
           behavior: SnackBarBehavior.floating,

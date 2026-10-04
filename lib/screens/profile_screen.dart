@@ -26,9 +26,11 @@ class ProfileScreen extends StatelessWidget {
           'Log Out',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Are you sure you want to sign out? Your offline cached songs and playlists will remain saved on this device.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          DatabaseService.instance.isGuest
+              ? 'You are in guest mode. Logging out will clear your guest favorites, playlists and downloads from this device.'
+              : 'Are you sure you want to sign out? Your offline cached songs and playlists will remain saved on this device.',
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
@@ -134,6 +136,41 @@ class ProfileScreen extends StatelessWidget {
                         if (showHeader)
                           const SliverToBoxAdapter(
                             child: AppTopHeader(title: 'Jumbo Music'),
+                          ),
+
+                        if (db.isGuest)
+                          SliverToBoxAdapter(
+                            child: Container(
+                              margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: const Color(0xFF6366F1).withOpacity(0.5),
+                                ),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_outline_rounded,
+                                    color: Color(0xFF818CF8),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Guest mode - data stays on this device and is cleared on logout. Log out and sign in to sync.',
+                                      style: TextStyle(
+                                        color: Color(0xFFC7D2FE),
+                                        fontSize: 12.5,
+                                        height: 1.35,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
 
                         const SliverToBoxAdapter(child: SizedBox(height: 20)),
