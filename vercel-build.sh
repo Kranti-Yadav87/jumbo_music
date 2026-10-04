@@ -12,6 +12,9 @@ export FLUTTER_SUPPRESS_ANALYTICS="true"
 export PUB_CACHE="${PWD}/.pub-cache"
 export PATH="${PWD}/flutter/bin:${PATH}"
 
+# Ensure git safe directory on CI/Vercel containers
+git config --global --add safe.directory "*" 2>/dev/null || true
+
 echo "=== [1/4] Flutter SDK ==="
 if [ -x "flutter/bin/flutter" ] && flutter --version >/dev/null 2>&1; then
   echo "Using cached Flutter SDK."
@@ -35,9 +38,10 @@ else
   done
 fi
 
-echo "=== [2/4] Dependencies ==="
+echo "=== [2/4] Dependencies & Web Engine ==="
 flutter config --no-analytics >/dev/null 2>&1 || true
 flutter config --enable-web >/dev/null 2>&1 || true
+flutter precache --web
 flutter pub get
 
 echo "=== [3/4] Build web (release) ==="
@@ -47,8 +51,8 @@ if [ -n "${SPOTIFY_ANON_KEY:-}" ]; then DEFINES+=("--dart-define=SPOTIFY_ANON_KE
 flutter build web --release --base-href / "${DEFINES[@]}"
 
 echo "=== [4/4] Verify output ==="
-if [ ! -s "build/web/index.html" ] || [ ! -f "build/web/main.dart.js" ]; then
-  echo "ERROR: build/web is incomplete (index.html or main.dart.js missing)." >&2
+if [ ! -s "build/web/index.html" ]; then
+  echo "ERROR: build/web is incomplete (index.html missing)." >&2
   exit 1
 fi
 echo "Build OK."

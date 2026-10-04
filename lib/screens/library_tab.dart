@@ -276,7 +276,7 @@ class _LibraryTabState extends State<LibraryTab> {
                   subtitle: const Text('Learn about cache vs permanent downloads', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   onTap: () {
                     Navigator.pop(ctx);
-                    _showStorageExplanationDialog(context);
+                    _showHelpDialog(context);
                   },
                 ),
               ],
