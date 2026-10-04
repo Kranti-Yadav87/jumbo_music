@@ -8,7 +8,10 @@ void main() {
 
   group('Offline Playback & Download Tests', () {
     test('DownloadedFile holds valid path and bytes', () {
-      const file = DownloadedFile(path: '/data/user/0/audio/123.mp3', bytes: 4194304);
+      const file = DownloadedFile(
+        path: '/data/user/0/audio/123.mp3',
+        bytes: 4194304,
+      );
       expect(file.path, '/data/user/0/audio/123.mp3');
       expect(file.bytes, 4194304);
     });

@@ -129,7 +129,8 @@ class _HomeTabState extends State<HomeTab> {
       animation: Listenable.merge([manager, downloadService, connectivity]),
       builder: (context, _) {
         final newReleases = manager.newReleases;
-        final isOffline = connectivity.isOffline ||
+        final isOffline =
+            connectivity.isOffline ||
             (manager.onlineTrending.isEmpty && !manager.isLoadingTrending);
 
         return Scaffold(
@@ -392,125 +393,129 @@ class _HomeTabState extends State<HomeTab> {
               const SliverToBoxAdapter(child: MoodMixesSection()),
 
               if (newReleases.isNotEmpty) ...[
-              // 3. NEW RELEASES: Dedicated Carousel & Navigation to NewReleasesScreen
-              SliverToBoxAdapter(
-                child: _buildSectionHeader(
-                  context,
-                  title: 'New releases',
-                  onArrowTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const NewReleasesScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 215,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: newReleases.length,
-                    itemBuilder: (context, index) {
-                      final song = newReleases[index];
-                      final isCurrent = manager.currentSong?.id == song.id;
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (isCurrent) {
-                            manager.togglePlay();
-                          } else {
-                            manager.playSong(song, newQueue: newReleases);
-                          }
-                        },
-                        child: Container(
-                          width: 140,
-                          margin: const EdgeInsets.only(right: 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Stack(
-                                  children: [
-                                    AppCachedImage(
-                                      imageUrl: song.coverUrl,
-                                      width: 140,
-                                      height: 140,
-                                      fit: BoxFit.cover,
-                                    ),
-                                    if (isCurrent && manager.isPlaying)
-                                      Positioned.fill(
-                                        child: Container(
-                                          color: Colors.black.withOpacity(0.55),
-                                          child: Center(
-                                            child: EqualizerBars(
-                                              isPlaying: true,
-                                              color: const Color(0xFF818CF8),
-                                              height: 22,
-                                              barCount: 4,
-                                            ),
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Positioned(
-                                        bottom: 8,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.all(7),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withOpacity(
-                                              0.75,
-                                            ),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.play_arrow_rounded,
-                                            size: 20,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                song.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: isCurrent
-                                      ? const Color(0xFF818CF8)
-                                      : AppThemeManager.textPrimary(context),
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                song.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AppThemeManager.textSecondary(context),
-                                ),
-                              ),
-                            ],
-                          ),
+                // 3. NEW RELEASES: Dedicated Carousel & Navigation to NewReleasesScreen
+                SliverToBoxAdapter(
+                  child: _buildSectionHeader(
+                    context,
+                    title: 'New releases',
+                    onArrowTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const NewReleasesScreen(),
                         ),
                       );
                     },
                   ),
                 ),
-              ),
+
+                SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 215,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: newReleases.length,
+                      itemBuilder: (context, index) {
+                        final song = newReleases[index];
+                        final isCurrent = manager.currentSong?.id == song.id;
+
+                        return GestureDetector(
+                          onTap: () {
+                            if (isCurrent) {
+                              manager.togglePlay();
+                            } else {
+                              manager.playSong(song, newQueue: newReleases);
+                            }
+                          },
+                          child: Container(
+                            width: 140,
+                            margin: const EdgeInsets.only(right: 14),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Stack(
+                                    children: [
+                                      AppCachedImage(
+                                        imageUrl: song.coverUrl,
+                                        width: 140,
+                                        height: 140,
+                                        fit: BoxFit.cover,
+                                      ),
+                                      if (isCurrent && manager.isPlaying)
+                                        Positioned.fill(
+                                          child: Container(
+                                            color: Colors.black.withOpacity(
+                                              0.55,
+                                            ),
+                                            child: Center(
+                                              child: EqualizerBars(
+                                                isPlaying: true,
+                                                color: const Color(0xFF818CF8),
+                                                height: 22,
+                                                barCount: 4,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                      else
+                                        Positioned(
+                                          bottom: 8,
+                                          right: 8,
+                                          child: Container(
+                                            padding: const EdgeInsets.all(7),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black.withOpacity(
+                                                0.75,
+                                              ),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.play_arrow_rounded,
+                                              size: 20,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  song.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: isCurrent
+                                        ? const Color(0xFF818CF8)
+                                        : AppThemeManager.textPrimary(context),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  song.artist,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppThemeManager.textSecondary(
+                                      context,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
               ],
 
               // 4. POPULAR ARTISTS & SINGERS SECTION

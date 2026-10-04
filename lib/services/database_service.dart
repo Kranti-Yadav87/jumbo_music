@@ -254,7 +254,7 @@ class DatabaseService extends ChangeNotifier {
   }
 
   Future<void> saveSetting(String key, dynamic value) =>
-    updateSetting(key, value);
+      updateSetting(key, value);
 
   // -------------------------------------------------------------
   // 7. USER PROFILE & AUTHENTICATION STORE (Scoped)
@@ -270,6 +270,7 @@ class DatabaseService extends ChangeNotifier {
         ? _userId
         : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
   }
+
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get userAvatarUrl => _userAvatarUrl;
@@ -297,11 +298,15 @@ class DatabaseService extends ChangeNotifier {
         _userId = data['userId'] as String? ?? '';
         _userName =
             data['name'] as String? ??
-            (_isLoggedIn ? (_isGuest ? 'Guest Listener' : 'User') : 'Guest Explorer');
+            (_isLoggedIn
+                ? (_isGuest ? 'Guest Listener' : 'User')
+                : 'Guest Explorer');
         _userEmail =
             data['email'] as String? ??
             (_isLoggedIn
-                ? (_isGuest ? 'guest.listener@jumbomusic.app' : 'user@jumbomusic.app')
+                ? (_isGuest
+                      ? 'guest.listener@jumbomusic.app'
+                      : 'user@jumbomusic.app')
                 : 'guest.listener@jumbomusic.app');
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
         _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
@@ -329,7 +334,8 @@ class DatabaseService extends ChangeNotifier {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final randomPart = (nowMs % 90000 + 10000).toString();
     final guestId = customGuestId ?? 'JM-G-$randomPart';
-    final guestScope = 'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
+    final guestScope =
+        'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
 
     await switchUserScope(guestScope);
     await clearAllUserData();

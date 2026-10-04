@@ -92,174 +92,174 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Stack(
-        children: [
-          // Active Tab Content
-          IndexedStack(index: _currentIndex, children: _tabs),
+        body: Stack(
+          children: [
+            // Active Tab Content
+            IndexedStack(index: _currentIndex, children: _tabs),
 
-          // Offline Status Banner
-          AnimatedBuilder(
-            animation: ConnectivityService.instance,
-            builder: (context, _) {
-              if (!ConnectivityService.instance.isOffline) {
-                return const SizedBox.shrink();
-              }
-              return Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: SafeArea(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE11D48),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.wifi_off_rounded,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Offline Mode • Playing from downloaded & cached music',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+            // Offline Status Banner
+            AnimatedBuilder(
+              animation: ConnectivityService.instance,
+              builder: (context, _) {
+                if (!ConnectivityService.instance.isOffline) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE11D48),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.wifi_off_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Offline Mode • Playing from downloaded & cached music',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Docked MiniPlayer above bottom navigation
-          AnimatedBuilder(
-            animation: manager,
-            builder: (context, _) {
-              if (manager.currentSong == null) return const SizedBox.shrink();
-              return const Positioned(
-                left: 0,
-                right: 0,
-                bottom: 68, // Positioned right above bottom navigation bar
-                child: MiniPlayer(),
-              );
-            },
-          ),
-        ],
-      ),
-
-      // Bottom Navigation Footer matching Screenshot 1 (Home, Search, Center Continue Play, Library, Settings)
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: navBgColor,
-          border: Border(top: BorderSide(color: navBorderColor, width: 0.8)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.18),
-              blurRadius: 16,
-              offset: const Offset(0, -3),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: SizedBox(
-            height: 64,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // 1. Home
-                _buildNavItem(
-                  tabIndex: 0,
-                  icon: Icons.home_outlined,
-                  activeIcon: Icons.home_rounded,
-                  label: 'Home',
-                ),
-
-                // 2. Search
-                _buildNavItem(
-                  tabIndex: 1,
-                  icon: Icons.search_rounded,
-                  activeIcon: Icons.search_rounded,
-                  label: 'Search',
-                ),
-
-                // 3. CENTER BUTTON: CONTINUE PLAY (Headphones / Play Glowing Button) - Screenshot 1
-                GestureDetector(
-                  onTap: () => _openNowPlaying(context),
-                  child: Container(
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF38BDF8).withOpacity(0.55),
-                          blurRadius: 12,
-                          spreadRadius: 2,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Icon(
-                        manager.isPlaying
-                            ? Icons.headphones_rounded
-                            : Icons.play_arrow_rounded,
-                        color: const Color(0xFF081220),
-                        size: 26,
+                        ],
                       ),
                     ),
                   ),
-                ),
+                );
+              },
+            ),
 
-                // 4. Library (Active when _currentIndex == 2)
-                _buildNavItem(
-                  tabIndex: 2,
-                  icon: Icons.library_music_outlined,
-                  activeIcon: Icons.library_music_rounded,
-                  label: 'Library',
-                ),
+            // Docked MiniPlayer above bottom navigation
+            AnimatedBuilder(
+              animation: manager,
+              builder: (context, _) {
+                if (manager.currentSong == null) return const SizedBox.shrink();
+                return const Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 68, // Positioned right above bottom navigation bar
+                  child: MiniPlayer(),
+                );
+              },
+            ),
+          ],
+        ),
 
-                // 5. Settings / Profile (Active when _currentIndex == 3)
-                _buildNavItem(
-                  tabIndex: 3,
-                  icon: Icons.settings_outlined,
-                  activeIcon: Icons.settings_rounded,
-                  label: 'Settings',
-                ),
-              ],
+        // Bottom Navigation Footer matching Screenshot 1 (Home, Search, Center Continue Play, Library, Settings)
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: navBgColor,
+            border: Border(top: BorderSide(color: navBorderColor, width: 0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.18),
+                blurRadius: 16,
+                offset: const Offset(0, -3),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            top: false,
+            child: SizedBox(
+              height: 64,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 1. Home
+                  _buildNavItem(
+                    tabIndex: 0,
+                    icon: Icons.home_outlined,
+                    activeIcon: Icons.home_rounded,
+                    label: 'Home',
+                  ),
+
+                  // 2. Search
+                  _buildNavItem(
+                    tabIndex: 1,
+                    icon: Icons.search_rounded,
+                    activeIcon: Icons.search_rounded,
+                    label: 'Search',
+                  ),
+
+                  // 3. CENTER BUTTON: CONTINUE PLAY (Headphones / Play Glowing Button) - Screenshot 1
+                  GestureDetector(
+                    onTap: () => _openNowPlaying(context),
+                    child: Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF38BDF8).withOpacity(0.55),
+                            blurRadius: 12,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          manager.isPlaying
+                              ? Icons.headphones_rounded
+                              : Icons.play_arrow_rounded,
+                          color: const Color(0xFF081220),
+                          size: 26,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // 4. Library (Active when _currentIndex == 2)
+                  _buildNavItem(
+                    tabIndex: 2,
+                    icon: Icons.library_music_outlined,
+                    activeIcon: Icons.library_music_rounded,
+                    label: 'Library',
+                  ),
+
+                  // 5. Settings / Profile (Active when _currentIndex == 3)
+                  _buildNavItem(
+                    tabIndex: 3,
+                    icon: Icons.settings_outlined,
+                    activeIcon: Icons.settings_rounded,
+                    label: 'Settings',
+                  ),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
   }
 
   Widget _buildNavItem({

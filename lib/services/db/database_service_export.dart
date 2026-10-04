@@ -5,12 +5,15 @@ part of '../database_service.dart';
 // -------------------------------------------------------------
 extension DatabaseServiceExport on DatabaseService {
   Future<String> exportAllDataJson() async {
-    final validFriends = _friends.where((f) =>
-      f.id != 'friend_unknown' &&
-      f.id != 'friend_aarav' &&
-      f.email != 'friend@email.com' &&
-      f.name != 'Unknown'
-    ).toList();
+    final validFriends = _friends
+        .where(
+          (f) =>
+              f.id != 'friend_unknown' &&
+              f.id != 'friend_aarav' &&
+              f.email != 'friend@email.com' &&
+              f.name != 'Unknown',
+        )
+        .toList();
 
     final export = {
       'app': 'Jumbo Music',

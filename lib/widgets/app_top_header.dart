@@ -176,9 +176,7 @@ class AppTopHeader extends StatelessWidget {
                     Navigator.pop(ctx);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const FeedbackScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const FeedbackScreen()),
                     );
                   },
                 ),
@@ -309,14 +307,22 @@ class AppTopHeader extends StatelessWidget {
                       selected: isSel,
                       selectedColor: const Color(0xFFFF5E3A),
                       labelStyle: TextStyle(
-                        color: isSel ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF0F172A)),
+                        color: isSel
+                            ? Colors.white
+                            : (isDark
+                                  ? Colors.white70
+                                  : const Color(0xFF0F172A)),
                         fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                       ),
-                      backgroundColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF1F5F9),
+                      backgroundColor: isDark
+                          ? const Color(0xFF1E1E2E)
+                          : const Color(0xFFF1F5F9),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: BorderSide(
-                          color: isSel ? const Color(0xFFFF5E3A) : Colors.transparent,
+                          color: isSel
+                              ? const Color(0xFFFF5E3A)
+                              : Colors.transparent,
                         ),
                       ),
                       onSelected: (_) {
@@ -395,10 +401,14 @@ class AppTopHeader extends StatelessWidget {
                   constraints: const BoxConstraints(),
                   icon: Icon(
                     isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF334155),
+                    color: isDark
+                        ? const Color(0xFFFBBF24)
+                        : const Color(0xFF334155),
                     size: 24,
                   ),
-                  tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+                  tooltip: isDark
+                      ? 'Switch to light mode'
+                      : 'Switch to dark mode',
                   onPressed: () => AppThemeManager.instance.toggleTheme(),
                 ),
                 const SizedBox(width: 4),

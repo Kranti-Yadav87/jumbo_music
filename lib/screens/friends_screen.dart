@@ -54,19 +54,22 @@ class _FriendsScreenState extends State<FriendsScreen>
         final filteredFriends = _searchFilter.isEmpty
             ? allFriends
             : allFriends
-                .where(
-                  (f) =>
-                      f.name.toLowerCase().contains(_searchFilter) ||
-                      f.email.toLowerCase().contains(_searchFilter) ||
-                      f.currentSongTitle.toLowerCase().contains(_searchFilter),
-                )
-                .toList();
+                  .where(
+                    (f) =>
+                        f.name.toLowerCase().contains(_searchFilter) ||
+                        f.email.toLowerCase().contains(_searchFilter) ||
+                        f.currentSongTitle.toLowerCase().contains(
+                          _searchFilter,
+                        ),
+                  )
+                  .toList();
 
         final sharedPlaylists = db.sharedPlaylists;
 
         return Scaffold(
-          backgroundColor:
-              isDark ? const Color(0xFF0D0D15) : const Color(0xFFF8FAFC),
+          backgroundColor: isDark
+              ? const Color(0xFF0D0D15)
+              : const Color(0xFFF8FAFC),
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -184,7 +187,8 @@ class _FriendsScreenState extends State<FriendsScreen>
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
-        onChanged: (v) => setState(() => _searchFilter = v.trim().toLowerCase()),
+        onChanged: (v) =>
+            setState(() => _searchFilter = v.trim().toLowerCase()),
       ),
     );
   }
@@ -396,9 +400,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 ? Colors.white.withValues(alpha: 0.04)
                 : Colors.black.withValues(alpha: 0.03),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark ? Colors.white10 : Colors.black12,
-            ),
+            border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
           ),
           child: ListTile(
             contentPadding: const EdgeInsets.symmetric(

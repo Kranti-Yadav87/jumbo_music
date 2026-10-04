@@ -35,9 +35,8 @@ class PresenceService extends ChangeNotifier {
   final Map<String, Friend> _liveFriendsMap = {};
 
   List<Friend> _liveFriends = [];
-  List<Friend> get liveFriends => _liveFriends.isNotEmpty
-      ? _liveFriends
-      : DatabaseService.instance.friends;
+  List<Friend> get liveFriends =>
+      _liveFriends.isNotEmpty ? _liveFriends : DatabaseService.instance.friends;
 
   List<Friend> get liveListeningFriends =>
       liveFriends.where((f) => f.isListening).toList();
@@ -180,8 +179,8 @@ class PresenceService extends ChangeNotifier {
       final data = doc.data();
       final friendUid = doc.id;
 
-      final name = (data['displayName'] as String?) ??
-          cleanEmail.split('@').first;
+      final name =
+          (data['displayName'] as String?) ?? cleanEmail.split('@').first;
       final initials = name.isNotEmpty ? name[0].toUpperCase() : 'U';
 
       return Friend(
@@ -201,7 +200,8 @@ class PresenceService extends ChangeNotifier {
     final cleanEmail = email.trim().toLowerCase();
     Friend? realFriend = await searchUserByEmail(cleanEmail);
 
-    final friend = realFriend ??
+    final friend =
+        realFriend ??
         Friend(
           id: 'u_${cleanEmail.hashCode.abs()}',
           name: name ?? cleanEmail.split('@').first,
@@ -227,11 +227,11 @@ class PresenceService extends ChangeNotifier {
             .collection('friends')
             .doc(friend.id)
             .set({
-          'friendUid': friend.id,
-          'email': friend.email,
-          'name': friend.name,
-          'createdAt': FieldValue.serverTimestamp(),
-        }, SetOptions(merge: true));
+              'friendUid': friend.id,
+              'email': friend.email,
+              'name': friend.name,
+              'createdAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
       } catch (e) {
         debugPrint('PresenceService addFriend cloud note: $e');
       }
@@ -281,73 +281,79 @@ class PresenceService extends ChangeNotifier {
           .collection('friends')
           .snapshots()
           .listen((snapshot) {
-        final currentFriendIds = snapshot.docs.map((d) => d.id).toSet();
+            final currentFriendIds = snapshot.docs.map((d) => d.id).toSet();
 
-        // Clean up unsubscribed friends
-        final toRemove = _friendUserSubs.keys
-            .where((id) => !currentFriendIds.contains(id))
-            .toList();
-        for (final id in toRemove) {
-          _friendUserSubs[id]?.cancel();
-          _friendUserSubs.remove(id);
-          _liveFriendsMap.remove(id);
-        }
+            // Clean up unsubscribed friends
+            final toRemove = _friendUserSubs.keys
+                .where((id) => !currentFriendIds.contains(id))
+                .toList();
+            for (final id in toRemove) {
+              _friendUserSubs[id]?.cancel();
+              _friendUserSubs.remove(id);
+              _liveFriendsMap.remove(id);
+            }
 
-        // Subscribe to each friend's user document for live presence
-        for (final doc in snapshot.docs) {
-          final friendId = doc.id;
-          final friendEmail = (doc.data()['email'] as String?) ?? '';
-          final friendName = (doc.data()['name'] as String?) ?? '';
+            // Subscribe to each friend's user document for live presence
+            for (final doc in snapshot.docs) {
+              final friendId = doc.id;
+              final friendEmail = (doc.data()['email'] as String?) ?? '';
+              final friendName = (doc.data()['name'] as String?) ?? '';
 
-          if (!_friendUserSubs.containsKey(friendId)) {
-            _friendUserSubs[friendId] = fs
-                .collection('presence')
-                .doc(friendId)
-                .snapshots()
-                .listen((userDoc) {
-              if (userDoc.exists && userDoc.data() != null) {
-                final uData = userDoc.data()!;
-                final displayName =
-                    friendName.isNotEmpty ? friendName : 'Friend';
-                final seen = uData['lastSeen'];
-                final fresh =
-                    seen is Timestamp &&
-                    DateTime.now().difference(seen.toDate()) <
-                        const Duration(minutes: 5);
-                final online = fresh && ((uData['isOnline'] as bool?) ?? false);
-                final f = Friend(
-                  id: friendId,
-                  name: displayName,
-                  email: friendEmail,
-                  avatarInitials: displayName.isNotEmpty
-                      ? displayName[0].toUpperCase()
-                      : 'F',
-                  currentSongTitle: (uData['currentSongTitle'] as String?) ?? '',
-                  currentSongArtist:
-                      (uData['currentSongArtist'] as String?) ?? '',
-                  currentSongId: (uData['currentSongId'] as String?) ?? '',
-                  currentSongCover: (uData['currentSongCover'] as String?) ?? '',
-                  isOnline: online,
-                  isListening:
-                      online && ((uData['isListening'] as bool?) ?? false),
-                );
-                _liveFriendsMap[friendId] = f;
-              } else {
-                _liveFriendsMap[friendId] = Friend(
-                  id: friendId,
-                  name: friendName.isNotEmpty ? friendName : 'Friend',
-                  email: friendEmail,
-                  avatarInitials: friendName.isNotEmpty
-                      ? friendName[0].toUpperCase()
-                      : 'F',
-                );
+              if (!_friendUserSubs.containsKey(friendId)) {
+                _friendUserSubs[friendId] = fs
+                    .collection('presence')
+                    .doc(friendId)
+                    .snapshots()
+                    .listen((userDoc) {
+                      if (userDoc.exists && userDoc.data() != null) {
+                        final uData = userDoc.data()!;
+                        final displayName = friendName.isNotEmpty
+                            ? friendName
+                            : 'Friend';
+                        final seen = uData['lastSeen'];
+                        final fresh =
+                            seen is Timestamp &&
+                            DateTime.now().difference(seen.toDate()) <
+                                const Duration(minutes: 5);
+                        final online =
+                            fresh && ((uData['isOnline'] as bool?) ?? false);
+                        final f = Friend(
+                          id: friendId,
+                          name: displayName,
+                          email: friendEmail,
+                          avatarInitials: displayName.isNotEmpty
+                              ? displayName[0].toUpperCase()
+                              : 'F',
+                          currentSongTitle:
+                              (uData['currentSongTitle'] as String?) ?? '',
+                          currentSongArtist:
+                              (uData['currentSongArtist'] as String?) ?? '',
+                          currentSongId:
+                              (uData['currentSongId'] as String?) ?? '',
+                          currentSongCover:
+                              (uData['currentSongCover'] as String?) ?? '',
+                          isOnline: online,
+                          isListening:
+                              online &&
+                              ((uData['isListening'] as bool?) ?? false),
+                        );
+                        _liveFriendsMap[friendId] = f;
+                      } else {
+                        _liveFriendsMap[friendId] = Friend(
+                          id: friendId,
+                          name: friendName.isNotEmpty ? friendName : 'Friend',
+                          email: friendEmail,
+                          avatarInitials: friendName.isNotEmpty
+                              ? friendName[0].toUpperCase()
+                              : 'F',
+                        );
+                      }
+                      _liveFriends = _liveFriendsMap.values.toList();
+                      notifyListeners();
+                    });
               }
-              _liveFriends = _liveFriendsMap.values.toList();
-              notifyListeners();
-            });
-          }
-        }
-      });
+            }
+          });
     } catch (e) {
       debugPrint('PresenceService listenToFriends error: $e');
     }

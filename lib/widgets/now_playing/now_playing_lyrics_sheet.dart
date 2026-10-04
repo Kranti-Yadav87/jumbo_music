@@ -83,11 +83,14 @@ class NowPlayingLyricsSheet {
                       child: FutureBuilder<String?>(
                         future: LyricsService.instance.fetch(song),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return const Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF38BDF8)),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF38BDF8),
+                                ),
                               ),
                             );
                           }

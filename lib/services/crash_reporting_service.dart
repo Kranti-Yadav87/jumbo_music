@@ -40,18 +40,23 @@ class CrashReportingService {
   }
 
   /// Run app inside error-guarded zone
-  static Future<void> runWithCrashReporting(FutureOr<void> Function() appRunner) async {
+  static Future<void> runWithCrashReporting(
+    FutureOr<void> Function() appRunner,
+  ) async {
     init();
-    await runZonedGuarded(() async {
-      await appRunner();
-    }, (error, stack) {
-      recordError(
-        error,
-        stack,
-        reason: 'Root Zone Uncaught Exception',
-        fatal: true,
-      );
-    });
+    await runZonedGuarded(
+      () async {
+        await appRunner();
+      },
+      (error, stack) {
+        recordError(
+          error,
+          stack,
+          reason: 'Root Zone Uncaught Exception',
+          fatal: true,
+        );
+      },
+    );
   }
 
   /// Log a breadcrumb for debugging timeline

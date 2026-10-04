@@ -27,7 +27,9 @@ class FileDownloader {
   /// download never leaves a corrupt "finished" file behind.
   static Future<DownloadedFile> download(String url, String id) async {
     final dir = await _dir();
-    final target = File('${dir.path}${Platform.pathSeparator}${_safeName(id)}.mp3');
+    final target = File(
+      '${dir.path}${Platform.pathSeparator}${_safeName(id)}.mp3',
+    );
     final tmp = File('${target.path}.part');
     final client = http.Client();
     try {

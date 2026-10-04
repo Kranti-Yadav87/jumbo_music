@@ -232,16 +232,29 @@ class _LibraryTabState extends State<LibraryTab> {
                 const SizedBox(height: 16),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.sort_by_alpha_rounded, color: Color(0xFF38BDF8)),
+                  leading: const Icon(
+                    Icons.sort_by_alpha_rounded,
+                    color: Color(0xFF38BDF8),
+                  ),
                   title: Text(
-                    _isAscending ? 'Sorting: A to Z (Ascending)' : 'Sorting: Z to A (Descending)',
+                    _isAscending
+                        ? 'Sorting: A to Z (Ascending)'
+                        : 'Sorting: Z to A (Descending)',
                     style: TextStyle(
                       color: isDark ? Colors.white : const Color(0xFF0F172A),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: const Text('Tap to toggle sorting direction', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  trailing: Icon(_isAscending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: const Color(0xFF38BDF8)),
+                  subtitle: const Text(
+                    'Tap to toggle sorting direction',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  trailing: Icon(
+                    _isAscending
+                        ? Icons.arrow_downward_rounded
+                        : Icons.arrow_upward_rounded,
+                    color: const Color(0xFF38BDF8),
+                  ),
                   onTap: () {
                     setState(() => _isAscending = !_isAscending);
                     Navigator.pop(ctx);
@@ -249,7 +262,10 @@ class _LibraryTabState extends State<LibraryTab> {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.add_box_rounded, color: Color(0xFF10B981)),
+                  leading: const Icon(
+                    Icons.add_box_rounded,
+                    color: Color(0xFF10B981),
+                  ),
                   title: Text(
                     'Create New Playlist',
                     style: TextStyle(
@@ -257,7 +273,10 @@ class _LibraryTabState extends State<LibraryTab> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: const Text('Build your own custom playlist collection', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  subtitle: const Text(
+                    'Build your own custom playlist collection',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _showCreatePlaylistDialog(context, manager);
@@ -265,7 +284,10 @@ class _LibraryTabState extends State<LibraryTab> {
                 ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.info_outline_rounded, color: Color(0xFFA855F7)),
+                  leading: const Icon(
+                    Icons.info_outline_rounded,
+                    color: Color(0xFFA855F7),
+                  ),
                   title: Text(
                     'Storage Guide & Offline Help',
                     style: TextStyle(
@@ -273,7 +295,10 @@ class _LibraryTabState extends State<LibraryTab> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  subtitle: const Text('Learn about cache vs permanent downloads', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  subtitle: const Text(
+                    'Learn about cache vs permanent downloads',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   onTap: () {
                     Navigator.pop(ctx);
                     _showHelpDialog(context);

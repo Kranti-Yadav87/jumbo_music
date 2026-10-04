@@ -371,9 +371,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                     activeTrackColor: const Color(
                                       0xFF38BDF8,
                                     ), // Glowing Light Sky Blue from Screenshot 2
-                                    inactiveTrackColor: Colors.white.withOpacity(
-                                      0.15,
-                                    ),
+                                    inactiveTrackColor: Colors.white
+                                        .withOpacity(0.15),
                                     thumbColor: Colors.white,
                                     thumbShape: const RoundSliderThumbShape(
                                       enabledThumbRadius: 6.0,
@@ -386,16 +385,18 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                     ),
                                   ),
                                   child: Slider(
-                                    value: (_dragValue ??
-                                            currentPos.inMilliseconds
-                                                .toDouble())
-                                        .clamp(
-                                          0.0,
-                                          max(
-                                            1.0,
-                                            totalDur.inMilliseconds.toDouble(),
-                                          ),
-                                        ),
+                                    value:
+                                        (_dragValue ??
+                                                currentPos.inMilliseconds
+                                                    .toDouble())
+                                            .clamp(
+                                              0.0,
+                                              max(
+                                                1.0,
+                                                totalDur.inMilliseconds
+                                                    .toDouble(),
+                                              ),
+                                            ),
                                     min: 0.0,
                                     max: max(
                                       1.0,
@@ -430,8 +431,8 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                         _formatTime(
                                           _dragValue != null
                                               ? Duration(
-                                                  milliseconds:
-                                                      _dragValue!.toInt(),
+                                                  milliseconds: _dragValue!
+                                                      .toInt(),
                                                 )
                                               : currentPos,
                                         ),

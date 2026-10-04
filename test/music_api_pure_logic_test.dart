@@ -7,20 +7,25 @@ void main() {
   group('SongParserUtils Pure Logic Tests', () {
     test('unescape decodes HTML entities correctly', () {
       expect(
-        SongParserUtils.unescape('&quot;Dil Se&quot; &#039;90s&#039; &amp; &lt;Hit&gt;'),
+        SongParserUtils.unescape(
+          '&quot;Dil Se&quot; &#039;90s&#039; &amp; &lt;Hit&gt;',
+        ),
         equals('"Dil Se" \'90s\' & <Hit>'),
       );
       expect(SongParserUtils.unescape(null), equals(''));
     });
 
-    test('extractImage upgrades image URLs to https and 500x500 resolution', () {
-      final imgList = [
-        {'link': 'http://c.saavncdn.com/123/150x150.jpg'},
-        {'link': 'http://c.saavncdn.com/123/500x500.jpg'},
-      ];
-      final extracted = SongParserUtils.extractImage(imgList);
-      expect(extracted, equals('https://c.saavncdn.com/123/500x500.jpg'));
-    });
+    test(
+      'extractImage upgrades image URLs to https and 500x500 resolution',
+      () {
+        final imgList = [
+          {'link': 'http://c.saavncdn.com/123/150x150.jpg'},
+          {'link': 'http://c.saavncdn.com/123/500x500.jpg'},
+        ];
+        final extracted = SongParserUtils.extractImage(imgList);
+        expect(extracted, equals('https://c.saavncdn.com/123/500x500.jpg'));
+      },
+    );
 
     test('extractAudioUrl picks highest bitrate available', () {
       final downloadList = [
@@ -77,7 +82,10 @@ void main() {
         audioUrl: '',
         coverUrl: '',
       );
-      expect(MusicTagClassifier.detectSongLanguage(punjabiSong), equals('Punjabi'));
+      expect(
+        MusicTagClassifier.detectSongLanguage(punjabiSong),
+        equals('Punjabi'),
+      );
 
       const englishSong = Song(
         id: '3',
@@ -88,7 +96,10 @@ void main() {
         coverUrl: '',
         language: 'english',
       );
-      expect(MusicTagClassifier.detectSongLanguage(englishSong), equals('English'));
+      expect(
+        MusicTagClassifier.detectSongLanguage(englishSong),
+        equals('English'),
+      );
     });
 
     test('Classifies musical eras accurately', () {

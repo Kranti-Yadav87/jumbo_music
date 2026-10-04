@@ -52,7 +52,8 @@ class DownloadService extends ChangeNotifier {
   static final DownloadService _instance = DownloadService._internal();
   factory DownloadService() => _instance;
 
-  static FileDownloaderDelegate delegate = const DefaultFileDownloaderDelegate();
+  static FileDownloaderDelegate delegate =
+      const DefaultFileDownloaderDelegate();
 
   final Map<String, DownloadItem> _downloadedItems = {};
   final Set<String> _downloadingIds = {};
@@ -173,11 +174,15 @@ class DownloadService extends ChangeNotifier {
   Future<Uri?> playableUriFor(String songId, {String? title}) async {
     final item = findDownloadedItem(songId, title: title);
     if (item == null || !delegate.isSupported) {
-      debugPrint('[DownloadService] playableUriFor($songId): item is null or delegate not supported');
+      debugPrint(
+        '[DownloadService] playableUriFor($songId): item is null or delegate not supported',
+      );
       return null;
     }
     final exists = await delegate.exists(item.localPath);
-    debugPrint('[DownloadService] EXISTS-CHECK for "$songId" at "${item.localPath}": $exists');
+    debugPrint(
+      '[DownloadService] EXISTS-CHECK for "$songId" at "${item.localPath}": $exists',
+    );
     if (!exists) return null;
     final uri = await delegate.playableUri(item.localPath);
     debugPrint('[DownloadService] PLAYABLE URI for "$songId": $uri');
@@ -186,10 +191,7 @@ class DownloadService extends ChangeNotifier {
 
   Future<void> downloadSong(Song song, {BuildContext? context}) async {
     if (!delegate.isSupported) {
-      _toast(
-        context,
-        'Offline downloads are not supported on this device.',
-      );
+      _toast(context, 'Offline downloads are not supported on this device.');
       return;
     }
     if (song.audioUrl.trim().isEmpty ||
@@ -258,7 +260,9 @@ class DownloadService extends ChangeNotifier {
 
     _downloadingIds.add(song.id);
     notifyListeners();
-    debugPrint('[Download] START: Downloading "${song.title}" (${song.id}) from ${song.audioUrl}');
+    debugPrint(
+      '[Download] START: Downloading "${song.title}" (${song.id}) from ${song.audioUrl}',
+    );
 
     if (context != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -295,8 +299,12 @@ class DownloadService extends ChangeNotifier {
     final DownloadedFile file;
     try {
       file = await delegate.download(song.audioUrl, song.id);
-      debugPrint('[Download] BYTES: Received ${file.bytes} bytes for "${song.title}" (${song.id})');
-      debugPrint('[Download] SAVED PATH: File saved at "${file.path}" for "${song.title}"');
+      debugPrint(
+        '[Download] BYTES: Received ${file.bytes} bytes for "${song.title}" (${song.id})',
+      );
+      debugPrint(
+        '[Download] SAVED PATH: File saved at "${file.path}" for "${song.title}"',
+      );
     } catch (e) {
       debugPrint('[Download] FAILED for ${song.id}: $e');
       _downloadingIds.remove(song.id);
@@ -304,9 +312,9 @@ class DownloadService extends ChangeNotifier {
       if (context != null && context.mounted) {
         _toast(
           context,
-  kIsWeb
-            ? 'Browser is song ko download nahi kar paya (source blocked). Android app me offline download kaam karega.'
-            : 'Download failed for "${song.title}". Check your connection and try again.',
+          kIsWeb
+              ? 'Browser is song ko download nahi kar paya (source blocked). Android app me offline download kaam karega.'
+              : 'Download failed for "${song.title}". Check your connection and try again.',
           color: const Color(0xFF3B1D1D),
         );
       }
@@ -386,7 +394,9 @@ class DownloadService extends ChangeNotifier {
   }
 
   void clearAllDownloads() {
-    debugPrint('[Download] CLEAR ALL: Deleting all ${_downloadedItems.length} downloads');
+    debugPrint(
+      '[Download] CLEAR ALL: Deleting all ${_downloadedItems.length} downloads',
+    );
     for (final entry in _downloadedItems.entries) {
       DatabaseService.instance.removeDownload(entry.key);
       unawaited(delegate.delete(entry.value.localPath));

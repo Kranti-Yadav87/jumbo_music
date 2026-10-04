@@ -105,9 +105,7 @@ class LiveJamDialog {
               ),
             ),
             icon: const Icon(Icons.sensors_rounded, size: 18),
-            label: Text(
-              isLiveJamActive ? 'Leave Jam' : 'Start Live Session',
-            ),
+            label: Text(isLiveJamActive ? 'Leave Jam' : 'Start Live Session'),
             onPressed: () {
               final newState = !isLiveJamActive;
               onJamToggled(newState);

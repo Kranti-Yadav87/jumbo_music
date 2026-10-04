@@ -576,15 +576,21 @@ class MusicPlayerManager extends ChangeNotifier {
         song.id,
         title: song.title,
       );
-      debugPrint('[Playback] START: "${song.title}" (${song.id}) - isDownloaded: $isDl, offlineUri: $offlineUri');
+      debugPrint(
+        '[Playback] START: "${song.title}" (${song.id}) - isDownloaded: $isDl, offlineUri: $offlineUri',
+      );
 
       final Uri sourceUri;
       if (offlineUri != null) {
         sourceUri = offlineUri;
-        debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (local offline copy)');
+        debugPrint(
+          '[Playback] CHOSEN SOURCE URI: $sourceUri (local offline copy)',
+        );
       } else {
         if (isDl) {
-          debugPrint('[Playback] NOTICE: "${song.title}" is in downloaded list but local file not found. Falling back to stream URI.');
+          debugPrint(
+            '[Playback] NOTICE: "${song.title}" is in downloaded list but local file not found. Falling back to stream URI.',
+          );
         }
         sourceUri = Uri.parse(song.audioUrl);
         debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
@@ -607,12 +613,10 @@ class MusicPlayerManager extends ChangeNotifier {
     } catch (e) {
       final isDl = DownloadService().isDownloaded(song.id);
       if (isDl &&
-          await DownloadService().playableUriFor(
-                song.id,
-                title: song.title,
-              ) ==
+          await DownloadService().playableUriFor(song.id, title: song.title) ==
               null) {
-        _errorMessage = "Offline audio file for '${song.title}' was not found in local storage. Connect to internet to stream.";
+        _errorMessage =
+            "Offline audio file for '${song.title}' was not found in local storage. Connect to internet to stream.";
       } else {
         _errorMessage = "Unable to play audio: $e";
       }
@@ -682,13 +686,16 @@ class MusicPlayerManager extends ChangeNotifier {
     // 1. Check allSongs
     final candidatePool = _allSongs.where((s) {
       if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) return false;
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle)
+        return false;
       return s.audioUrl.isNotEmpty;
     }).toList();
 
     if (candidatePool.isNotEmpty) {
       final recentIds = _recentlyPlayed.take(10).map((s) => s.id).toSet();
-      final fresh = candidatePool.where((s) => !recentIds.contains(s.id)).toList();
+      final fresh = candidatePool
+          .where((s) => !recentIds.contains(s.id))
+          .toList();
       final list = fresh.isNotEmpty ? fresh : candidatePool;
       list.shuffle();
       return list.first;
@@ -697,7 +704,8 @@ class MusicPlayerManager extends ChangeNotifier {
     // 2. Check offline downloads
     final dlSongs = DownloadService().downloadedSongs.where((s) {
       if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) return false;
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle)
+        return false;
       return true;
     }).toList();
     if (dlSongs.isNotEmpty) {

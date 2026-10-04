@@ -26,7 +26,12 @@ void main() {
     });
 
     test('falls back to previous year when too few are new', () {
-      final songs = [_s('a', '2026'), _s('b', '2025'), _s('c', '2025'), _s('d', '2010')];
+      final songs = [
+        _s('a', '2026'),
+        _s('b', '2025'),
+        _s('c', '2025'),
+        _s('d', '2010'),
+      ];
       final r = ReleaseFilter.pickNewReleases(songs, year: 2026);
       expect(r.map((s) => s.id), containsAll(['a', 'b', 'c']));
       expect(r.map((s) => s.id), isNot(contains('d')));
@@ -34,7 +39,12 @@ void main() {
     });
 
     test('drops duplicates and unknown / future years', () {
-      final songs = [_s('a', '2026'), _s('a', '2026'), _s('u', ''), _s('f', '2031')];
+      final songs = [
+        _s('a', '2026'),
+        _s('a', '2026'),
+        _s('u', ''),
+        _s('f', '2031'),
+      ];
       final r = ReleaseFilter.pickNewReleases(songs, year: 2026, minCount: 1);
       expect(r.map((s) => s.id).toList(), ['a']);
     });

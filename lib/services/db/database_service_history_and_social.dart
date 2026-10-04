@@ -161,7 +161,11 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
   }
 
   Future<void> saveFriendLocally(Friend friend) async {
-    _friends.removeWhere((f) => f.id == friend.id || f.email.toLowerCase() == friend.email.toLowerCase());
+    _friends.removeWhere(
+      (f) =>
+          f.id == friend.id ||
+          f.email.toLowerCase() == friend.email.toLowerCase(),
+    );
     _friends.insert(0, friend);
     addNotification(
       title: 'New Friend Connected',

@@ -99,7 +99,9 @@ class FriendListeningTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          color: isDark
+                              ? Colors.white
+                              : const Color(0xFF0F172A),
                         ),
                       ),
                       if (friend.isListening) ...[
@@ -124,8 +126,9 @@ class FriendListeningTile extends StatelessWidget {
                       color: friend.isListening
                           ? const Color(0xFFFF5E3A)
                           : (isDark ? Colors.white54 : const Color(0xFF64748B)),
-                      fontWeight:
-                          friend.isListening ? FontWeight.w600 : FontWeight.normal,
+                      fontWeight: friend.isListening
+                          ? FontWeight.w600
+                          : FontWeight.normal,
                     ),
                   ),
                 ],

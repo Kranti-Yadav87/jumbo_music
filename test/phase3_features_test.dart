@@ -17,25 +17,28 @@ void main() {
       manager = MusicPlayerManager();
     });
 
-    test('Guest login generates unique IDs and prevents data collision', () async {
-      // 1. First guest session
-      await db.loginAsGuest();
-      expect(db.isGuest, isTrue);
-      expect(db.isLoggedIn, isTrue);
-      final firstGuestId = db.userId;
-      expect(firstGuestId.startsWith('JM-G-'), isTrue);
+    test(
+      'Guest login generates unique IDs and prevents data collision',
+      () async {
+        // 1. First guest session
+        await db.loginAsGuest();
+        expect(db.isGuest, isTrue);
+        expect(db.isLoggedIn, isTrue);
+        final firstGuestId = db.userId;
+        expect(firstGuestId.startsWith('JM-G-'), isTrue);
 
-      // 2. Guest logs out
-      await db.logout();
-      expect(db.isLoggedIn, isFalse);
+        // 2. Guest logs out
+        await db.logout();
+        expect(db.isLoggedIn, isFalse);
 
-      // 3. Second guest session should have distinct ID & clean storage scope
-      await db.loginAsGuest();
-      final secondGuestId = db.userId;
-      expect(secondGuestId.startsWith('JM-G-'), isTrue);
-      expect(db.isGuest, isTrue);
-      expect(db.isLoggedIn, isTrue);
-    });
+        // 3. Second guest session should have distinct ID & clean storage scope
+        await db.loginAsGuest();
+        final secondGuestId = db.userId;
+        expect(secondGuestId.startsWith('JM-G-'), isTrue);
+        expect(db.isGuest, isTrue);
+        expect(db.isLoggedIn, isTrue);
+      },
+    );
 
     test('Audio playback stops completely with stopPlayback', () async {
       // stopPlayback resets all playback flags and empty queues
@@ -71,4 +74,3 @@ void main() {
     });
   });
 }
-
