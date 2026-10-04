@@ -5,6 +5,7 @@ import '../models/playlist.dart';
 import '../models/friend.dart';
 import 'storage/storage_engine.dart';
 import 'firestore_sync_service.dart';
+import 'crash_reporting_service.dart';
 
 part 'db/database_service_favorites_and_downloads.dart';
 part 'db/database_service_playlists.dart';
@@ -239,7 +240,9 @@ class DatabaseService extends ChangeNotifier {
         final Map<String, dynamic> map = jsonDecode(raw);
         _settings.addAll(map);
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:242');
+    }
   }
 
   Future<void> updateSetting(String key, dynamic value) async {
@@ -250,7 +253,9 @@ class DatabaseService extends ChangeNotifier {
         _scopedKey('settings'),
         jsonEncode(_settings),
       );
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:253');
+    }
   }
 
   Future<void> saveSetting(String key, dynamic value) =>
@@ -311,7 +316,9 @@ class DatabaseService extends ChangeNotifier {
         _userAvatarUrl = data['avatarUrl'] as String? ?? '';
         _userBio = data['bio'] as String? ?? 'Music Lover • Jumbo Pro';
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:309');
+    }
   }
 
   Future<void> _flushProfile() async {
@@ -326,7 +333,9 @@ class DatabaseService extends ChangeNotifier {
         'bio': _userBio,
       };
       await StorageEngine.setItem(_scopedKey('profile'), jsonEncode(map));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'database_service.dart:324');
+    }
   }
 
   /// Explicitly enter guest mode with unique isolated guest ID & storage

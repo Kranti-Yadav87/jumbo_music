@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/database_service.dart';
 import '../services/firestore_sync_service.dart';
+import '../services/crash_reporting_service.dart';
 import 'login_screen.dart';
 import 'email_verification_screen.dart';
 import 'main_navigation_screen.dart';
@@ -28,6 +29,7 @@ class AuthGate extends StatelessWidget {
 
         final user = snapshot.data;
         if (user != null) {
+          CrashReportingService.setUserIdentifier(user.uid);
           // Check if user registered via password and is not verified yet
           final isPasswordProvider = user.providerData.any(
             (p) => p.providerId == 'password',
@@ -56,6 +58,7 @@ class AuthGate extends StatelessWidget {
         }
 
         // Guest user or signed out
+        CrashReportingService.clearUserIdentifier();
         return AnimatedBuilder(
           animation: db,
           builder: (context, _) {

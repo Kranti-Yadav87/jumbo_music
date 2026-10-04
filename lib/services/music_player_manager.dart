@@ -12,6 +12,7 @@ import 'download_service.dart';
 import 'eq_presets.dart';
 import 'presence_service.dart';
 import 'media_session_service.dart';
+import 'crash_reporting_service.dart';
 
 part 'player/music_player_sleep_timer.dart';
 part 'player/music_player_equalizer_delegate.dart';
@@ -354,7 +355,9 @@ class MusicPlayerManager extends ChangeNotifier {
         if (fresh.isNotEmpty) {
           _newReleases = fresh;
         }
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(error, 'music_player_manager.dart:357');
+      }
 
       final List<Playlist> livePlaylists = [];
       if (indiaSongs.isNotEmpty) {
@@ -438,7 +441,9 @@ class MusicPlayerManager extends ChangeNotifier {
 
         _queue = List.from(_allSongs);
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'music_player_manager.dart:441');
+    }
 
     _isLoadingTrending = false;
     notifyListeners();
@@ -686,8 +691,9 @@ class MusicPlayerManager extends ChangeNotifier {
     // 1. Check allSongs
     final candidatePool = _allSongs.where((s) {
       if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle)
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
         return false;
+      }
       return s.audioUrl.isNotEmpty;
     }).toList();
 
@@ -704,8 +710,9 @@ class MusicPlayerManager extends ChangeNotifier {
     // 2. Check offline downloads
     final dlSongs = DownloadService().downloadedSongs.where((s) {
       if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle)
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
         return false;
+      }
       return true;
     }).toList();
     if (dlSongs.isNotEmpty) {

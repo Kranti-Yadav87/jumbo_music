@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 
 import 'downloaded_file.dart';
+import '../crash_reporting_service.dart';
 
 /// Real offline downloads for Android, iOS and desktop.
 class FileDownloader {
@@ -62,7 +63,9 @@ class FileDownloader {
     } catch (_) {
       try {
         if (await tmp.exists()) await tmp.delete();
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(error, 'file_downloader_io.dart:63');
+      }
       rethrow;
     } finally {
       client.close();
@@ -79,7 +82,9 @@ class FileDownloader {
         final candidate = File('${dir.path}${Platform.pathSeparator}$fileName');
         if (await candidate.exists()) return candidate;
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'file_downloader_io.dart:80');
+    }
     return null;
   }
 
@@ -103,6 +108,8 @@ class FileDownloader {
       if (f != null && await f.exists()) {
         await f.delete();
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'file_downloader_io.dart:104');
+    }
   }
 }

@@ -209,7 +209,12 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'music_player_queue_delegate.dart:212',
+      );
+    }
 
     _isLoadingRecommendations = false;
     notify();

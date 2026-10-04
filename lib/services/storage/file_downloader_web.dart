@@ -1,6 +1,7 @@
 import 'dart:js_interop';
 
 import 'downloaded_file.dart';
+import '../crash_reporting_service.dart';
 
 // Helpers implemented in web/index.html (Cache Storage API).
 @JS('jumboOfflineSave')
@@ -59,6 +60,8 @@ class FileDownloader {
     if (!path.startsWith(_prefix)) return;
     try {
       await _jsDelete(_idOf(path).toJS).toDart;
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'file_downloader_web.dart:62');
+    }
   }
 }

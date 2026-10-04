@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/friend.dart';
 import '../models/song.dart';
 import 'database_service.dart';
+import 'crash_reporting_service.dart';
 
 /// Real-time social presence service backed by Cloud Firestore.
 class PresenceService extends ChangeNotifier {
@@ -85,7 +86,9 @@ class PresenceService extends ChangeNotifier {
           'isOnline': true,
           'lastSeen': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(error, 'presence_service.dart:89');
+      }
     });
   }
 

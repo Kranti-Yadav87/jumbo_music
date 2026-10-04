@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import 'database_service.dart';
+import 'crash_reporting_service.dart';
 
 class FirestoreSyncService {
   static final FirestoreSyncService instance = FirestoreSyncService._internal();
@@ -369,7 +370,9 @@ class FirestoreSyncService {
       final fs = FirebaseFirestore.instance;
       await fs.collection('presence').doc(uid).delete();
       await fs.collection('public_profiles').doc(uid).delete();
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'firestore_sync_service.dart:372');
+    }
     cancelRealtimeListeners();
     try {
       final userDocRef = _firestore.collection('users').doc(uid);

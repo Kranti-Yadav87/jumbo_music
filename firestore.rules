@@ -49,6 +49,34 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
+    // CLIENT ERROR REPORTS (write-only): the app uploads compact crash/error
+    // reports here. Nobody can read, change or delete them from a client;
+    // read them in the Firebase console. Size limits stop abuse.
+    match /client_errors/{reportId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'message', 'stack', 'reason', 'fatal', 'platform',
+          'appVersion', 'uid', 'breadcrumbs', 'createdAt'])
+        && request.resource.data.keys().hasAll([
+          'message', 'fatal', 'platform', 'appVersion', 'createdAt'])
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 500
+        && request.resource.data.get('stack', '') is string
+        && request.resource.data.get('stack', '').size() <= 3000
+        && request.resource.data.get('reason', '') is string
+        && request.resource.data.get('reason', '').size() <= 200
+        && request.resource.data.get('breadcrumbs', '') is string
+        && request.resource.data.get('breadcrumbs', '').size() <= 2000
+        && request.resource.data.fatal is bool
+        && request.resource.data.platform is string
+        && request.resource.data.platform.size() <= 20
+        && request.resource.data.appVersion is string
+        && request.resource.data.appVersion.size() <= 20
+        && (request.resource.data.get('uid', null) == null
+            || request.resource.data.uid is string)
+        && request.resource.data.createdAt == request.time;
+      allow read, update, delete: if false;
+    }
+
     // Everything else is denied by default.
   }
 }

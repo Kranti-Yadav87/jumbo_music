@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../models/song.dart';
+import '../crash_reporting_service.dart';
 
 /// Service for fallback song searches via iTunes Public API.
 class ITunesSearchService {
@@ -69,7 +70,9 @@ class ITunesSearchService {
         }
         return songs;
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'itunes_search_service.dart:72');
+    }
     return [];
   }
 }

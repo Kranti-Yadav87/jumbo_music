@@ -17,6 +17,14 @@ class AppConfig {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3dnN5bGFkdnZ2anFsZ25xcHBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyNDY3NDEsImV4cCI6MjA4NzgyMjc0MX0.ibwH6IntJjky3uZKxFplDkVGW9bSH0RrwT0cVrd94hI',
   );
 
+  /// Jamendo client id (free at https://devportal.jamendo.com). When set,
+  /// search falls back to Jamendo's legal FULL-length tracks before the
+  /// 30-second iTunes previews. Pass with --dart-define=JAMENDO_CLIENT_ID=xxx
+  static const String jamendoClientId = String.fromEnvironment(
+    'JAMENDO_CLIENT_ID',
+    defaultValue: '',
+  );
+
   /// App name & version metadata
   static const String appName = 'Jumbo Music';
   static const String appVersion = '2.0.0';

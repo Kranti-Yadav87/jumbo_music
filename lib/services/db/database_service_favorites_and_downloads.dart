@@ -36,14 +36,24 @@ extension DatabaseServiceFavorites on DatabaseService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_favorites_and_downloads.dart:39',
+      );
+    }
   }
 
   Future<void> _flushFavorites() async {
     try {
       final list = _favoriteSongsMap.values.map((s) => s.toJson()).toList();
       await StorageEngine.setItem(_scopedKey('favorites'), jsonEncode(list));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_favorites_and_downloads.dart:46',
+      );
+    }
   }
 
   Future<bool> toggleFavorite(Song song, {bool syncToCloud = true}) async {
@@ -109,14 +119,24 @@ extension DatabaseServiceDownloads on DatabaseService {
           }
         }
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_favorites_and_downloads.dart:112',
+      );
+    }
   }
 
   Future<void> _flushDownloads() async {
     try {
       final list = _downloadsMap.values.toList();
       await StorageEngine.setItem(_scopedKey('downloads'), jsonEncode(list));
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_favorites_and_downloads.dart:119',
+      );
+    }
   }
 
   Future<void> saveDownload({

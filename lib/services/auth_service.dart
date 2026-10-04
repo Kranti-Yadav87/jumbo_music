@@ -5,6 +5,7 @@ import '../config/app_config.dart';
 import 'database_service.dart';
 import 'firestore_sync_service.dart';
 import 'music_player_manager.dart';
+import 'crash_reporting_service.dart';
 
 class AuthService {
   static final AuthService instance = AuthService._internal();
@@ -239,7 +240,9 @@ class AuthService {
       if (!kIsWeb) {
         try {
           await GoogleSignIn.instance.signOut();
-        } catch (_) {}
+        } catch (error) {
+          CrashReportingService.swallow(error, 'auth_service.dart:238');
+        }
       }
       await DatabaseService.instance.logout();
     } catch (e) {
@@ -281,7 +284,9 @@ class AuthService {
       if (!kIsWeb) {
         try {
           await GoogleSignIn.instance.signOut();
-        } catch (_) {}
+        } catch (error) {
+          CrashReportingService.swallow(error, 'auth_service.dart:280');
+        }
       }
       await DatabaseService.instance.logout();
     } catch (e) {

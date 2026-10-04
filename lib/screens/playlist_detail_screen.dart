@@ -5,6 +5,7 @@ import '../services/music_player_manager.dart';
 import '../services/music_api_service.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/mini_player.dart';
+import '../services/crash_reporting_service.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -133,7 +134,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
               .toList();
         });
       }
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'playlist_detail_screen.dart:136');
+    }
   }
 
   @override

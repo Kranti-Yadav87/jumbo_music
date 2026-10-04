@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'crash_reporting_service.dart';
 
 @JS('triggerPwaInstall')
 external JSPromise<JSBoolean> _triggerPwaInstall();
@@ -29,5 +30,7 @@ bool canInstallPwa() {
 void downloadFile(String url) {
   try {
     _jumboDownloadUrl(url.toJS);
-  } catch (_) {}
+  } catch (error) {
+    CrashReportingService.swallow(error, 'pwa_install_helper_web.dart:32');
+  }
 }

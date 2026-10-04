@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/database_service.dart';
+import '../services/crash_reporting_service.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -71,7 +72,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         ...payload,
         'createdAt': FieldValue.serverTimestamp(),
       });
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'feedback_screen.dart:74');
+    }
 
     // 2. Add in-app confirmation notification
     await db.addNotification(

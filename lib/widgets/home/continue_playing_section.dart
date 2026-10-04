@@ -4,6 +4,7 @@ import '../../services/database_service.dart';
 import '../../services/music_player_manager.dart';
 import 'home_section_header.dart';
 import 'song_cover_card.dart';
+import '../../services/crash_reporting_service.dart';
 
 /// "Continue Playing": the song that is loaded right now, then recent history.
 class ContinuePlayingSection extends StatelessWidget {
@@ -23,7 +24,12 @@ class ContinuePlayingSection extends StatelessWidget {
       try {
         final song = Song.fromJson(Map<String, dynamic>.from(raw));
         if (song.audioUrl.isNotEmpty && seen.add(song.id)) out.add(song);
-      } catch (_) {}
+      } catch (error) {
+        CrashReportingService.swallow(
+          error,
+          'continue_playing_section.dart:26',
+        );
+      }
       if (out.length >= max) break;
     }
     return out;

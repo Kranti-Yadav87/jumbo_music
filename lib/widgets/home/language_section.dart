@@ -4,6 +4,7 @@ import '../../services/music_api_service.dart';
 import '../../services/theme_service.dart';
 import 'home_section_header.dart';
 import 'song_cover_card.dart';
+import '../../services/crash_reporting_service.dart';
 
 /// Songs grouped by language: Hindi, English, Punjabi, Bhojpuri, Tamil...
 class LanguageSection extends StatefulWidget {
@@ -31,7 +32,9 @@ class _LanguageSectionState extends State<LanguageSection> {
     List<Song> songs = [];
     try {
       songs = await MusicApiService.fetchByLanguage(language);
-    } catch (_) {}
+    } catch (error) {
+      CrashReportingService.swallow(error, 'language_section.dart:34');
+    }
     if (!mounted) return;
     setState(() {
       if (songs.isNotEmpty) _cache[language] = songs;
