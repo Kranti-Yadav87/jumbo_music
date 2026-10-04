@@ -572,7 +572,10 @@ class MusicPlayerManager extends ChangeNotifier {
       );
 
       final isDl = DownloadService().isDownloaded(song.id);
-      final offlineUri = await DownloadService().playableUriFor(song.id);
+      final offlineUri = await DownloadService().playableUriFor(
+        song.id,
+        title: song.title,
+      );
       debugPrint('[Playback] START: "${song.title}" (${song.id}) - isDownloaded: $isDl, offlineUri: $offlineUri');
 
       final Uri sourceUri;
@@ -595,13 +598,20 @@ class MusicPlayerManager extends ChangeNotifier {
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
-      await _audioPlayer.setLoopMode(_loopMode);
+      await _audioPlayer.setLoopMode(
+        _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+      );
       _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
     } catch (e) {
       final isDl = DownloadService().isDownloaded(song.id);
-      if (isDl && await DownloadService().playableUriFor(song.id) == null) {
+      if (isDl &&
+          await DownloadService().playableUriFor(
+                song.id,
+                title: song.title,
+              ) ==
+              null) {
         _errorMessage = "Offline audio file for '${song.title}' was not found in local storage. Connect to internet to stream.";
       } else {
         _errorMessage = "Unable to play audio: $e";
@@ -664,8 +674,49 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
+  /// A fallback track from library / trending / offline when queue has no alternative song
+  Song? _findDistinctNextTrack() {
+    final curId = currentSong?.id;
+    final curTitle = currentSong?.title.trim().toLowerCase();
+
+    // 1. Check allSongs
+    final candidatePool = _allSongs.where((s) {
+      if (s.id == curId) return false;
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) return false;
+      return s.audioUrl.isNotEmpty;
+    }).toList();
+
+    if (candidatePool.isNotEmpty) {
+      final recentIds = _recentlyPlayed.take(10).map((s) => s.id).toSet();
+      final fresh = candidatePool.where((s) => !recentIds.contains(s.id)).toList();
+      final list = fresh.isNotEmpty ? fresh : candidatePool;
+      list.shuffle();
+      return list.first;
+    }
+
+    // 2. Check offline downloads
+    final dlSongs = DownloadService().downloadedSongs.where((s) {
+      if (s.id == curId) return false;
+      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) return false;
+      return true;
+    }).toList();
+    if (dlSongs.isNotEmpty) {
+      dlSongs.shuffle();
+      return dlSongs.first;
+    }
+
+    return null;
+  }
+
   Future<void> next() async {
-    if (_queue.isEmpty) return;
+    if (_queue.isEmpty) {
+      final fallback = _findDistinctNextTrack();
+      if (fallback != null) {
+        _queue = [fallback];
+        await playSong(fallback);
+      }
+      return;
+    }
 
     if (_autoplay &&
         currentSong != null &&
@@ -676,11 +727,15 @@ class MusicPlayerManager extends ChangeNotifier {
     if (_isShuffle && _queue.length > 1) {
       final List<int> candidates = [];
       for (int i = 0; i < _queue.length; i++) {
-        if (i != _currentIndex) candidates.add(i);
+        if (i != _currentIndex && _queue[i].id != currentSong?.id) {
+          candidates.add(i);
+        }
       }
-      candidates.shuffle();
-      await playSong(_queue[candidates.first]);
-      return;
+      if (candidates.isNotEmpty) {
+        candidates.shuffle();
+        await playSong(_queue[candidates.first]);
+        return;
+      }
     }
 
     int nextIndex = _currentIndex + 1;
@@ -695,7 +750,18 @@ class MusicPlayerManager extends ChangeNotifier {
       nextIndex = 0;
     }
 
-    await playSong(_queue[nextIndex]);
+    final target = _queue[nextIndex];
+    // Next button must never re-play the exact same track when other tracks exist
+    if (target.id == currentSong?.id && _loopMode != LoopMode.one) {
+      final fallback = _findDistinctNextTrack();
+      if (fallback != null) {
+        _queue.add(fallback);
+        await playSong(fallback);
+        return;
+      }
+    }
+
+    await playSong(target);
   }
 
   Future<void> previous() async {
@@ -751,22 +817,19 @@ class MusicPlayerManager extends ChangeNotifier {
         return;
       }
 
-      if (_loopMode == LoopMode.all) {
-        _isTransitioning = false;
-        await next();
-        return;
-      }
-
       if (_currentIndex < _queue.length - 1) {
         _isTransitioning = false;
         await next();
       } else if (_autoplay && currentSong != null) {
         await _infillSmartQueue(currentSong!);
         _isTransitioning = false;
-        if (_currentIndex < _queue.length - 1) {
-          await next();
-        } else {
+        await next();
+      } else if (_loopMode == LoopMode.all && _queue.isNotEmpty) {
+        _isTransitioning = false;
+        if (_queue.length > 1) {
           await playSong(_queue[0]);
+        } else {
+          await next();
         }
       } else {
         _isPlaying = false;
@@ -792,7 +855,9 @@ class MusicPlayerManager extends ChangeNotifier {
     } else {
       _loopMode = LoopMode.off;
     }
-    await _audioPlayer.setLoopMode(_loopMode);
+    await _audioPlayer.setLoopMode(
+      _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+    );
     notifyListeners();
   }
 
@@ -810,6 +875,25 @@ class MusicPlayerManager extends ChangeNotifier {
       playbackRate: _playbackSpeed,
     );
     notifyListeners();
+  }
+
+  Future<void> stopPlayback() async {
+    try {
+      _isPlaying = false;
+      _isBuffering = false;
+      _position = Duration.zero;
+      _currentIndex = -1;
+      _queue.clear();
+      await _audioPlayer.stop();
+      MediaSessionService.updatePlaybackState(isPlaying: false);
+      PresenceService.instance.updateListeningStatus(
+        song: null,
+        isPlaying: false,
+      );
+      notifyListeners();
+    } catch (e) {
+      debugPrint('stopPlayback note: $e');
+    }
   }
 
   @override

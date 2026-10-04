@@ -181,6 +181,112 @@ class _LibraryTabState extends State<LibraryTab> {
     );
   }
 
+  void _showLibraryOptionsSheet(
+    BuildContext context,
+    MusicPlayerManager manager,
+  ) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF14141E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.menu_book_rounded,
+                      color: Color(0xFF38BDF8),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Library View & Sorting',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.sort_by_alpha_rounded, color: Color(0xFF38BDF8)),
+                  title: Text(
+                    _isAscending ? 'Sorting: A to Z (Ascending)' : 'Sorting: Z to A (Descending)',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: const Text('Tap to toggle sorting direction', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  trailing: Icon(_isAscending ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, color: const Color(0xFF38BDF8)),
+                  onTap: () {
+                    setState(() => _isAscending = !_isAscending);
+                    Navigator.pop(ctx);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.add_box_rounded, color: Color(0xFF10B981)),
+                  title: Text(
+                    'Create New Playlist',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: const Text('Build your own custom playlist collection', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showCreatePlaylistDialog(context, manager);
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.info_outline_rounded, color: Color(0xFFA855F7)),
+                  title: Text(
+                    'Storage Guide & Offline Help',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: const Text('Learn about cache vs permanent downloads', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showStorageExplanationDialog(context);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final manager = MusicPlayerManager();
@@ -437,7 +543,8 @@ class _LibraryTabState extends State<LibraryTab> {
                                 ? Colors.white60
                                 : const Color(0xFF64748B),
                           ),
-                          onPressed: () {},
+                          onPressed: () =>
+                              _showLibraryOptionsSheet(context, manager),
                         ),
                         const SizedBox(width: 16),
                         // Search icon (🔍)

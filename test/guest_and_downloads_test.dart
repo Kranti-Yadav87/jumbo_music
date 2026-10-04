@@ -34,8 +34,8 @@ void main() {
       await db.loginAsGuest();
       expect(db.isGuest, isTrue);
       expect(db.isLoggedIn, isTrue);
-      expect(db.userName, equals('Guest Explorer'));
-      expect(db.userId, isEmpty);
+      expect(db.userName, equals('Guest Listener'));
+      expect(db.userId.startsWith('JM-G-'), isTrue);
 
       // 2. Simulate authenticated user login
       await db.login(
@@ -57,8 +57,8 @@ void main() {
       await db.loginAsGuest();
       expect(db.isGuest, isTrue);
       expect(db.isLoggedIn, isTrue);
-      expect(db.userName, equals('Guest Explorer'));
-      expect(db.userId, isEmpty);
+      expect(db.userName, equals('Guest Listener'));
+      expect(db.userId.startsWith('JM-G-'), isTrue);
     });
 
     test('User downloads remain preserved and isolated between user scopes', () async {

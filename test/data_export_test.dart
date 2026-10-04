@@ -147,6 +147,13 @@ void main() {
       final List<dynamic> downloads = exportMap['downloads'];
       expect(downloads.length, equals(1));
       expect(downloads.first['songId'], equals(downloadSong.id));
+
+      // Verify version & summary
+      expect(exportMap['version'], equals('2.0.0'));
+      expect(exportMap['summary'], isNotNull);
+      expect(exportMap['summary']['totalFavorites'], equals(1));
+      expect(exportMap['summary']['totalDownloads'], equals(1));
+      expect(exportMap['summary']['totalHistory'], equals(1));
     });
   });
 }

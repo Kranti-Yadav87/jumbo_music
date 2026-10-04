@@ -137,14 +137,19 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         _friends.clear();
         for (final item in list) {
           if (item is Map<String, dynamic>) {
-            _friends.add(Friend.fromJson(item));
+            final f = Friend.fromJson(item);
+            if (f.id == 'friend_unknown' ||
+                f.id == 'friend_aarav' ||
+                f.email == 'friend@email.com' ||
+                f.name == 'Unknown') {
+              continue;
+            }
+            _friends.add(f);
           }
         }
       }
 
-      if (_friends.isEmpty) {
-        await _flushFriends();
-      }
+      await _flushFriends();
     } catch (_) {}
   }
 

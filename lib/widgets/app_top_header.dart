@@ -5,6 +5,7 @@ import '../services/theme_service.dart';
 import '../screens/search_tab.dart';
 import '../screens/profile_screen.dart';
 import '../screens/privacy_security_screen.dart';
+import '../screens/feedback_screen.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/download_app_dialog.dart';
 
@@ -102,13 +103,21 @@ class AppTopHeader extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    '${manager.soundPreset} preset',
+                    '${manager.soundPreset} preset • Tap to customize',
                     style: TextStyle(
                       color: isDark ? Colors.white54 : const Color(0xFF64748B),
                       fontSize: 12,
                     ),
                   ),
-                  onTap: () => Navigator.pop(ctx),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showAudioPresetSheet(context, manager);
+                  },
                 ),
                 ListTile(
                   leading: Icon(
@@ -138,6 +147,40 @@ class AppTopHeader extends StatelessWidget {
                     activeColor: const Color(0xFFFF5E3A),
                     onChanged: (_) => AppThemeManager.instance.toggleTheme(),
                   ),
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.star_rate_rounded,
+                    color: Color(0xFFFF5E3A),
+                  ),
+                  title: Text(
+                    'App Feedback & Rating',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Share reviews, bug reports and suggestions',
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const FeedbackScreen(),
+                      ),
+                    );
+                  },
                 ),
                 ListTile(
                   leading: const Icon(
@@ -202,6 +245,95 @@ class AppTopHeader extends StatelessWidget {
                     showDownloadAppDialog(context);
                   },
                 ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAudioPresetSheet(BuildContext context, MusicPlayerManager manager) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF14141E) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.graphic_eq_rounded,
+                      color: Color(0xFFFF5E3A),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Equalizer Sound Preset',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: manager.soundPresets.map((preset) {
+                    final isSel = manager.soundPreset == preset;
+                    return ChoiceChip(
+                      label: Text(preset),
+                      selected: isSel,
+                      selectedColor: const Color(0xFFFF5E3A),
+                      labelStyle: TextStyle(
+                        color: isSel ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF0F172A)),
+                        fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                      ),
+                      backgroundColor: isDark ? const Color(0xFF1E1E2E) : const Color(0xFFF1F5F9),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(
+                          color: isSel ? const Color(0xFFFF5E3A) : Colors.transparent,
+                        ),
+                      ),
+                      onSelected: (_) {
+                        manager.setSoundPreset(preset);
+                        Navigator.pop(ctx);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Audio preset changed to $preset'),
+                            duration: const Duration(seconds: 1),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
               ],
             ),
           ),

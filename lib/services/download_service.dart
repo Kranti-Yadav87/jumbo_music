@@ -146,10 +146,32 @@ class DownloadService extends ChangeNotifier {
     );
   }
 
+  DownloadItem? findDownloadedItem(String songId, {String? title}) {
+    if (_downloadedItems.containsKey(songId)) {
+      return _downloadedItems[songId];
+    }
+    if (title != null && title.trim().isNotEmpty) {
+      final t = title.trim().toLowerCase();
+      for (final item in _downloadedItems.values) {
+        if (item.song.title.trim().toLowerCase() == t) {
+          return item;
+        }
+      }
+    }
+    final cleanId = songId.trim().toLowerCase();
+    for (final item in _downloadedItems.values) {
+      if (item.song.id.toLowerCase() == cleanId ||
+          item.song.title.toLowerCase() == cleanId) {
+        return item;
+      }
+    }
+    return null;
+  }
+
   /// Playable address of the offline copy when it really exists, else null
   /// (caller then streams from the network).
-  Future<Uri?> playableUriFor(String songId) async {
-    final item = _downloadedItems[songId];
+  Future<Uri?> playableUriFor(String songId, {String? title}) async {
+    final item = findDownloadedItem(songId, title: title);
     if (item == null || !delegate.isSupported) {
       debugPrint('[DownloadService] playableUriFor($songId): item is null or delegate not supported');
       return null;

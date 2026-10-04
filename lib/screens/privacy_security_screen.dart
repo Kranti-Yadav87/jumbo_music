@@ -576,42 +576,6 @@ class PrivacySecurityScreen extends StatelessWidget {
 
                     const Divider(height: 1, color: Color(0xFF242426)),
 
-                    // Export Data JSON
-                    ListTile(
-                      leading: const Icon(
-                        Icons.file_download_outlined,
-                        color: Colors.white70,
-                      ),
-                      title: const Text(
-                        'Export My Data (JSON)',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      subtitle: const Text(
-                        'Download complete copy of your favorites and playlists',
-                        style: TextStyle(color: Colors.white54, fontSize: 11),
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right_rounded,
-                        color: Colors.white30,
-                      ),
-                      onTap: () async {
-                        final jsonStr = await db.exportAllDataJson();
-                        Clipboard.setData(ClipboardData(text: jsonStr));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'User data JSON copied to clipboard.',
-                              ),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
-                        }
-                      },
-                    ),
-
-                    const Divider(height: 1, color: Color(0xFF242426)),
-
                     // Delete All Data & Account
                     ListTile(
                       leading: const Icon(

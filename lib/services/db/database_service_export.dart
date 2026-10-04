@@ -5,8 +5,16 @@ part of '../database_service.dart';
 // -------------------------------------------------------------
 extension DatabaseServiceExport on DatabaseService {
   Future<String> exportAllDataJson() async {
+    final validFriends = _friends.where((f) =>
+      f.id != 'friend_unknown' &&
+      f.id != 'friend_aarav' &&
+      f.email != 'friend@email.com' &&
+      f.name != 'Unknown'
+    ).toList();
+
     final export = {
       'app': 'Jumbo Music',
+      'version': '2.0.0',
       'exportedAt': DateTime.now().toIso8601String(),
       'scope': _currentScope,
       'profile': {
@@ -15,13 +23,21 @@ extension DatabaseServiceExport on DatabaseService {
         'bio': _userBio,
         'userId': userId,
         'isLoggedIn': _isLoggedIn,
+        'isGuest': _isGuest,
       },
-      'friends': _friends.map((f) => f.toJson()).toList(),
+      'summary': {
+        'totalFavorites': _favoriteSongsMap.length,
+        'totalPlaylists': _customPlaylists.length,
+        'totalDownloads': _downloadsMap.length,
+        'totalHistory': _historyList.length,
+        'totalFriends': validFriends.length,
+      },
       'favorites': _favoriteSongsMap.values.map((s) => s.toJson()).toList(),
       'customPlaylists': _customPlaylists.map((p) => p.toJson()).toList(),
       'downloads': _downloadsMap.values.toList(),
       'history': _historyList,
       'searchHistory': _searchHistory,
+      'friends': validFriends.map((f) => f.toJson()).toList(),
       'settings': _settings,
     };
     return const JsonEncoder.withIndent('  ').convert(export);

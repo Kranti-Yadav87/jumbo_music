@@ -67,24 +67,40 @@ class FileDownloader {
     }
   }
 
+  static Future<File?> _resolveFile(String path) async {
+    final direct = File(path);
+    if (await direct.exists()) return direct;
+    try {
+      final fileName = path.split(Platform.pathSeparator).last;
+      if (fileName.isNotEmpty) {
+        final dir = await _dir();
+        final candidate = File('${dir.path}${Platform.pathSeparator}$fileName');
+        if (await candidate.exists()) return candidate;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   static Future<bool> exists(String path) async {
-    final res = await File(path).exists();
-    return res;
+    final f = await _resolveFile(path);
+    return f != null;
   }
 
   /// Address the audio player can open, or null when the file is gone.
   static Future<Uri?> playableUri(String path) async {
-    final fileExists = await File(path).exists();
-    if (fileExists) {
-      return Uri.file(path);
+    final f = await _resolveFile(path);
+    if (f != null) {
+      return Uri.file(f.path);
     }
     return null;
   }
 
   static Future<void> delete(String path) async {
     try {
-      final f = File(path);
-      if (await f.exists()) await f.delete();
+      final f = await _resolveFile(path);
+      if (f != null && await f.exists()) {
+        await f.delete();
+      }
     } catch (_) {}
   }
 }

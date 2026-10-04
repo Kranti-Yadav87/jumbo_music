@@ -25,6 +25,7 @@ void main() async {
           androidNotificationChannelName: AppConfig.audioNotificationChannelName,
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
+          androidNotificationIcon: 'mipmap/ic_launcher',
         );
       } catch (e) {
         debugPrint('JustAudioBackground init note: $e');

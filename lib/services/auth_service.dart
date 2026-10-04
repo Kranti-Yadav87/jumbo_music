@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../config/app_config.dart';
 import 'database_service.dart';
 import 'firestore_sync_service.dart';
+import 'music_player_manager.dart';
 
 class AuthService {
   static final AuthService instance = AuthService._internal();
@@ -25,8 +26,13 @@ class AuthService {
         msg.contains('requires-recent-login')) {
       return 'Re-authentication failed or session expired. Please log in again.';
     } else if (msg.contains('popup-closed-by-user') ||
-        msg.contains('cancelled-popup-request')) {
-      return 'Sign-in cancelled. Please try again.';
+        msg.contains('cancelled-popup-request') ||
+        msg.contains('cancelled') ||
+        msg.contains('canceled') ||
+        msg.contains('user-cancelled')) {
+      return 'Google Sign-In was cancelled.';
+    } else if (msg.contains('10') || msg.contains('12500') || msg.contains('DEVELOPER_ERROR')) {
+      return 'Google Play Services or OAuth SHA-1 configuration check required on device.';
     } else if (msg.contains('popup-blocked')) {
       return 'Sign-in popup was blocked by your browser. Please allow popups for this site and retry.';
     } else if (msg.contains('account-exists-with-different-credential')) {
@@ -43,7 +49,7 @@ class AuthService {
       return 'Please enter a valid email address.';
     } else if (msg.contains('too-many-requests')) {
       return 'Too many unsuccessful attempts. Please try again in a few minutes.';
-    } else if (msg.contains('network-request-failed')) {
+    } else if (msg.contains('network-request-failed') || msg.contains('SocketException')) {
       return 'Network connection issue. Please check your internet connection.';
     } else if (msg.contains('user-disabled')) {
       return 'This user account has been deactivated.';
@@ -223,6 +229,7 @@ class AuthService {
   /// Sign out
   Future<void> signOut() async {
     try {
+      await MusicPlayerManager().stopPlayback();
       FirestoreSyncService.instance.cancelRealtimeListeners();
       await _auth.signOut();
       if (!kIsWeb) {
@@ -238,6 +245,7 @@ class AuthService {
 
   /// Complete Account Deletion (GDPR & Security Compliant)
   Future<void> deleteAccount({AuthCredential? reauthCredential}) async {
+    await MusicPlayerManager().stopPlayback();
     final user = _auth.currentUser;
     if (user == null) {
       await DatabaseService.instance.clearAllUserData();

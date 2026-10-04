@@ -261,11 +261,15 @@ class DatabaseService extends ChangeNotifier {
   // -------------------------------------------------------------
   bool get isLoggedIn => _isLoggedIn;
   bool get isGuest => _isLoggedIn && _isGuest;
-  String get userId => (_isLoggedIn && !_isGuest)
-      ? (_userId.isNotEmpty
-          ? _userId
-          : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}')
-      : '';
+  String get userId {
+    if (!_isLoggedIn) return '';
+    if (_isGuest) {
+      return _userId.isNotEmpty ? _userId : 'JM-GUEST';
+    }
+    return _userId.isNotEmpty
+        ? _userId
+        : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
+  }
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get userAvatarUrl => _userAvatarUrl;
@@ -293,7 +297,7 @@ class DatabaseService extends ChangeNotifier {
         _userId = data['userId'] as String? ?? '';
         _userName =
             data['name'] as String? ??
-            (_isLoggedIn ? (_isGuest ? 'Guest Explorer' : 'User') : 'Guest Explorer');
+            (_isLoggedIn ? (_isGuest ? 'Guest Listener' : 'User') : 'Guest Explorer');
         _userEmail =
             data['email'] as String? ??
             (_isLoggedIn
@@ -320,17 +324,22 @@ class DatabaseService extends ChangeNotifier {
     } catch (_) {}
   }
 
-  /// Explicitly enter guest mode
-  Future<void> loginAsGuest() async {
-    await switchUserScope(null);
+  /// Explicitly enter guest mode with unique isolated guest ID & storage
+  Future<void> loginAsGuest({String? customGuestId}) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final randomPart = (nowMs % 90000 + 10000).toString();
+    final guestId = customGuestId ?? 'JM-G-$randomPart';
+    final guestScope = 'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
+
+    await switchUserScope(guestScope);
     await clearAllUserData();
     _isGuest = true;
     _isLoggedIn = true;
-    _userName = 'Guest Explorer';
-    _userEmail = 'guest.listener@jumbomusic.app';
-    _userId = '';
+    _userId = guestId;
+    _userName = 'Guest Listener';
+    _userEmail = 'guest.$randomPart@jumbomusic.app';
     _userAvatarUrl = '';
-    _userBio = 'Music Lover • Jumbo Listener';
+    _userBio = 'Music Lover • Jumbo Guest';
     await _flushProfile();
     notifyListeners();
   }
