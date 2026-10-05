@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import '../config/app_config.dart';
@@ -41,11 +42,18 @@ class MusicApiService {
   static bool isIndieOrSukoonSong(Song song) =>
       MusicTagClassifier.isIndieOrSukoonSong(song);
 
+  @visibleForTesting
+  static Future<List<Song>> Function(String query, {int limit})?
+      mockSearchLiveSongs;
+
   /// Live Search matching aura-stream-henna.vercel.app
   static Future<List<Song>> searchLiveSongs(
     String query, {
     int limit = 30,
   }) async {
+    if (mockSearchLiveSongs != null) {
+      return mockSearchLiveSongs!(query, limit: limit);
+    }
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 

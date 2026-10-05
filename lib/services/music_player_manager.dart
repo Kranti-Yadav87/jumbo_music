@@ -25,6 +25,47 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void notify() => notifyListeners();
 
+  @visibleForTesting
+  void setMockState({
+    Song? currentSong,
+    bool isPlaying = false,
+    bool isBuffering = false,
+    Set<String>? favoriteIds,
+    List<Song>? queue,
+    List<Song>? allSongs,
+  }) {
+    if (currentSong != null) {
+      _queue = queue ?? [currentSong];
+      _currentIndex = 0;
+    } else if (queue != null) {
+      _queue = queue;
+      _currentIndex = queue.isNotEmpty ? 0 : -1;
+    } else {
+      _queue = [];
+      _currentIndex = -1;
+    }
+    if (allSongs != null) {
+      _allSongs = allSongs;
+    }
+    _isPlaying = isPlaying;
+    _isBuffering = isBuffering;
+    if (favoriteIds != null) {
+      _favoriteIds.clear();
+      _favoriteIds.addAll(favoriteIds);
+    }
+    notifyListeners();
+  }
+
+  @visibleForTesting
+  void resetStateForTesting() {
+    _queue = [];
+    _currentIndex = -1;
+    _isPlaying = false;
+    _isBuffering = false;
+    _favoriteIds.clear();
+    notifyListeners();
+  }
+
   static bool get _isAndroidNative =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
