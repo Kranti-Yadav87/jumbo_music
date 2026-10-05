@@ -3,11 +3,13 @@ import '../models/playlist.dart';
 import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
 import '../services/presence_service.dart';
+import '../services/friend_request_service.dart';
 import '../widgets/mini_player.dart';
 import 'friends/add_friend_dialog.dart';
 import 'friends/friend_listening_tile.dart';
 import 'friends/live_jam_dialog.dart';
 import 'friends/shared_playlist_dialog.dart';
+import 'friends/incoming_requests_section.dart';
 import 'playlist_detail_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
@@ -45,10 +47,11 @@ class _FriendsScreenState extends State<FriendsScreen>
     final db = DatabaseService.instance;
     final manager = MusicPlayerManager();
     final presence = PresenceService.instance;
+    final requestService = FriendRequestService.instance;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AnimatedBuilder(
-      animation: Listenable.merge([db, manager, presence]),
+      animation: Listenable.merge([db, manager, presence, requestService]),
       builder: (context, _) {
         final allFriends = presence.liveFriends;
         final filteredFriends = _searchFilter.isEmpty
@@ -65,6 +68,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   .toList();
 
         final sharedPlaylists = db.sharedPlaylists;
+        final incomingRequests = requestService.incomingRequests;
 
         return Scaffold(
           backgroundColor: isDark
@@ -77,13 +81,18 @@ class _FriendsScreenState extends State<FriendsScreen>
                 if (widget.showHeader) _buildTopHeader(context, isDark),
                 _buildSearchBar(isDark),
                 if (_isLiveJamActive) _buildLiveJamBanner(context, isDark),
-                _buildTabBar(isDark),
+                _buildTabBar(isDark, incomingRequests.length),
                 Expanded(
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      // Tab 1: Live Friends & Activity
-                      _buildFriendsTab(filteredFriends, manager, isDark),
+                      // Tab 1: Live Friends & Activity + Incoming Requests
+                      _buildFriendsTab(
+                        filteredFriends,
+                        incomingRequests,
+                        manager,
+                        isDark,
+                      ),
                       // Tab 2: Shared Duo Blend Playlists
                       _buildPlaylistsTab(
                         context,
@@ -179,7 +188,7 @@ class _FriendsScreenState extends State<FriendsScreen>
               : null,
           filled: true,
           fillColor: isDark
-              ? Colors.white.withValues(alpha: 0.05)
+              ? Colors.white.withOpacity(0.05)
               : const Color(0xFFF1F5F9),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
@@ -228,7 +237,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           ),
           TextButton(
             style: TextButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.2),
+              backgroundColor: Colors.white.withOpacity(0.2),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             ),
@@ -240,19 +249,49 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  Widget _buildTabBar(bool isDark) {
+  Widget _buildTabBar(bool isDark, int pendingRequestsCount) {
     return TabBar(
       controller: _tabController,
       labelColor: const Color(0xFFFF5E3A),
       unselectedLabelColor: isDark ? Colors.white60 : const Color(0xFF64748B),
       indicatorColor: const Color(0xFFFF5E3A),
       indicatorWeight: 3,
-      tabs: const [
+      tabs: [
         Tab(
-          icon: Icon(Icons.people_alt_rounded, size: 20),
+          icon: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.people_alt_rounded, size: 20),
+              if (pendingRequestsCount > 0)
+                Positioned(
+                  top: -4,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFF5E3A),
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 14,
+                      minHeight: 14,
+                    ),
+                    child: Text(
+                      '$pendingRequestsCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
           text: 'Friends Activity',
         ),
-        Tab(
+        const Tab(
           icon: Icon(Icons.queue_music_rounded, size: 20),
           text: 'Duo Playlists',
         ),
@@ -262,80 +301,97 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   Widget _buildFriendsTab(
     List dynamicFriends,
+    List incomingRequests,
     MusicPlayerManager manager,
     bool isDark,
   ) {
-    if (dynamicFriends.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF5E3A).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.group_add_rounded,
-                  size: 48,
-                  color: Color(0xFFFF5E3A),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No Friends Connected Yet',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF0F172A),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Add your friend\'s email to see what they are listening to in real-time and jam together!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? Colors.white60 : const Color(0xFF64748B),
-                ),
-              ),
-              const SizedBox(height: 18),
-              ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF5E3A),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                ),
-                icon: const Icon(Icons.person_add_rounded, size: 18),
-                label: const Text('Add Friend Now'),
-                onPressed: () => AddFriendDialog.show(context),
-              ),
-            ],
+    return CustomScrollView(
+      slivers: [
+        if (incomingRequests.isNotEmpty)
+          SliverToBoxAdapter(
+            child: IncomingRequestsSection(
+              requests: incomingRequests.cast(),
+              isDark: isDark,
+            ),
           ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
-      itemCount: dynamicFriends.length,
-      itemBuilder: (context, index) {
-        final friend = dynamicFriends[index];
-        return FriendListeningTile(
-          friend: friend,
-          manager: manager,
-          onJamStarted: () => setState(() => _isLiveJamActive = true),
-        );
-      },
+        if (dynamicFriends.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF5E3A).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.group_add_rounded,
+                        size: 48,
+                        color: Color(0xFFFF5E3A),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No Friends Connected Yet',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Send a friend request with your friend\'s email to see what they are listening to in real-time and jam together!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFF5E3A),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
+                        ),
+                      ),
+                      icon: const Icon(Icons.person_add_rounded, size: 18),
+                      label: const Text('Add Friend Now'),
+                      onPressed: () => AddFriendDialog.show(context),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.only(top: 8, bottom: 24),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate((context, index) {
+                final friend = dynamicFriends[index];
+                return FriendListeningTile(
+                  friend: friend,
+                  manager: manager,
+                  onJamStarted: () => setState(() => _isLiveJamActive = true),
+                );
+              }, childCount: dynamicFriends.length),
+            ),
+          ),
+      ],
     );
   }
 
@@ -355,7 +411,7 @@ class _FriendsScreenState extends State<FriendsScreen>
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFA855F7).withValues(alpha: 0.1),
+                  color: const Color(0xFFA855F7).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -397,8 +453,8 @@ class _FriendsScreenState extends State<FriendsScreen>
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
             color: isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.black.withValues(alpha: 0.03),
+                ? Colors.white.withOpacity(0.04)
+                : Colors.black.withOpacity(0.03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: isDark ? Colors.white10 : Colors.black12),
           ),
@@ -417,7 +473,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                 errorBuilder: (_, __, ___) => Container(
                   width: 48,
                   height: 48,
-                  color: const Color(0xFFA855F7).withValues(alpha: 0.2),
+                  color: const Color(0xFFA855F7).withOpacity(0.2),
                   child: const Icon(
                     Icons.queue_music_rounded,
                     color: Color(0xFFA855F7),

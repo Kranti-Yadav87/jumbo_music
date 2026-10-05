@@ -6,6 +6,7 @@ import '../models/friend.dart';
 import '../models/song.dart';
 import 'database_service.dart';
 import 'crash_reporting_service.dart';
+import 'friend_request_service.dart';
 
 /// Real-time social presence service backed by Cloud Firestore.
 class PresenceService extends ChangeNotifier {
@@ -56,12 +57,14 @@ class PresenceService extends ChangeNotifier {
       _auth?.authStateChanges().listen((user) {
         if (user != null) {
           _startListeningToFriends(user.uid);
+          FriendRequestService.instance.startListening(user.uid);
           unawaited(_publishPublicProfile(user));
           unawaited(setOnline(true));
           _startHeartbeat();
         } else {
           _heartbeat?.cancel();
           _stopListeningToFriends();
+          FriendRequestService.instance.stopListening();
           _liveFriendsMap.clear();
           _liveFriends = [];
           notifyListeners();

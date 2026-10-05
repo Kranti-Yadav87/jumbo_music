@@ -49,6 +49,50 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
+    // FRIEND REQUESTS: asynchronous friendship requests between users.
+    // Sender creates a pending request. Only recipient can accept or decline.
+    match /friend_requests/{requestId} {
+      allow read: if signedIn() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly([
+          'fromUid', 'toUid', 'status', 'createdAt',
+          'fromName', 'fromEmail', 'toName', 'toEmail', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll(['fromUid', 'toUid', 'status', 'createdAt'])
+        && request.resource.data.fromUid == request.auth.uid
+        && request.resource.data.toUid != request.auth.uid
+        && request.resource.data.toUid is string
+        && request.resource.data.toUid.size() > 0
+        && request.resource.data.toUid.size() <= 128
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.get('fromName', '') is string
+        && request.resource.data.get('fromName', '').size() <= 100
+        && request.resource.data.get('fromEmail', '') is string
+        && request.resource.data.get('fromEmail', '').size() <= 150
+        && request.resource.data.get('toName', '') is string
+        && request.resource.data.get('toName', '').size() <= 100
+        && request.resource.data.get('toEmail', '') is string
+        && request.resource.data.get('toEmail', '').size() <= 150;
+
+      allow update: if signedIn()
+        && resource.data.toUid == request.auth.uid
+        && request.resource.data.fromUid == resource.data.fromUid
+        && request.resource.data.toUid == resource.data.toUid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.status in ['accepted', 'declined']
+        && request.resource.data.keys().hasOnly([
+          'fromUid', 'toUid', 'status', 'createdAt',
+          'fromName', 'fromEmail', 'toName', 'toEmail', 'updatedAt'
+        ])
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt == request.time);
+
+      allow delete: if false;
+    }
+
     // CLIENT ERROR REPORTS (write-only): the app uploads compact crash/error
     // reports here. Nobody can read, change or delete them from a client;
     // read them in the Firebase console. Size limits stop abuse.
