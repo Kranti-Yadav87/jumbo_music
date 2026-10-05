@@ -57,6 +57,11 @@ class MusicApiService {
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 
+    // When unofficial catalog is disabled, use ONLY Jamendo and never Supabase or iTunes
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search(cleanQuery, limit: limit);
+    }
+
     try {
       final uri = Uri.parse(
         '$_endpoint?action=jiosaavn-search&q=${Uri.encodeComponent(cleanQuery)}&limit=$limit',
@@ -103,6 +108,15 @@ class MusicApiService {
 
   /// Fetch playlist songs by ID
   static Future<Map<String, dynamic>> fetchPlaylist(String playlistId) async {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return {
+        'id': playlistId,
+        'name': 'Playlist',
+        'coverUrl': '',
+        'songs': <Song>[],
+      };
+    }
+
     try {
       final uri = Uri.parse(
         '$_endpoint?action=jiosaavn-playlist&id=$playlistId',
@@ -153,21 +167,33 @@ class MusicApiService {
 
   /// Curated featured playlists identical to Aura Stream
   static Future<List<Song>> fetchIndiaTop50() async {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search('top hits', limit: 25);
+    }
     final result = await fetchPlaylist('1134543272');
     return (result['songs'] as List<Song>?) ?? [];
   }
 
   static Future<List<Song>> fetchTrendingToday() async {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search('trending', limit: 25);
+    }
     final result = await fetchPlaylist('110858205');
     return (result['songs'] as List<Song>?) ?? [];
   }
 
   static Future<List<Song>> fetchBestOfIndie() async {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search('indie', limit: 25);
+    }
     final result = await fetchPlaylist('82914609');
     return (result['songs'] as List<Song>?) ?? [];
   }
 
   static Future<List<Song>> fetch90sDuets() async {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search('acoustic duet', limit: 25);
+    }
     final result = await fetchPlaylist('159470188');
     return (result['songs'] as List<Song>?) ?? [];
   }
@@ -221,6 +247,9 @@ class MusicApiService {
     String query, {
     int limit = 25,
   }) {
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return JamendoSearchService.search(query, limit: limit);
+    }
     return ITunesSearchService.searchOnlineSongsFallback(query, limit: limit);
   }
 

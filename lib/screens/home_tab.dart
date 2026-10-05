@@ -20,6 +20,8 @@ import '../services/music_api_service.dart';
 import '../services/database_service.dart';
 import '../models/playlist.dart';
 import 'friends_screen.dart';
+import '../config/app_config.dart';
+import '../services/api/jamendo_search_service.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -145,6 +147,67 @@ class _HomeTabState extends State<HomeTab> {
                   onProfileTap: widget.onProfileTap,
                 ),
               ),
+
+              // Unconfigured Jamendo Notice when unofficial catalog is disabled
+              if (!AppConfig.isUnofficialCatalogEnabled &&
+                  !JamendoSearchService.isConfigured)
+                SliverToBoxAdapter(
+                  child: Container(
+                    margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1E1B4B), Color(0xFF0F172A)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                        color: const Color(0xFF6366F1).withOpacity(0.4),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.library_music_rounded,
+                            color: Color(0xFF818CF8),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Official Catalog Mode (Jamendo)',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Jamendo Client ID is not configured. Set --dart-define=JAMENDO_CLIENT_ID=... to search and stream Creative Commons music.',
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Offline Banner if offline or if downloads are available
               if (isOffline || downloadedSongs.isNotEmpty)

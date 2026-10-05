@@ -17,13 +17,13 @@ import '../crash_reporting_service.dart';
 class JamendoSearchService {
   JamendoSearchService._();
 
-  static bool get isConfigured => AppConfig.jamendoClientId.isNotEmpty;
+  static bool get isConfigured => AppConfig.activeJamendoClientId.isNotEmpty;
 
   static Future<List<Song>> search(String query, {int limit = 25}) async {
     if (!isConfigured || query.trim().isEmpty) return [];
     try {
       final uri = Uri.https('api.jamendo.com', '/v3.0/tracks/', {
-        'client_id': AppConfig.jamendoClientId,
+        'client_id': AppConfig.activeJamendoClientId,
         'format': 'json',
         'limit': '$limit',
         'search': query.trim(),
