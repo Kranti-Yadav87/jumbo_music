@@ -31,10 +31,7 @@ void main() {
   Widget buildTestableMiniPlayer() {
     return const MaterialApp(
       home: Scaffold(
-        body: Align(
-          alignment: Alignment.bottomCenter,
-          child: MiniPlayer(),
-        ),
+        body: Align(alignment: Alignment.bottomCenter, child: MiniPlayer()),
       ),
     );
   }
@@ -51,19 +48,20 @@ void main() {
       manager.resetStateForTesting();
     });
 
-    testWidgets('Empty State: Renders SizedBox.shrink when currentSong is null', (
-      WidgetTester tester,
-    ) async {
-      manager.setMockState(currentSong: null);
+    testWidgets(
+      'Empty State: Renders SizedBox.shrink when currentSong is null',
+      (WidgetTester tester) async {
+        manager.setMockState(currentSong: null);
 
-      await tester.pumpWidget(buildTestableMiniPlayer());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableMiniPlayer());
+        await tester.pumpAndSettle();
 
-      expect(find.byType(MiniPlayer), findsOneWidget);
-      expect(find.text('Tum Hi Ho'), findsNothing);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
-      expect(find.byIcon(Icons.pause_rounded), findsNothing);
-    });
+        expect(find.byType(MiniPlayer), findsOneWidget);
+        expect(find.text('Tum Hi Ho'), findsNothing);
+        expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
+        expect(find.byIcon(Icons.pause_rounded), findsNothing);
+      },
+    );
 
     testWidgets(
       'Happy Path: Displays song title, artist, unfavorite icon and play button when song is paused',
@@ -105,32 +103,33 @@ void main() {
       },
     );
 
-    testWidgets('Interactions: Tapping favorite button toggles favorite state', (
-      WidgetTester tester,
-    ) async {
-      manager.setMockState(
-        currentSong: testSong1,
-        isPlaying: false,
-        favoriteIds: {},
-      );
+    testWidgets(
+      'Interactions: Tapping favorite button toggles favorite state',
+      (WidgetTester tester) async {
+        manager.setMockState(
+          currentSong: testSong1,
+          isPlaying: false,
+          favoriteIds: {},
+        );
 
-      await tester.pumpWidget(buildTestableMiniPlayer());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableMiniPlayer());
+        await tester.pumpAndSettle();
 
-      expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+        expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.favorite_border_rounded));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.favorite_border_rounded));
+        await tester.pumpAndSettle();
 
-      expect(manager.isFavorite(testSong1.id), isTrue);
-      expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+        expect(manager.isFavorite(testSong1.id), isTrue);
+        expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
 
-      await tester.tap(find.byIcon(Icons.favorite_rounded));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byIcon(Icons.favorite_rounded));
+        await tester.pumpAndSettle();
 
-      expect(manager.isFavorite(testSong1.id), isFalse);
-      expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
-    });
+        expect(manager.isFavorite(testSong1.id), isFalse);
+        expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+      },
+    );
 
     testWidgets(
       'Buffering State: Displays circular progress indicator when isBuffering is true and not playing',
@@ -149,32 +148,33 @@ void main() {
       },
     );
 
-    testWidgets('Navigation: Tapping title area navigates to NowPlayingScreen', (
-      WidgetTester tester,
-    ) async {
-      tester.view.physicalSize = const Size(1200, 2400);
-      tester.view.devicePixelRatio = 2.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
+    testWidgets(
+      'Navigation: Tapping title area navigates to NowPlayingScreen',
+      (WidgetTester tester) async {
+        tester.view.physicalSize = const Size(1200, 2400);
+        tester.view.devicePixelRatio = 2.0;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
 
-      manager.setMockState(
-        currentSong: testSong1,
-        queue: [testSong1, testSong2],
-        isPlaying: true,
-      );
+        manager.setMockState(
+          currentSong: testSong1,
+          queue: [testSong1, testSong2],
+          isPlaying: true,
+        );
 
-      await tester.pumpWidget(buildTestableMiniPlayer());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestableMiniPlayer());
+        await tester.pumpAndSettle();
 
-      expect(find.byType(NowPlayingScreen), findsNothing);
+        expect(find.byType(NowPlayingScreen), findsNothing);
 
-      // Tap the title text
-      await tester.tap(find.text('Tum Hi Ho'));
-      await tester.pumpAndSettle();
+        // Tap the title text
+        await tester.tap(find.text('Tum Hi Ho'));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(NowPlayingScreen), findsOneWidget);
-    });
+        expect(find.byType(NowPlayingScreen), findsOneWidget);
+      },
+    );
   });
 }

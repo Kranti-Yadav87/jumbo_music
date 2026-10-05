@@ -145,7 +145,10 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Welcome to Jumbo'), findsOneWidget);
-        expect(find.text('Sign in to sync your playlists & ID'), findsOneWidget);
+        expect(
+          find.text('Sign in to sync your playlists & ID'),
+          findsOneWidget,
+        );
 
         // Enter email and password
         final textFields = find.byType(TextField);
@@ -302,20 +305,14 @@ void main() {
         // 1. Empty email
         await tester.tap(signInBtn);
         await tester.pumpAndSettle();
-        expect(
-          find.text('Please enter a valid email address'),
-          findsOneWidget,
-        );
+        expect(find.text('Please enter a valid email address'), findsOneWidget);
 
         // 2. Invalid email format
         final textFields = find.byType(TextField);
         await tester.enterText(textFields.at(0), 'notanemail');
         await tester.tap(signInBtn);
         await tester.pumpAndSettle();
-        expect(
-          find.text('Please enter a valid email address'),
-          findsOneWidget,
-        );
+        expect(find.text('Please enter a valid email address'), findsOneWidget);
 
         // 3. Short password
         await tester.enterText(textFields.at(0), 'valid@example.com');
@@ -361,7 +358,9 @@ void main() {
         // Dialog stays open and displays friendly error
         expect(find.byType(AuthDialog), findsOneWidget);
         expect(
-          find.text('Invalid email or password. Please check your credentials.'),
+          find.text(
+            'Invalid email or password. Please check your credentials.',
+          ),
           findsOneWidget,
         );
       },

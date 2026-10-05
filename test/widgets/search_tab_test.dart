@@ -30,11 +30,7 @@ void main() {
   );
 
   Widget buildTestableSearchTab() {
-    return const MaterialApp(
-      home: Scaffold(
-        body: SearchTab(),
-      ),
-    );
+    return const MaterialApp(home: Scaffold(body: SearchTab()));
   }
 
   group('SearchTab Widget Tests', () {
@@ -72,10 +68,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.byType(TextField), findsOneWidget);
-        expect(
-          find.text('Search songs, artists, albums...'),
-          findsOneWidget,
-        );
+        expect(find.text('Search songs, artists, albums...'), findsOneWidget);
         expect(find.text('Trending & Discover'), findsOneWidget);
         expect(find.text('Trending Top 50'), findsOneWidget);
         expect(find.text('Arijit Singh'), findsOneWidget);
@@ -120,14 +113,8 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Top Results (2)'), findsOneWidget);
-        expect(
-          find.widgetWithText(ListTile, 'Channa Mereya'),
-          findsOneWidget,
-        );
-        expect(
-          find.widgetWithText(ListTile, 'Raabta'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(ListTile, 'Channa Mereya'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, 'Raabta'), findsOneWidget);
         expect(find.byType(ListTile), findsNWidgets(2));
       },
     );
@@ -167,10 +154,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(find.text('Top Results (2)'), findsOneWidget);
-        expect(
-          find.widgetWithText(ListTile, 'Channa Mereya'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(ListTile, 'Channa Mereya'), findsOneWidget);
       },
     );
 
@@ -185,10 +169,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 350));
         await tester.pumpAndSettle();
 
-        expect(
-          find.widgetWithText(ListTile, 'Channa Mereya'),
-          findsOneWidget,
-        );
+        expect(find.widgetWithText(ListTile, 'Channa Mereya'), findsOneWidget);
         expect(find.byIcon(Icons.close_rounded), findsOneWidget);
 
         // Tap clear button

@@ -44,7 +44,7 @@ class MusicApiService {
 
   @visibleForTesting
   static Future<List<Song>> Function(String query, {int limit})?
-      mockSearchLiveSongs;
+  mockSearchLiveSongs;
 
   /// Live Search matching aura-stream-henna.vercel.app
   static Future<List<Song>> searchLiveSongs(
