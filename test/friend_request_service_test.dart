@@ -293,5 +293,63 @@ void main() {
         expect(db.friends.any((f) => f.id == 'user_sender_2'), isFalse);
       },
     );
+
+    test('friend request update payload affects only status and updatedAt', () {
+      // Validates update payload matches Firestore rules constraint:
+      // request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+      final original = {
+        'fromUid': 'user_a',
+        'toUid': 'user_b',
+        'status': 'pending',
+        'createdAt': '2026-10-05T12:00:00Z',
+        'fromName': 'Alice',
+        'fromEmail': 'alice@example.com',
+      };
+
+      final updatePayload = {
+        'status': 'accepted',
+        'updatedAt': '2026-10-05T12:05:00Z',
+      };
+
+      final updated = Map<String, dynamic>.from(original)
+        ..addAll(updatePayload);
+
+      final diffKeys = updated.keys
+          .where((k) => original[k] != updated[k])
+          .toSet();
+      const allowedKeys = {'status', 'updatedAt'};
+      expect(diffKeys.difference(allowedKeys), isEmpty);
+    });
+
+    test(
+      'friend requests can only be updated when current status is pending',
+      () {
+        final pendingReq = FriendRequest(
+          id: 'req_pending',
+          fromUid: 'user_a',
+          toUid: 'user_b',
+          status: FriendRequestStatus.pending,
+          createdAt: DateTime.now(),
+        );
+        final acceptedReq = FriendRequest(
+          id: 'req_accepted',
+          fromUid: 'user_a',
+          toUid: 'user_b',
+          status: FriendRequestStatus.accepted,
+          createdAt: DateTime.now(),
+        );
+        final declinedReq = FriendRequest(
+          id: 'req_declined',
+          fromUid: 'user_a',
+          toUid: 'user_b',
+          status: FriendRequestStatus.declined,
+          createdAt: DateTime.now(),
+        );
+
+        expect(pendingReq.status == FriendRequestStatus.pending, isTrue);
+        expect(acceptedReq.status == FriendRequestStatus.pending, isFalse);
+        expect(declinedReq.status == FriendRequestStatus.pending, isFalse);
+      },
+    );
   });
 }

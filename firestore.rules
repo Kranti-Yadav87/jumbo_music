@@ -80,14 +80,9 @@ service cloud.firestore {
 
       allow update: if signedIn()
         && resource.data.toUid == request.auth.uid
-        && request.resource.data.fromUid == resource.data.fromUid
-        && request.resource.data.toUid == resource.data.toUid
-        && request.resource.data.createdAt == resource.data.createdAt
+        && resource.data.status == 'pending'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
         && request.resource.data.status in ['accepted', 'declined']
-        && request.resource.data.keys().hasOnly([
-          'fromUid', 'toUid', 'status', 'createdAt',
-          'fromName', 'fromEmail', 'toName', 'toEmail', 'updatedAt'
-        ])
         && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt == request.time);
 
       allow delete: if false;
