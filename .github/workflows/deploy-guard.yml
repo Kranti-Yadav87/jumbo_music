@@ -20,6 +20,6 @@ jobs:
       - name: Static analysis (warnings and errors fail the build)
         run: flutter analyze --no-fatal-infos
       - name: Unit and widget tests
-        run: flutter test
+        run: flutter test --coverage
       - name: Verify web release build
         run: flutter build web --release --base-href /
