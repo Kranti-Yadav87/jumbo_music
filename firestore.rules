@@ -12,7 +12,10 @@ service cloud.firestore {
       match /favorites/{songId}     { allow read, write: if isOwner(userId); }
       match /playlists/{playlistId} { allow read, write: if isOwner(userId); }
       match /history/{historyId}    { allow read, write: if isOwner(userId); }
-      match /friends/{friendId}     { allow read, write: if isOwner(userId); }
+      match /friends/{friendId} {
+        allow read, write: if isOwner(userId);
+        allow delete: if signedIn() && request.auth.uid == friendId;
+      }
     }
 
     // PUBLIC (minimal): display name + lowercase email so people can be found
