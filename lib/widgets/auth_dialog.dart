@@ -80,9 +80,10 @@ class _AuthDialogState extends State<AuthDialog> {
       }
 
       if (mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
         final db = DatabaseService.instance;
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               _isSignUp
@@ -116,9 +117,10 @@ class _AuthDialogState extends State<AuthDialog> {
     try {
       final userCred = await AuthService.instance.signInWithGoogle();
       if (userCred != null && mounted) {
+        final messenger = ScaffoldMessenger.of(context);
         Navigator.of(context).pop();
         final db = DatabaseService.instance;
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text('Signed in with Google as ${db.userName}! 🚀'),
             backgroundColor: const Color(0xFF10B981),
@@ -151,8 +153,9 @@ class _AuthDialogState extends State<AuthDialog> {
       userId: randomId,
     );
     if (mounted) {
+      final messenger = ScaffoldMessenger.of(context);
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text('Exploring in Guest Mode! (ID: $randomId) ✨'),
           backgroundColor: const Color(0xFF6366F1),
