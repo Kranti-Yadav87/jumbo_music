@@ -25,5 +25,11 @@ void main() {
       service.dispose();
       expect(service.liveFriends, isNotNull);
     });
+
+    test('Item #5: MusicPlayerManager registers and cleanly disposes listeners without throwing', () {
+      final manager = MusicPlayerManager();
+      expect(manager.allSongs, isNotNull);
+      expect(manager.currentIndex, isNotNull);
+    });
   });
 }

@@ -228,23 +228,8 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Hydrate state from DatabaseService and listen for scope updates
     _hydrateFromDatabase();
-    db.addListener(() {
-      _hydrateFromDatabase();
-      notifyListeners();
-    });
-
-    DownloadService().addListener(() {
-      final downloaded = DownloadService().downloadedSongs;
-      if (downloaded.isNotEmpty) {
-        final Set<String> ids = _allSongs.map((s) => s.id).toSet();
-        for (final dl in downloaded) {
-          if (!ids.contains(dl.id)) {
-            _allSongs.insert(0, dl);
-          }
-        }
-        notifyListeners();
-      }
-    });
+    db.addListener(_onDatabaseChanged);
+    DownloadService().addListener(_onDownloadsChanged);
 
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
@@ -952,8 +937,28 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
+  void _onDatabaseChanged() {
+    _hydrateFromDatabase();
+    notifyListeners();
+  }
+
+  void _onDownloadsChanged() {
+    final downloaded = DownloadService().downloadedSongs;
+    if (downloaded.isNotEmpty) {
+      final Set<String> ids = _allSongs.map((s) => s.id).toSet();
+      for (final dl in downloaded) {
+        if (!ids.contains(dl.id)) {
+          _allSongs.insert(0, dl);
+        }
+      }
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
+    DatabaseService.instance.removeListener(_onDatabaseChanged);
+    DownloadService().removeListener(_onDownloadsChanged);
     _sleepTimer?.cancel();
     _sleepTicker?.cancel();
     _playerStateSubscription?.cancel();
