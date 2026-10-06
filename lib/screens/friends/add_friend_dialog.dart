@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../services/presence_service.dart';
+import '../../services/friend_request_service.dart';
 
 class AddFriendDialog {
   static void show(BuildContext context) {
@@ -20,7 +20,7 @@ class AddFriendDialog {
               const Icon(Icons.person_add_rounded, color: Color(0xFFFF5E3A)),
               const SizedBox(width: 10),
               Text(
-                'Add Friend',
+                'Send Friend Request',
                 style: TextStyle(
                   color: isDark ? Colors.white : const Color(0xFF0F172A),
                   fontWeight: FontWeight.bold,
@@ -34,7 +34,7 @@ class AddFriendDialog {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Enter your friend\'s registered email address to connect and share live music presence.',
+                'Enter your friend\'s registered email address. They will receive an incoming friend request to accept.',
                 style: TextStyle(
                   fontSize: 13,
                   color: isDark ? Colors.white70 : const Color(0xFF475569),
@@ -50,7 +50,7 @@ class AddFriendDialog {
                   hintText: 'friend@email.com',
                   filled: true,
                   fillColor: isDark
-                      ? Colors.white.withValues(alpha: 0.06)
+                      ? Colors.white.withOpacity(0.06)
                       : const Color(0xFFF1F5F9),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
@@ -98,17 +98,36 @@ class AddFriendDialog {
                       }
 
                       setDialogState(() => isSubmitting = true);
-                      final friend = await PresenceService.instance.addFriend(
-                        email,
-                      );
-                      if (dialogCtx.mounted) {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Connected with ${friend.name}! 🎉'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                      try {
+                        await FriendRequestService.instance.sendFriendRequest(
+                          email,
                         );
+                        if (dialogCtx.mounted) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Friend request sent to $email! 📨',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      } catch (error) {
+                        if (dialogCtx.mounted) {
+                          setDialogState(() => isSubmitting = false);
+                          final message = error.toString().replaceFirst(
+                            RegExp(r'^Exception:\s*'),
+                            '',
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(message),
+                              backgroundColor: Colors.redAccent,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
                       }
                     },
               child: isSubmitting
@@ -121,7 +140,7 @@ class AddFriendDialog {
                       ),
                     )
                   : const Text(
-                      'Connect',
+                      'Send Request',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
             ),

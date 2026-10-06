@@ -8,10 +8,18 @@ import 'music_player_manager.dart';
 import 'crash_reporting_service.dart';
 
 class AuthService {
-  static final AuthService instance = AuthService._internal();
-  AuthService._internal();
+  static AuthService instance = AuthService._internal();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  @visibleForTesting
+  static void resetInstance() {
+    instance = AuthService._internal();
+  }
+
+  AuthService({FirebaseAuth? auth}) : _customAuth = auth;
+  AuthService._internal() : _customAuth = null;
+
+  final FirebaseAuth? _customAuth;
+  FirebaseAuth get _auth => _customAuth ?? FirebaseAuth.instance;
   bool _isGoogleSignInInitialized = false;
 
   User? get currentUser => _auth.currentUser;

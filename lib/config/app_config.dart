@@ -25,6 +25,26 @@ class AppConfig {
     defaultValue: '',
   );
 
+  /// Flag indicating whether the unofficial music catalog (Supabase/JioSaavn & iTunes)
+  /// is enabled. When false, only the official Jamendo catalog is used.
+  /// Pass with --dart-define=USE_UNOFFICIAL_CATALOG=false
+  static const bool useUnofficialCatalog = bool.fromEnvironment(
+    'USE_UNOFFICIAL_CATALOG',
+    defaultValue: true,
+  );
+
+  /// Test overrides to allow testing both catalog states without rebuilding
+  static bool? mockUseUnofficialCatalog;
+  static String? mockJamendoClientId;
+
+  /// Effective catalog flag (respects mock override in tests)
+  static bool get isUnofficialCatalogEnabled =>
+      mockUseUnofficialCatalog ?? useUnofficialCatalog;
+
+  /// Effective Jamendo client ID (respects mock override in tests)
+  static String get activeJamendoClientId =>
+      mockJamendoClientId ?? jamendoClientId;
+
   /// App name & version metadata
   static const String appName = 'Jumbo Music';
   static const String appVersion = '2.0.0';

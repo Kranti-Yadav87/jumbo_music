@@ -5,6 +5,8 @@ import '../services/music_player_manager.dart';
 import '../services/music_api_service.dart';
 import '../services/database_service.dart';
 import '../services/theme_service.dart';
+import '../config/app_config.dart';
+import '../services/api/jamendo_search_service.dart';
 import '../widgets/track_options_sheet.dart';
 import '../widgets/now_playing_screen.dart';
 
@@ -265,6 +267,69 @@ class _SearchTabState extends State<SearchTab> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     children: [
+                      // Notice when unofficial catalog is disabled and Jamendo client ID is missing
+                      if (!AppConfig.isUnofficialCatalogEnabled &&
+                          !JamendoSearchService.isConfigured)
+                        Container(
+                          margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? const Color(0xFF1E1B4B)
+                                : const Color(0xFFEEF2FF),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: const Color(0xFF6366F1).withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF6366F1,
+                                  ).withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.library_music_rounded,
+                                  color: Color(0xFF818CF8),
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Official Catalog Mode (Jamendo)',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white
+                                            : const Color(0xFF1E1B4B),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Jamendo Client ID is not configured. Set --dart-define=JAMENDO_CLIENT_ID=your_id to search legal music.',
+                                      style: TextStyle(
+                                        color: isDark
+                                            ? Colors.white70
+                                            : const Color(0xFF475569),
+                                        fontSize: 11.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                       // A. When Query is Empty -> Show User's Real Search History (with Clear option)
                       if (_searchQuery.isEmpty) ...[
                         if (recentSearches.isNotEmpty) ...[
@@ -658,13 +723,19 @@ class _SearchTabState extends State<SearchTab> {
                           child: Column(
                             children: [
                               Icon(
-                                Icons.search_off_rounded,
+                                (!AppConfig.isUnofficialCatalogEnabled &&
+                                        !JamendoSearchService.isConfigured)
+                                    ? Icons.key_off_rounded
+                                    : Icons.search_off_rounded,
                                 size: 54,
                                 color: AppThemeManager.textMuted(context),
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                'No results found for "$_searchQuery"',
+                                (!AppConfig.isUnofficialCatalogEnabled &&
+                                        !JamendoSearchService.isConfigured)
+                                    ? 'Jamendo Client ID is not configured.\nSet --dart-define=JAMENDO_CLIENT_ID=... to search legal music.'
+                                    : 'No results found for "$_searchQuery"',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 15,

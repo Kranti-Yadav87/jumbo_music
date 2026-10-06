@@ -24,6 +24,22 @@ class DatabaseService extends ChangeNotifier {
 
   void notify() => notifyListeners();
 
+  @visibleForTesting
+  void setMockProfile({
+    String? name,
+    String? email,
+    String? userId,
+    bool isLoggedIn = true,
+    bool isGuest = false,
+  }) {
+    if (name != null) _userName = name;
+    if (email != null) _userEmail = email;
+    if (userId != null) _userId = userId;
+    _isLoggedIn = isLoggedIn;
+    _isGuest = isGuest;
+    notifyListeners();
+  }
+
   // Active user storage scope: 'guest' or 'user_${uid}'
   String _currentScope = 'guest';
   String get currentScope => _currentScope;
