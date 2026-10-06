@@ -103,21 +103,27 @@ void main() {
       expect(content, isNot(contains('nahi kar paya')));
     });
 
-    test('Item #13: AppConfig compile-time flags and test mocks function as expected', () {
-      expect(AppConfig.appName, equals('Jumbo Music'));
-      expect(AppConfig.appVersion, equals('2.0.0'));
-      expect(AppConfig.apiHeaders, containsPair('Content-Type', 'application/json'));
+    test(
+      'Item #13: AppConfig compile-time flags and test mocks function as expected',
+      () {
+        expect(AppConfig.appName, equals('Jumbo Music'));
+        expect(AppConfig.appVersion, equals('2.0.0'));
+        expect(
+          AppConfig.apiHeaders,
+          containsPair('Content-Type', 'application/json'),
+        );
 
-      // Verify mock override functionality
-      AppConfig.mockUseUnofficialCatalog = false;
-      expect(AppConfig.isUnofficialCatalogEnabled, isFalse);
-      AppConfig.mockUseUnofficialCatalog = true;
-      expect(AppConfig.isUnofficialCatalogEnabled, isTrue);
-      AppConfig.mockUseUnofficialCatalog = null;
+        // Verify mock override functionality
+        AppConfig.mockUseUnofficialCatalog = false;
+        expect(AppConfig.isUnofficialCatalogEnabled, isFalse);
+        AppConfig.mockUseUnofficialCatalog = true;
+        expect(AppConfig.isUnofficialCatalogEnabled, isTrue);
+        AppConfig.mockUseUnofficialCatalog = null;
 
-      AppConfig.mockJamendoClientId = 'test_jamendo_mock_id';
-      expect(AppConfig.activeJamendoClientId, equals('test_jamendo_mock_id'));
-      AppConfig.mockJamendoClientId = null;
-    });
+        AppConfig.mockJamendoClientId = 'test_jamendo_mock_id';
+        expect(AppConfig.activeJamendoClientId, equals('test_jamendo_mock_id'));
+        AppConfig.mockJamendoClientId = null;
+      },
+    );
   });
 }
