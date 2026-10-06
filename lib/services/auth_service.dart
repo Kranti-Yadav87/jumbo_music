@@ -261,7 +261,12 @@ class AuthService {
   /// Complete Account Deletion (GDPR & Security Compliant)
   Future<void> deleteAccount({AuthCredential? reauthCredential}) async {
     await MusicPlayerManager().stopPlayback();
-    final user = _auth.currentUser;
+    User? user;
+    try {
+      user = _auth.currentUser;
+    } catch (_) {
+      user = null;
+    }
     if (user == null) {
       await DatabaseService.instance.clearAllUserData();
       await DatabaseService.instance.logout();
@@ -279,7 +284,7 @@ class AuthService {
       try {
         await FirestoreSyncService.instance.deleteUserDataFromCloud(uid);
       } catch (e) {
-        debugPrint('Cloud data deletion note: $e');
+        CrashReportingService.swallow(e, 'auth_service.dart:deleteUserDataFromCloud');
       }
 
       // 2. Delete Local Scoped Data
