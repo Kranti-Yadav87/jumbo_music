@@ -1,14 +1,43 @@
-# Product roadmap & honest gap list
+# Product Roadmap & Architecture Notes
 
-## Jo code se nahi ho sakta (business / legal)
-- **Licensed catalog**: Spotify-level catalog ke liye label licences chahiye. Legal raste: Jamendo (CC, free non-commercial), Audius, ya Apple Music/Spotify official SDK (user ka premium account, full streaming SDK ke through).
-  Unofficial JioSaavn endpoint Play Store / takedown risk hai — publish karne se pehle replace karo.
-- **ML personalization, global scale, iOS/TV/car** — team + funding ka kaam.
+This document outlines active architecture features, completed milestones, and planned future enhancements.
 
-## Antigravity prompts (copy-paste)
-1. **Friend requests**: "Add a friend-request flow: Firestore `friend_requests/{id}` (from, to, status), accept/decline UI in friends_screen, update firestore.rules, notifications, unit tests. Keep existing add-by-email as 'send request'. Run flutter analyze and flutter test."
-2. **Split big files**: "Refactor library_tab.dart, profile_screen.dart and track_options_sheet.dart (~1000 lines each) into smaller widgets under lib/widgets/<feature>/ without behaviour change; keep all tests passing."
-3. **Widget/integration tests**: "Add widget tests for mini_player, search_tab and login flow using fake services; target >60% coverage; add `flutter test --coverage` to CI."
-4. **Gapless/crossfade**: "Use just_audio gapless playback via a playlist audio source, then add optional crossfade setting."
-5. **Legal-mode catalog**: "Add AppConfig flag USE_UNOFFICIAL_CATALOG (default true). When false, home sections/search/playlists must use only Jamendo and show an empty-state when unconfigured."
-6. **Crashlytics (optional)**: "Add firebase_crashlytics and wire it into CrashReportingService._send for mobile; add the Gradle plugin per FlutterFire docs."
+---
+
+## Completed Architecture Milestones
+
+1. **Material 3 UI & Player Experience**:
+   - Modern dark/light theme switching with smooth transitions.
+   - Dynamic docked mini-player with live waveform visualization.
+   - Studio player with full-screen gesture sheet, sleep timer, and synchronized LRC lyrics drawer.
+   - Native Android lock-screen and notification media controls via `just_audio_background`.
+
+2. **Offline Mode & Multi-Platform Download Engine**:
+   - Native Android file persistence (`path_provider` + atomic `.part` downloads).
+   - Web browser cache persistence via Cache API when CORS permits.
+   - Smart local URI playback detection (`Uri.file(...)`) in `MusicPlayerManager`.
+
+3. **Backend Integration on Zero-Cost Infrastructure**:
+   - Firebase Spark tier: Auth (Google + Email/Password + Guest Anonymous), Cloud Firestore for presence, user profiles, and shared playlists.
+   - Supabase Edge Functions proxy for music search and stream resolution without paid Cloud Functions.
+   - Dual catalog support: Jamendo CC catalog fallback and configurable `--dart-define=USE_UNOFFICIAL_CATALOG=false`.
+
+4. **Equalizer & Audio DSP**:
+   - Real hardware DSP equalizer on Android (`AndroidEqualizer`).
+   - Mathematically calibrated EQ presets (`EqPresets`: Normal, Bass Boost, Vocal Booster, Acoustic, Electronic, Rock).
+
+---
+
+## Planned Future Enhancements
+
+1. **Social & Collaboration**:
+   - Interactive friend requests (`friend_requests/{id}`) with real-time accept/decline notifications.
+   - Live room audio sync timestamps for low-latency joint listening.
+
+2. **Player Improvements**:
+   - Seamless crossfade between tracks during playlist playback.
+   - High-resolution cached album art prefetching for upcoming queue tracks.
+
+3. **Platform Expansion**:
+   - Desktop packaging (macOS, Windows, Linux).
+   - Android Auto / Apple CarPlay media service integration.
