@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/cover_image.dart';
 
 class StatsTab extends StatelessWidget {
   const StatsTab({super.key});
@@ -273,23 +274,13 @@ class StatsTab extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ClipRRect(
+                            CoverImage(
+                              imageUrl: song.coverUrl,
+                              width: 44,
+                              height: 44,
                               borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                song.coverUrl,
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 44,
-                                  height: 44,
-                                  color: const Color(0xFF2C2C2E),
-                                  child: const Icon(
-                                    Icons.music_note,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ),
+                              fallbackBgColor: const Color(0xFF2C2C2E),
+                              fallbackIcon: Icons.music_note,
                             ),
                           ],
                         ),

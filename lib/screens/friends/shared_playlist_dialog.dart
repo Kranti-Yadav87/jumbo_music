@@ -6,6 +6,7 @@ import '../../services/database_service.dart';
 import '../../services/music_api_service.dart';
 import '../../services/music_player_manager.dart';
 import '../playlist_detail_screen.dart';
+import '../../widgets/cover_image.dart';
 
 class SharedPlaylistDialog {
   static void showCreateDialog(
@@ -246,23 +247,13 @@ class SharedPlaylistDialog {
                                     horizontal: 4,
                                     vertical: 2,
                                   ),
-                                  leading: ClipRRect(
+                                  leading: CoverImage(
+                                    imageUrl: song.coverUrl,
+                                    width: 44,
+                                    height: 44,
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      song.coverUrl,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        width: 44,
-                                        height: 44,
-                                        color: const Color(0xFF232330),
-                                        child: const Icon(
-                                          Icons.music_note,
-                                          color: Colors.white30,
-                                        ),
-                                      ),
-                                    ),
+                                    fallbackBgColor: const Color(0xFF232330),
+                                    fallbackIcon: Icons.music_note,
                                   ),
                                   title: Text(
                                     song.title,

@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/music_player_manager.dart';
+import '../models/friend_request.dart';
 import '../services/connectivity_service.dart';
+import '../services/friend_request_service.dart';
+import '../services/music_player_manager.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/now_playing_screen.dart';
+import 'friends_screen.dart';
 import 'home_tab.dart';
-import 'search_tab.dart';
 import 'library_tab.dart';
 import 'profile_screen.dart';
+import 'search_tab.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -19,6 +23,7 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0; // 0: Home, 1: Search, 2: Library, 3: Settings/Profile
   DateTime? _lastBackPressTime;
+  StreamSubscription<FriendRequest>? _friendRequestSub;
 
   late final List<Widget> _tabs;
 
@@ -31,6 +36,51 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const LibraryTab(),
       const ProfileScreen(showHeader: false),
     ];
+
+    FriendRequestService.instance.init();
+    _friendRequestSub = FriendRequestService.instance.newRequestStream.listen(
+      _showIncomingRequestSnackBar,
+    );
+  }
+
+  void _showIncomingRequestSnackBar(FriendRequest req) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.person_add_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${req.fromName.isNotEmpty ? req.fromName : req.fromEmail} sent you a friend request!',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFA855F7),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'View',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const FriendsScreen()));
+          },
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _friendRequestSub?.cancel();
+    super.dispose();
   }
 
   void _openNowPlaying(BuildContext context) {

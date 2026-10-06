@@ -3,6 +3,7 @@ import '../services/download_service.dart';
 import '../services/music_player_manager.dart';
 import '../widgets/track_options_sheet.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/cover_image.dart';
 
 class DownloadedSongsScreen extends StatelessWidget {
   const DownloadedSongsScreen({super.key});
@@ -228,23 +229,13 @@ class DownloadedSongsScreen extends StatelessWidget {
                         ),
                         leading: Stack(
                           children: [
-                            ClipRRect(
+                            CoverImage(
+                              imageUrl: item.song.coverUrl,
+                              width: 48,
+                              height: 48,
                               borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                item.song.coverUrl,
-                                width: 48,
-                                height: 48,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 48,
-                                  height: 48,
-                                  color: const Color(0xFF2C2C2E),
-                                  child: const Icon(
-                                    Icons.music_note,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ),
+                              fallbackBgColor: const Color(0xFF2C2C2E),
+                              fallbackIcon: Icons.music_note,
                             ),
                             if (isPlaying)
                               Container(

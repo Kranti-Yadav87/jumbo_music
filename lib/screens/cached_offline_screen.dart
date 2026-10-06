@@ -3,6 +3,7 @@ import '../services/music_player_manager.dart';
 import '../services/download_service.dart';
 import '../widgets/track_options_sheet.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/cover_image.dart';
 
 class CachedOfflineScreen extends StatelessWidget {
   const CachedOfflineScreen({super.key});
@@ -178,23 +179,13 @@ class CachedOfflineScreen extends StatelessWidget {
                                 ),
                               ),
                               child: ListTile(
-                                leading: ClipRRect(
+                                leading: CoverImage(
+                                  imageUrl: song.coverUrl,
+                                  width: 46,
+                                  height: 46,
                                   borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    song.coverUrl,
-                                    width: 46,
-                                    height: 46,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
-                                      width: 46,
-                                      height: 46,
-                                      color: const Color(0xFF1E293B),
-                                      child: const Icon(
-                                        Icons.music_note,
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ),
+                                  fallbackBgColor: const Color(0xFF1E293B),
+                                  fallbackIcon: Icons.music_note,
                                 ),
                                 title: Text(
                                   song.title,

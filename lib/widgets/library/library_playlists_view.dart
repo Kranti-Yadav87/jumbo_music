@@ -6,6 +6,7 @@ import '../../screens/downloaded_songs_screen.dart';
 import '../../screens/cached_offline_screen.dart';
 import '../../screens/playlist_detail_screen.dart';
 import '../../screens/history_tab.dart';
+import '../cover_image.dart';
 import 'library_square_card.dart';
 
 /// Sliver content for the 'Playlists' category: 2x2 quick access cards and custom playlists.
@@ -148,23 +149,13 @@ class LibraryPlaylistsSliverView extends StatelessWidget {
                 border: Border.all(color: cardBorder),
               ),
               child: ListTile(
-                leading: ClipRRect(
+                leading: CoverImage(
+                  imageUrl: pl.coverUrl,
+                  width: 48,
+                  height: 48,
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    pl.coverUrl,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 48,
-                      height: 48,
-                      color: const Color(0xFF1E293B),
-                      child: const Icon(
-                        Icons.queue_music,
-                        color: Colors.white54,
-                      ),
-                    ),
-                  ),
+                  fallbackBgColor: const Color(0xFF1E293B),
+                  fallbackIcon: Icons.queue_music,
                 ),
                 title: Text(
                   pl.title,

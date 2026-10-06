@@ -14,6 +14,23 @@ class LyricsService {
 
   final Map<String, String> _cache = {};
 
+  /// Songs for which no lyrics were found (remembered for [_missTtl] so the
+  /// network is not hit again on every UI rebuild).
+  final Map<String, DateTime> _misses = {};
+  static const Duration _missTtl = Duration(minutes: 10);
+
+  /// Requests currently running, so concurrent callers share one request.
+  final Map<String, Future<String?>> _inFlight = {};
+
+  /// Test hook: replaces the real LRCLIB request.
+  @visibleForTesting
+  Future<String?> Function({
+    required String title,
+    required String artist,
+    int? durationSeconds,
+  })?
+  remoteFetcher;
+
   /// Expose immutable view of cache for diagnostics/testing
   Map<String, String> get cache => Map.unmodifiable(_cache);
 
@@ -23,12 +40,36 @@ class LyricsService {
 
   /// Retrieves lyrics for a [song]. Checks in-memory cache first, then song's embedded
   /// lyrics, then attempts external lookup via LRCLIB if needed.
-  Future<String?> getLyrics(Song song, {bool forceRefresh = false}) async {
+  ///
+  /// Successful results, failed lookups (for a short time) and in-flight
+  /// requests are all shared, so calling this repeatedly is cheap.
+  Future<String?> getLyrics(Song song, {bool forceRefresh = false}) {
     final cacheKey = _buildCacheKey(song.id, song.title, song.artist);
-    if (!forceRefresh && _cache.containsKey(cacheKey)) {
-      return _cache[cacheKey];
+
+    if (forceRefresh) {
+      _cache.remove(cacheKey);
+      _misses.remove(cacheKey);
+    } else {
+      final cached = _cache[cacheKey];
+      if (cached != null) return Future.value(cached);
+
+      final missAt = _misses[cacheKey];
+      if (missAt != null && DateTime.now().difference(missAt) < _missTtl) {
+        return Future.value(null);
+      }
+
+      final pending = _inFlight[cacheKey];
+      if (pending != null) return pending;
     }
 
+    final future = _load(song, cacheKey).whenComplete(() {
+      _inFlight.remove(cacheKey);
+    });
+    _inFlight[cacheKey] = future;
+    return future;
+  }
+
+  Future<String?> _load(Song song, String cacheKey) async {
     // 1. Use embedded lyrics if available
     if (song.lyrics.trim().isNotEmpty) {
       _cache[cacheKey] = song.lyrics.trim();
@@ -36,7 +77,8 @@ class LyricsService {
     }
 
     // 2. Fetch from online lyrics provider
-    final fetched = await fetchLyricsByQuery(
+    final fetcher = remoteFetcher ?? fetchLyricsByQuery;
+    final fetched = await fetcher(
       title: song.title,
       artist: song.artist,
       durationSeconds: song.duration.inSeconds > 0
@@ -46,9 +88,11 @@ class LyricsService {
 
     if (fetched != null && fetched.trim().isNotEmpty) {
       _cache[cacheKey] = fetched.trim();
+      _misses.remove(cacheKey);
       return _cache[cacheKey];
     }
 
+    _misses[cacheKey] = DateTime.now();
     return null;
   }
 
@@ -119,6 +163,8 @@ class LyricsService {
   /// Clear in-memory lyrics cache
   void clearCache() {
     _cache.clear();
+    _misses.clear();
+    _inFlight.clear();
   }
 
   String _buildCacheKey(String id, String title, String artist) {

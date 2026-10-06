@@ -4,6 +4,7 @@ import '../services/music_player_manager.dart';
 import '../widgets/equalizer_bars.dart';
 import '../widgets/track_options_sheet.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/cover_image.dart';
 
 class NewReleasesScreen extends StatelessWidget {
   const NewReleasesScreen({super.key});
@@ -267,20 +268,13 @@ class NewReleasesScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         child: Stack(
                           children: [
-                            Image.network(
-                              song.coverUrl,
+                            CoverImage(
+                              imageUrl: song.coverUrl,
                               width: 50,
                               height: 50,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 50,
-                                height: 50,
-                                color: const Color(0xFF1E1E24),
-                                child: const Icon(
-                                  Icons.music_note_rounded,
-                                  color: Colors.white38,
-                                ),
-                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              fallbackBgColor: const Color(0xFF1E1E24),
+                              fallbackIcon: Icons.music_note_rounded,
                             ),
                             if (isCurrent && manager.isPlaying)
                               Positioned.fill(

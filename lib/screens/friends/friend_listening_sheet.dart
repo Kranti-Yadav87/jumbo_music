@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
+import '../../services/presence_service.dart';
 import 'shared_playlist_dialog.dart';
 
 class FriendListeningSheet {
@@ -251,6 +252,105 @@ class FriendListeningSheet {
                       );
                     },
                   ),
+
+                // 4. Remove Friend
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.person_remove_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text(
+                    'Remove Friend',
+                    style: TextStyle(
+                      color: Color(0xFFEF4444),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Remove ${friend.name} from your friends list',
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    showDialog(
+                      context: context,
+                      builder: (dialogCtx) => AlertDialog(
+                        backgroundColor: isDark
+                            ? const Color(0xFF1C1C24)
+                            : Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        title: Row(
+                          children: const [
+                            Icon(
+                              Icons.person_remove_rounded,
+                              color: Color(0xFFEF4444),
+                            ),
+                            SizedBox(width: 10),
+                            Text('Remove Friend?'),
+                          ],
+                        ),
+                        content: Text(
+                          'Are you sure you want to remove ${friend.name} (${friend.email}) from your friends list?',
+                          style: TextStyle(
+                            color: isDark
+                                ? Colors.white70
+                                : const Color(0xFF475569),
+                          ),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogCtx),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                color: isDark ? Colors.white54 : Colors.grey,
+                              ),
+                            ),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFEF4444),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () async {
+                              Navigator.pop(dialogCtx);
+                              await PresenceService.instance.removeFriend(
+                                friend.id,
+                              );
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Removed ${friend.name} from friends.',
+                                    ),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            },
+                            child: const Text('Remove'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),

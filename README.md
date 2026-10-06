@@ -8,7 +8,7 @@ A cross-platform (Android + Web/PWA) music streaming and social player app built
 
 ### 1. Real-time Social Presence & Friends Jam
 - **Live Firestore Presence**: Authenticated users broadcast their active listening status (`currentSongTitle`, `currentSongArtist`, `currentSongCover`, `isListening`, `isOnline`) in real time.
-- **Listen Together & Live Jam Rooms**: Synchronize playback with friends instantly or share a room code (`JUMBO-SYNC-XXXX`) for joint listening sessions.
+- **Listen Together & Live Jam Rooms**: Synchronize playback with friends instantly or share a room code (`JUMBO-XXXXXX`) for joint listening sessions.
 - **Collaborative Duo Blend Playlists**: Synchronized playlists stored in Cloud Firestore where multiple friends can add and stream songs together.
 - **Modular Friends Screen**: Broken down into maintainable submodules (`friend_listening_tile.dart`, `shared_playlist_dialog.dart`, `live_jam_dialog.dart`, `add_friend_dialog.dart`).
 
