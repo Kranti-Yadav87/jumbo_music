@@ -44,7 +44,8 @@ service cloud.firestore {
         request.resource.data.ownerId == resource.data.ownerId && (
           resource.data.ownerId == request.auth.uid ||
           (request.auth.token.email != null &&
-           request.auth.token.email in resource.data.get('collaboratorEmails', []))
+           request.auth.token.email in resource.data.get('collaboratorEmails', []) &&
+           request.resource.data.get('collaboratorEmails', []) == resource.data.get('collaboratorEmails', []))
         );
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
@@ -86,6 +87,33 @@ service cloud.firestore {
         && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt == request.time);
 
       allow delete: if false;
+    }
+
+    // USER FEEDBACK (write-only): user feedback reports.
+    // Cannot be read, modified, or deleted by clients; read in Firebase Console.
+    match /app_feedback/{feedbackId} {
+      allow create: if request.resource.data.keys().hasOnly([
+          'rating', 'category', 'message', 'userId', 'userName',
+          'userEmail', 'isGuest', 'submittedAt', 'appVersion', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'rating', 'category', 'message', 'createdAt'
+        ])
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && request.resource.data.category is string
+        && request.resource.data.category.size() <= 50
+        && request.resource.data.message is string
+        && request.resource.data.message.size() <= 2000
+        && (request.resource.data.get('userId', '') is string && request.resource.data.get('userId', '').size() <= 128)
+        && (request.resource.data.get('userName', '') is string && request.resource.data.get('userName', '').size() <= 100)
+        && (request.resource.data.get('userEmail', '') is string && request.resource.data.get('userEmail', '').size() <= 150)
+        && (request.resource.data.get('isGuest', true) is bool)
+        && (request.resource.data.get('submittedAt', '') is string && request.resource.data.get('submittedAt', '').size() <= 50)
+        && (request.resource.data.get('appVersion', '') is string && request.resource.data.get('appVersion', '').size() <= 20)
+        && request.resource.data.createdAt == request.time;
+      allow read, update, delete: if false;
     }
 
     // CLIENT ERROR REPORTS (write-only): the app uploads compact crash/error
