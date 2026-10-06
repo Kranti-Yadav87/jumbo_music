@@ -284,7 +284,10 @@ class AuthService {
       try {
         await FirestoreSyncService.instance.deleteUserDataFromCloud(uid);
       } catch (e) {
-        CrashReportingService.swallow(e, 'auth_service.dart:deleteUserDataFromCloud');
+        CrashReportingService.swallow(
+          e,
+          'auth_service.dart:deleteUserDataFromCloud',
+        );
       }
 
       // 2. Delete Local Scoped Data

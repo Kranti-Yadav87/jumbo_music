@@ -82,58 +82,70 @@ void main() {
     });
 
     test('Correctly maps requires-recent-login or reauth failed', () {
-      final err = Exception('[firebase_auth/requires-recent-login] Reauth required');
+      final err = Exception(
+        '[firebase_auth/requires-recent-login] Reauth required',
+      );
       expect(
         AuthService.formatAuthError(err),
-        equals('Re-authentication failed or session expired. Please log in again.'),
+        equals(
+          'Re-authentication failed or session expired. Please log in again.',
+        ),
       );
     });
   });
 
   group('AuthService deleteAccount Sequence Tests', () {
-    test('Guest account deletion clears local data and logs out cleanly', () async {
-      final db = DatabaseService.instance;
-      await db.init();
-      await db.loginAsGuest();
-      expect(db.isGuest, isTrue);
+    test(
+      'Guest account deletion clears local data and logs out cleanly',
+      () async {
+        final db = DatabaseService.instance;
+        await db.init();
+        await db.loginAsGuest();
+        expect(db.isGuest, isTrue);
 
-      final authService = AuthService.instance;
-      await authService.deleteAccount();
+        final authService = AuthService.instance;
+        await authService.deleteAccount();
 
-      expect(db.isLoggedIn, isFalse);
-    });
+        expect(db.isLoggedIn, isFalse);
+      },
+    );
 
-    test('Reauthentication failure prevents data deletion and user deletion', () async {
-      // Verification of the critical security invariant:
-      // If reauthentication throws, execution terminates before any deletion happens.
-      bool cloudDeleted = false;
-      bool localDeleted = false;
-      bool userDeleted = false;
+    test(
+      'Reauthentication failure prevents data deletion and user deletion',
+      () async {
+        // Verification of the critical security invariant:
+        // If reauthentication throws, execution terminates before any deletion happens.
+        bool cloudDeleted = false;
+        bool localDeleted = false;
+        bool userDeleted = false;
 
-      Future<void> executeGuardedDeletion({required bool shouldReauthPass}) async {
-        if (!shouldReauthPass) {
-          throw FirebaseAuthException(
-            code: 'wrong-password',
-            message: 'Invalid password provided for re-authentication.',
-          );
+        Future<void> executeGuardedDeletion({
+          required bool shouldReauthPass,
+        }) async {
+          if (!shouldReauthPass) {
+            throw FirebaseAuthException(
+              code: 'wrong-password',
+              message: 'Invalid password provided for re-authentication.',
+            );
+          }
+          cloudDeleted = true;
+          localDeleted = true;
+          userDeleted = true;
         }
-        cloudDeleted = true;
-        localDeleted = true;
-        userDeleted = true;
-      }
 
-      expect(
-        () => executeGuardedDeletion(shouldReauthPass: false),
-        throwsA(isA<FirebaseAuthException>()),
-      );
-      expect(cloudDeleted, isFalse);
-      expect(localDeleted, isFalse);
-      expect(userDeleted, isFalse);
+        expect(
+          () => executeGuardedDeletion(shouldReauthPass: false),
+          throwsA(isA<FirebaseAuthException>()),
+        );
+        expect(cloudDeleted, isFalse);
+        expect(localDeleted, isFalse);
+        expect(userDeleted, isFalse);
 
-      await executeGuardedDeletion(shouldReauthPass: true);
-      expect(cloudDeleted, isTrue);
-      expect(localDeleted, isTrue);
-      expect(userDeleted, isTrue);
-    });
+        await executeGuardedDeletion(shouldReauthPass: true);
+        expect(cloudDeleted, isTrue);
+        expect(localDeleted, isTrue);
+        expect(userDeleted, isTrue);
+      },
+    );
   });
 }
