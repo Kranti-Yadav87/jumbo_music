@@ -27,6 +27,7 @@ void main() async {
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'mipmap/ic_launcher',
+          androidStopForegroundOnPause: true,
         );
       } catch (e) {
         debugPrint('JustAudioBackground init note: $e');

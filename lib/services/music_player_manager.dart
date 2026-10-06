@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_session/audio_session.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -311,6 +312,48 @@ class MusicPlayerManager extends ChangeNotifier {
     });
 
     fetchOnlineTrending();
+    if (!kIsWeb) {
+      _initAudioSession();
+    }
+  }
+
+  Future<void> _initAudioSession() async {
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration.music());
+      session.interruptionEventStream.listen((event) {
+        if (event.begin) {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _audioPlayer.setVolume(_volume * 0.5);
+              break;
+            case AudioInterruptionType.pause:
+            case AudioInterruptionType.unknown:
+              if (_isPlaying) {
+                pause();
+              }
+              break;
+          }
+        } else {
+          switch (event.type) {
+            case AudioInterruptionType.duck:
+              _audioPlayer.setVolume(_volume);
+              break;
+            case AudioInterruptionType.pause:
+              break;
+            case AudioInterruptionType.unknown:
+              break;
+          }
+        }
+      });
+      session.becomingNoisyEventStream.listen((_) {
+        if (_isPlaying) {
+          pause();
+        }
+      });
+    } catch (e) {
+      debugPrint('AudioSession init note: $e');
+    }
   }
 
   void _hydrateFromDatabase() {
@@ -600,6 +643,10 @@ class MusicPlayerManager extends ChangeNotifier {
         artist: song.artist,
         artUri: song.coverUrl.isNotEmpty ? Uri.tryParse(song.coverUrl) : null,
         duration: song.duration.inSeconds > 0 ? song.duration : null,
+        playable: true,
+        displayTitle: song.title,
+        displaySubtitle: song.artist,
+        displayDescription: song.album.isNotEmpty ? song.album : 'Jumbo Music',
       );
 
       final isDl = DownloadService().isDownloaded(song.id);
@@ -679,6 +726,24 @@ class MusicPlayerManager extends ChangeNotifier {
         notifyListeners();
       }),
     );
+  }
+
+  Future<void> pause() async {
+    _isPlaying = false;
+    notifyListeners();
+    MediaSessionService.updatePlaybackState(isPlaying: false);
+    await _audioPlayer.pause();
+  }
+
+  Future<void> play() async {
+    if (currentSong == null && _allSongs.isNotEmpty) {
+      await playSong(_allSongs[0]);
+      return;
+    }
+    _isPlaying = true;
+    notifyListeners();
+    MediaSessionService.updatePlaybackState(isPlaying: true);
+    await _audioPlayer.play();
   }
 
   Future<void> togglePlay() async {
