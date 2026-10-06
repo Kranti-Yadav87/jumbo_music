@@ -52,7 +52,7 @@ class FirestoreSyncService {
 
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('Firestore syncUserProfile note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:syncUserProfile');
     }
   }
 
@@ -76,7 +76,7 @@ class FirestoreSyncService {
           .doc(uid)
           .set(data, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('Firestore updateProfileInCloud note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:updateProfileInCloud');
     }
   }
 
@@ -93,7 +93,7 @@ class FirestoreSyncService {
       await _pullHistoryFromCloud(user.uid);
       _startRealtimeListeners(user.uid);
     } catch (e) {
-      debugPrint('Firestore syncAllUserData note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:syncAllUserData');
     } finally {
       _isSyncing = false;
     }
@@ -120,7 +120,7 @@ class FirestoreSyncService {
         await docRef.delete();
       }
     } catch (e) {
-      debugPrint('Firestore pushFavoriteToCloud note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushFavoriteToCloud');
     }
   }
 
@@ -141,7 +141,7 @@ class FirestoreSyncService {
       data['updatedAt'] = FieldValue.serverTimestamp();
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('Firestore pushPlaylistToCloud note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushPlaylistToCloud');
     }
   }
 
@@ -159,7 +159,7 @@ class FirestoreSyncService {
           .doc(playlistId)
           .delete();
     } catch (e) {
-      debugPrint('Firestore deletePlaylistFromCloud note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:deletePlaylistFromCloud');
     }
   }
 
@@ -180,7 +180,7 @@ class FirestoreSyncService {
       data['playedAt'] = FieldValue.serverTimestamp();
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('Firestore pushHistoryToCloud note: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushHistoryToCloud');
     }
   }
 
@@ -206,7 +206,7 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      debugPrint('Error pulling favorites from cloud: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullFavoritesFromCloud');
     }
   }
 
@@ -232,7 +232,7 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      debugPrint('Error pulling playlists from cloud: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullPlaylistsFromCloud');
     }
   }
 
@@ -258,7 +258,7 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      debugPrint('Error pulling history from cloud: $e');
+      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullHistoryFromCloud');
     }
   }
 
@@ -305,7 +305,7 @@ class FirestoreSyncService {
           } finally {
             _isRemoteSyncing = false;
           }
-        }, onError: (e) => debugPrint('Favorites cloud listener note: $e'));
+        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:favorites_listener'));
 
     // 2. Listen to cloud playlists changes
     _playlistsSubscription = _firestore
@@ -332,7 +332,7 @@ class FirestoreSyncService {
           } finally {
             _isRemoteSyncing = false;
           }
-        }, onError: (e) => debugPrint('Playlists cloud listener note: $e'));
+        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:playlists_listener'));
 
     // 3. Listen to cloud history changes
     _historySubscription = _firestore
@@ -358,7 +358,7 @@ class FirestoreSyncService {
           } finally {
             _isRemoteSyncing = false;
           }
-        }, onError: (e) => debugPrint('History cloud listener note: $e'));
+        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:history_listener'));
   }
 
   void cancelRealtimeListeners() {

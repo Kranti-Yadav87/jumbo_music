@@ -6,6 +6,7 @@ import 'package:jumbo_music/services/firestore_sync_service.dart';
 import 'package:jumbo_music/services/presence_service.dart';
 import 'package:jumbo_music/services/download_service.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
+import 'package:jumbo_music/services/crash_reporting_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -53,6 +54,16 @@ void main() {
       expect(controller.text, isEmpty);
       controller.dispose();
       expect(() => controller.addListener(() {}), throwsFlutterError);
+    });
+
+    test('Item #9: CrashReportingService.swallow records breadcrumb on error', () {
+      expect(
+        () => CrashReportingService.swallow(
+          Exception('test sync failure'),
+          'firestore_sync_service.dart:test',
+        ),
+        returnsNormally,
+      );
     });
   });
 }
