@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/music_player_manager.dart';
 import '../services/connectivity_service.dart';
+import '../services/notification_permission_service.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/now_playing_screen.dart';
 import 'home_tab.dart';
@@ -31,6 +32,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const LibraryTab(),
       const ProfileScreen(showHeader: false),
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        NotificationPermissionService.requestNotificationPermissionIfNeeded(
+          context,
+        );
+      }
+    });
   }
 
   void _openNowPlaying(BuildContext context) {

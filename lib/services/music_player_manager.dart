@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_service/audio_service.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -864,6 +864,43 @@ class MusicPlayerManager extends ChangeNotifier {
       _isPlaying = _audioPlayer.playing;
       notifyListeners();
     }
+  }
+
+  Future<void> play() async {
+    if (!_isPlaying) {
+      await togglePlay();
+    }
+  }
+
+  Future<void> pause() async {
+    if (_isPlaying) {
+      await togglePlay();
+    }
+  }
+
+  Future<void> resume() => play();
+
+  Future<void> stop() async {
+    _isPlaying = false;
+    _isBuffering = false;
+    _position = Duration.zero;
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
+    MediaSessionService.updatePlaybackState(isPlaying: false);
+    PresenceService.instance.updateListeningStatus(
+      song: null,
+      isPlaying: false,
+    );
+    notifyListeners();
+  }
+
+  Future<void> setLoopMode(LoopMode mode) async {
+    _loopMode = mode;
+    await _audioPlayer.setLoopMode(
+      _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+    );
+    notifyListeners();
   }
 
   /// A fallback track from library / trending / offline when queue has no alternative song
