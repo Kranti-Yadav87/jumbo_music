@@ -28,7 +28,7 @@ class NowPlayingLyricsSheet {
           expand: false,
           builder: (_, scrollController) {
             return AnimatedBuilder(
-              animation: manager,
+              animation: Listenable.merge([manager, manager.positionNotifier]),
               builder: (context, _) {
                 final currentPos = manager.position;
                 final totalDur = manager.duration.inSeconds > 0

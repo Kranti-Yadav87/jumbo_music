@@ -6,6 +6,7 @@ import '../services/music_api_service.dart';
 import '../widgets/song_tile.dart';
 import '../widgets/mini_player.dart';
 import '../services/crash_reporting_service.dart';
+import '../widgets/cover_image.dart';
 
 class PlaylistDetailScreen extends StatefulWidget {
   final Playlist playlist;
@@ -196,17 +197,11 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen> {
                   background: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        widget.playlist.coverUrl,
+                      CoverImage(
+                        imageUrl: widget.playlist.coverUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF1E1B4B),
-                          child: const Icon(
-                            Icons.queue_music,
-                            size: 60,
-                            color: Colors.white30,
-                          ),
-                        ),
+                        fallbackBgColor: const Color(0xFF1E1B4B),
+                        fallbackIcon: Icons.queue_music,
                       ),
                       Container(
                         decoration: BoxDecoration(

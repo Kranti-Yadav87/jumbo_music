@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/song.dart';
+import '../cover_image.dart';
 
 /// Top drag handle and header card displaying currently selected track info.
 class TrackOptionsHeader extends StatelessWidget {
@@ -34,20 +35,13 @@ class TrackOptionsHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              ClipRRect(
+              CoverImage(
+                imageUrl: song.coverUrl,
+                width: 52,
+                height: 52,
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  song.coverUrl,
-                  width: 52,
-                  height: 52,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 52,
-                    height: 52,
-                    color: const Color(0xFF2C2C2E),
-                    child: const Icon(Icons.music_note, color: Colors.white54),
-                  ),
-                ),
+                fallbackBgColor: const Color(0xFF2C2C2E),
+                fallbackIcon: Icons.music_note,
               ),
               const SizedBox(width: 14),
               Expanded(

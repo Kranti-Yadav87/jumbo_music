@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/music_player_manager.dart';
+import '../cover_image.dart';
 import '../track_options_sheet.dart';
 
 /// Sliver content for the 'Songs' category in LibraryTab.
@@ -36,20 +37,13 @@ class LibrarySongsSliverView extends StatelessWidget {
             ),
           ),
           child: ListTile(
-            leading: ClipRRect(
+            leading: CoverImage(
+              imageUrl: song.coverUrl,
+              width: 48,
+              height: 48,
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                song.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 48,
-                  height: 48,
-                  color: const Color(0xFF1E293B),
-                  child: const Icon(Icons.music_note, color: Colors.white54),
-                ),
-              ),
+              fallbackBgColor: const Color(0xFF1E293B),
+              fallbackIcon: Icons.music_note,
             ),
             title: Text(
               song.title,

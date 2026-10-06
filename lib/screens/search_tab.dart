@@ -9,6 +9,7 @@ import '../config/app_config.dart';
 import '../services/api/jamendo_search_service.dart';
 import '../widgets/track_options_sheet.dart';
 import '../widgets/now_playing_screen.dart';
+import '../widgets/cover_image.dart';
 
 class SearchTab extends StatefulWidget {
   final VoidCallback? onBack;
@@ -615,25 +616,15 @@ class _SearchTabState extends State<SearchTab> {
                                 horizontal: 10,
                                 vertical: 2,
                               ),
-                              leading: ClipRRect(
+                              leading: CoverImage(
+                                imageUrl: song.coverUrl,
+                                width: 48,
+                                height: 48,
                                 borderRadius: BorderRadius.circular(8),
-                                child: Image.network(
-                                  song.coverUrl,
-                                  width: 48,
-                                  height: 48,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
-                                    width: 48,
-                                    height: 48,
-                                    color: isDark
-                                        ? const Color(0xFF1C1C1E)
-                                        : const Color(0xFFE2E8F0),
-                                    child: Icon(
-                                      Icons.music_note,
-                                      color: AppThemeManager.textMuted(context),
-                                    ),
-                                  ),
-                                ),
+                                fallbackBgColor: isDark
+                                    ? const Color(0xFF1C1C1E)
+                                    : const Color(0xFFE2E8F0),
+                                fallbackIcon: Icons.music_note,
                               ),
                               title: Text(
                                 song.title,

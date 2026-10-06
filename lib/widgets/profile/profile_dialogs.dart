@@ -4,6 +4,7 @@ import '../../services/database_service.dart';
 import '../../services/music_player_manager.dart';
 import '../../screens/auth_gate.dart';
 import '../../screens/playlist_detail_screen.dart';
+import '../cover_image.dart';
 
 /// Informational banner shown when in guest mode.
 class GuestModeBanner extends StatelessWidget {
@@ -169,23 +170,13 @@ void showProfilePlaylistsSheet(
                       final pl = manager.playlists[idx];
                       return ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: ClipRRect(
+                        leading: CoverImage(
+                          imageUrl: pl.coverUrl,
+                          width: 42,
+                          height: 42,
                           borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            pl.coverUrl,
-                            width: 42,
-                            height: 42,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              width: 42,
-                              height: 42,
-                              color: const Color(0xFF1E293B),
-                              child: const Icon(
-                                Icons.music_note,
-                                color: Colors.white54,
-                              ),
-                            ),
-                          ),
+                          fallbackBgColor: const Color(0xFF1E293B),
+                          fallbackIcon: Icons.music_note,
                         ),
                         title: Text(
                           pl.title,

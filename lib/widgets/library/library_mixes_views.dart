@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/music_player_manager.dart';
 import '../../screens/playlist_detail_screen.dart';
+import '../cover_image.dart';
 
 /// Sliver content for the 'Albums' category in LibraryTab.
 class LibraryAlbumsSliverView extends StatelessWidget {
@@ -30,14 +31,13 @@ class LibraryAlbumsSliverView extends StatelessWidget {
             border: Border.all(color: cardBorder),
           ),
           child: ListTile(
-            leading: ClipRRect(
+            leading: CoverImage(
+              imageUrl: pl.coverUrl,
+              width: 48,
+              height: 48,
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                pl.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-              ),
+              fallbackBgColor: const Color(0xFF1E293B),
+              fallbackIcon: Icons.album_rounded,
             ),
             title: Text(
               pl.title,
