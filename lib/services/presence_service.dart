@@ -141,6 +141,7 @@ class PresenceService extends ChangeNotifier {
           'currentSongArtist': song.artist,
           'currentSongId': song.id,
           'currentSongCover': song.coverUrl,
+          'currentSongAudioUrl': song.audioUrl,
           'currentSongDurationSeconds': song.duration.inSeconds,
           'lastSeen': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
@@ -340,6 +341,8 @@ class PresenceService extends ChangeNotifier {
                               (uData['currentSongId'] as String?) ?? '',
                           currentSongCover:
                               (uData['currentSongCover'] as String?) ?? '',
+                          currentSongAudioUrl:
+                              (uData['currentSongAudioUrl'] as String?) ?? '',
                           isOnline: online,
                           isListening:
                               online &&

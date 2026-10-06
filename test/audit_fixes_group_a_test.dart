@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jumbo_music/models/song.dart';
@@ -64,6 +65,13 @@ void main() {
         ),
         returnsNormally,
       );
+    });
+
+    test('Item #10: CI deploy guard includes dart format check', () {
+      final workflowFile = File('.github/workflows/deploy-guard.yml');
+      expect(workflowFile.existsSync(), isTrue);
+      final content = workflowFile.readAsStringSync();
+      expect(content, contains('dart format --set-exit-if-changed lib test'));
     });
   });
 }

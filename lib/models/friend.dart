@@ -7,6 +7,7 @@ class Friend {
   final String currentSongArtist;
   final String currentSongId;
   final String currentSongCover;
+  final String currentSongAudioUrl;
   final bool isOnline;
   final bool isListening;
   final DateTime lastSeen;
@@ -20,6 +21,7 @@ class Friend {
     this.currentSongArtist = '',
     this.currentSongId = '',
     this.currentSongCover = '',
+    this.currentSongAudioUrl = '',
     this.isOnline = true,
     this.isListening = false,
     DateTime? lastSeen,
@@ -49,6 +51,7 @@ class Friend {
     String? currentSongArtist,
     String? currentSongId,
     String? currentSongCover,
+    String? currentSongAudioUrl,
     bool? isOnline,
     bool? isListening,
     DateTime? lastSeen,
@@ -62,6 +65,7 @@ class Friend {
       currentSongArtist: currentSongArtist ?? this.currentSongArtist,
       currentSongId: currentSongId ?? this.currentSongId,
       currentSongCover: currentSongCover ?? this.currentSongCover,
+      currentSongAudioUrl: currentSongAudioUrl ?? this.currentSongAudioUrl,
       isOnline: isOnline ?? this.isOnline,
       isListening: isListening ?? this.isListening,
       lastSeen: lastSeen ?? this.lastSeen,
@@ -78,6 +82,7 @@ class Friend {
       'currentSongArtist': currentSongArtist,
       'currentSongId': currentSongId,
       'currentSongCover': currentSongCover,
+      'currentSongAudioUrl': currentSongAudioUrl,
       'isOnline': isOnline,
       'isListening': isListening,
       'lastSeen': lastSeen.toIso8601String(),
@@ -94,6 +99,7 @@ class Friend {
       currentSongArtist: json['currentSongArtist'] as String? ?? '',
       currentSongId: json['currentSongId'] as String? ?? '',
       currentSongCover: json['currentSongCover'] as String? ?? '',
+      currentSongAudioUrl: json['currentSongAudioUrl'] as String? ?? '',
       isOnline: json['isOnline'] as bool? ?? true,
       isListening: json['isListening'] as bool? ?? false,
       lastSeen: json['lastSeen'] != null

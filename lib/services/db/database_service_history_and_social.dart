@@ -321,12 +321,14 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
     required String title,
     required String message,
     String type = 'system',
+    String? targetId,
   }) async {
     final notif = {
       'id': 'n_${DateTime.now().millisecondsSinceEpoch}',
       'title': title,
       'message': message,
       'type': type,
+      if (targetId != null) 'targetId': targetId,
       'timestamp': DateTime.now().toIso8601String(),
       'isRead': false,
     };
@@ -336,6 +338,30 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
     }
     notify();
     await _flushNotifications();
+  }
+
+  Future<void> markNotificationAsRead(String notifId) async {
+    bool changed = false;
+    for (int i = 0; i < _notifications.length; i++) {
+      if (_notifications[i]['id'] == notifId) {
+        _notifications[i]['isRead'] = true;
+        changed = true;
+        break;
+      }
+    }
+    if (changed) {
+      notify();
+      await _flushNotifications();
+    }
+  }
+
+  Future<void> deleteNotification(String notifId) async {
+    final before = _notifications.length;
+    _notifications.removeWhere((n) => n['id'] == notifId);
+    if (_notifications.length != before) {
+      notify();
+      await _flushNotifications();
+    }
   }
 
   Future<void> markAllNotificationsRead() async {

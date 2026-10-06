@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../screens/friends_screen.dart';
 import '../services/database_service.dart';
 
 class NotificationsSheet extends StatelessWidget {
@@ -11,6 +12,33 @@ class NotificationsSheet extends StatelessWidget {
       backgroundColor: Colors.transparent,
       builder: (_) => const NotificationsSheet(),
     );
+  }
+
+  void _handleNotificationTap(
+    BuildContext context,
+    Map<String, dynamic> notif,
+    DatabaseService db,
+  ) {
+    final notifId = notif['id'] as String?;
+    if (notifId != null) {
+      db.markNotificationAsRead(notifId);
+    }
+
+    final type = notif['type'] as String? ?? 'system';
+
+    if (type == 'friend' || type == 'invite' || type == 'friend_request') {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FriendsScreen()),
+      );
+    } else if (type == 'playlist') {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const FriendsScreen()),
+      );
+    }
   }
 
   @override
@@ -144,7 +172,7 @@ class NotificationsSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Friend activity and playlist invites will appear here.',
+                                'Friend activity, requests, and playlist invites will appear here.',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 13,
@@ -165,12 +193,13 @@ class NotificationsSheet extends StatelessWidget {
                         separatorBuilder: (_, __) => const SizedBox(height: 8),
                         itemBuilder: (context, index) {
                           final notif = notifs[index];
+                          final notifId = notif['id'] as String? ?? 'n_$index';
                           final type = notif['type'] as String? ?? 'system';
                           final isRead = notif['isRead'] as bool? ?? false;
 
                           IconData iconData = Icons.notifications_rounded;
                           Color iconColor = const Color(0xFFFF5E3A);
-                          if (type == 'friend') {
+                          if (type == 'friend' || type == 'friend_request') {
                             iconData = Icons.person_rounded;
                             iconColor = const Color(0xFF38BDF8);
                           } else if (type == 'playlist') {
@@ -181,72 +210,109 @@ class NotificationsSheet extends StatelessWidget {
                             iconColor = const Color(0xFF10B981);
                           }
 
-                          return Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? (isRead
-                                        ? const Color(0xFF1A1A24)
-                                        : const Color(0xFF222232))
-                                  : (isRead
-                                        ? const Color(0xFFF8FAFC)
-                                        : const Color(0xFFF1F5F9)),
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isRead
-                                    ? Colors.transparent
-                                    : (isDark
-                                          ? Colors.white12
-                                          : const Color(0xFFE2E8F0)),
+                              onTap: () => _handleNotificationTap(
+                                context,
+                                notif,
+                                db,
                               ),
-                            ),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(9),
-                                  decoration: BoxDecoration(
-                                    color: iconColor.withOpacity(0.15),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    iconData,
-                                    color: iconColor,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        notif['title'] as String? ??
-                                            'Notification',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: isDark
-                                              ? Colors.white
-                                              : const Color(0xFF0F172A),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        notif['message'] as String? ?? '',
-                                        style: TextStyle(
-                                          fontSize: 12.5,
-                                          color: isDark
-                                              ? Colors.white70
-                                              : const Color(0xFF475569),
-                                          height: 1.3,
-                                        ),
-                                      ),
-                                    ],
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? (isRead
+                                            ? const Color(0xFF1A1A24)
+                                            : const Color(0xFF222232))
+                                      : (isRead
+                                            ? const Color(0xFFF8FAFC)
+                                            : const Color(0xFFF1F5F9)),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isRead
+                                        ? Colors.transparent
+                                        : (isDark
+                                              ? const Color(0xFFFF5E3A).withOpacity(0.3)
+                                              : const Color(0xFFE2E8F0)),
                                   ),
                                 ),
-                              ],
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(9),
+                                      decoration: BoxDecoration(
+                                        color: iconColor.withOpacity(0.15),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        iconData,
+                                        color: iconColor,
+                                        size: 18,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  notif['title'] as String? ??
+                                                      'Notification',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                    color: isDark
+                                                        ? Colors.white
+                                                        : const Color(0xFF0F172A),
+                                                  ),
+                                                ),
+                                              ),
+                                              if (!isRead)
+                                                Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: const BoxDecoration(
+                                                    color: Color(0xFFFF5E3A),
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            notif['message'] as String? ?? '',
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              color: isDark
+                                                  ? Colors.white70
+                                                  : const Color(0xFF475569),
+                                              height: 1.3,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        Icons.close_rounded,
+                                        size: 16,
+                                        color: isDark ? Colors.white38 : Colors.black38,
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(),
+                                      onPressed: () => db.deleteNotification(notifId),
+                                      tooltip: 'Dismiss',
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           );
                         },

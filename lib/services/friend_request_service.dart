@@ -79,6 +79,8 @@ class FriendRequestService extends ChangeNotifier {
   final List<FriendRequest> _incomingRequests = [];
   List<FriendRequest> get incomingRequests =>
       List.unmodifiable(_incomingRequests);
+  final Set<String> _notifiedRequestIds = {};
+  final Set<String> _notifiedAcceptedFriendIds = {};
 
   // Testing hooks
   @visibleForTesting
@@ -114,9 +116,22 @@ class FriendRequestService extends ChangeNotifier {
             (snapshot) {
               _incomingRequests.clear();
               for (final doc in snapshot.docs) {
-                _incomingRequests.add(
-                  FriendRequest.fromJson(doc.data(), id: doc.id),
-                );
+                final req = FriendRequest.fromJson(doc.data(), id: doc.id);
+                _incomingRequests.add(req);
+
+                // Add in-app notification if not notified yet
+                if (!_notifiedRequestIds.contains(req.id)) {
+                  _notifiedRequestIds.add(req.id);
+                  final senderName = req.fromName.isNotEmpty
+                      ? req.fromName
+                      : (req.fromEmail.isNotEmpty ? req.fromEmail : 'A friend');
+                  DatabaseService.instance.addNotification(
+                    title: 'Friend Request',
+                    message: '$senderName sent you a friend request. Tap to view and accept.',
+                    type: 'friend',
+                    targetId: req.id,
+                  );
+                }
               }
               notifyListeners();
             },
@@ -155,6 +170,16 @@ class FriendRequestService extends ChangeNotifier {
                   );
                   DatabaseService.instance.saveFriendLocally(newFriend);
                   _syncFriendToCloud(uid, newFriend);
+
+                  if (!_notifiedAcceptedFriendIds.contains(toUid)) {
+                    _notifiedAcceptedFriendIds.add(toUid);
+                    DatabaseService.instance.addNotification(
+                      title: 'Friend Request Accepted',
+                      message: '${newFriend.name} accepted your friend request! You can now listen together.',
+                      type: 'friend',
+                      targetId: toUid,
+                    );
+                  }
                 }
               }
             },
@@ -176,6 +201,8 @@ class FriendRequestService extends ChangeNotifier {
     _outgoingAcceptedSub?.cancel();
     _outgoingAcceptedSub = null;
     _incomingRequests.clear();
+    _notifiedRequestIds.clear();
+    _notifiedAcceptedFriendIds.clear();
     notifyListeners();
   }
 
