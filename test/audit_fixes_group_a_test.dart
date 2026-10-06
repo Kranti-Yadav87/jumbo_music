@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/models/playlist.dart';
+import 'package:jumbo_music/config/app_config.dart';
 import 'package:jumbo_music/services/presence_service.dart';
 import 'package:jumbo_music/services/download_service.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
@@ -100,6 +101,23 @@ void main() {
         contains('Browser cannot save offline audio due to host CORS policy'),
       );
       expect(content, isNot(contains('nahi kar paya')));
+    });
+
+    test('Item #13: AppConfig compile-time flags and test mocks function as expected', () {
+      expect(AppConfig.appName, equals('Jumbo Music'));
+      expect(AppConfig.appVersion, equals('2.0.0'));
+      expect(AppConfig.apiHeaders, containsPair('Content-Type', 'application/json'));
+
+      // Verify mock override functionality
+      AppConfig.mockUseUnofficialCatalog = false;
+      expect(AppConfig.isUnofficialCatalogEnabled, isFalse);
+      AppConfig.mockUseUnofficialCatalog = true;
+      expect(AppConfig.isUnofficialCatalogEnabled, isTrue);
+      AppConfig.mockUseUnofficialCatalog = null;
+
+      AppConfig.mockJamendoClientId = 'test_jamendo_mock_id';
+      expect(AppConfig.activeJamendoClientId, equals('test_jamendo_mock_id'));
+      AppConfig.mockJamendoClientId = null;
     });
   });
 }

@@ -64,13 +64,21 @@ flutter build apk --release
 ```
 
 ### Optional build-time configuration
+Pass compile-time environment flags using `--dart-define`:
 ```bash
+# Jamendo catalog fallback
 flutter run --dart-define=JAMENDO_CLIENT_ID=<your-jamendo-client-id>
-```
 
-### Custom Music API Configuration
-Override the music backend endpoint without modifying code using `--dart-define`:
-```bash
+# Restrict catalog strictly to official Jamendo legal full tracks
+flutter run --dart-define=USE_UNOFFICIAL_CATALOG=false
+
+# Google Sign-In Server / Web Client ID for OAuth
+flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=<web-client-id>.apps.googleusercontent.com
+
+# Remote error reporting toggle
+flutter run --dart-define=REPORT_ERRORS=false
+
+# Custom Music Backend API Proxy
 flutter run --dart-define=SPOTIFY_ENDPOINT=https://<project>.supabase.co/functions/v1/spotify \
             --dart-define=SPOTIFY_ANON_KEY=<anon-key>
 ```
