@@ -37,6 +37,19 @@ class AppConfig {
   static bool? mockUseUnofficialCatalog;
   static String? mockJamendoClientId;
 
+  /// Kill switch for native Android lock-screen and notification media controls.
+  /// Pass with --dart-define=USE_NATIVE_MEDIA_CONTROLS=false to disable.
+  static const bool useNativeMediaControls = bool.fromEnvironment(
+    'USE_NATIVE_MEDIA_CONTROLS',
+    defaultValue: true,
+  );
+
+  static bool? mockUseNativeMediaControls;
+
+  /// Effective native media controls flag (respects mock override in tests)
+  static bool get isNativeMediaControlsEnabled =>
+      mockUseNativeMediaControls ?? useNativeMediaControls;
+
   /// Effective catalog flag (respects mock override in tests)
   static bool get isUnofficialCatalogEnabled =>
       mockUseUnofficialCatalog ?? useUnofficialCatalog;

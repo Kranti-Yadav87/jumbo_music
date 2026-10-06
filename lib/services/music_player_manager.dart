@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_service/audio_service.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -18,6 +18,58 @@ part 'player/music_player_sleep_timer.dart';
 part 'player/music_player_equalizer_delegate.dart';
 part 'player/music_player_library_sync.dart';
 part 'player/music_player_queue_delegate.dart';
+
+abstract class AudioPlayerEngine {
+  Stream<PlayerState> get playerStateStream;
+  Stream<Duration> get positionStream;
+  Stream<Duration?> get durationStream;
+  Stream<Duration> get bufferedPositionStream;
+  bool get playing;
+  Future<Duration?> setAudioSource(AudioSource source, {bool preload = true});
+  Future<void> play();
+  Future<void> pause();
+  Future<void> stop();
+  Future<void> seek(Duration position);
+  Future<void> setVolume(double volume);
+  Future<void> setSpeed(double speed);
+  Future<void> setLoopMode(LoopMode loopMode);
+  Future<void> dispose();
+}
+
+class JustAudioEngine implements AudioPlayerEngine {
+  final AudioPlayer _player;
+  JustAudioEngine(this._player);
+
+  @override
+  Stream<PlayerState> get playerStateStream => _player.playerStateStream;
+  @override
+  Stream<Duration> get positionStream => _player.positionStream;
+  @override
+  Stream<Duration?> get durationStream => _player.durationStream;
+  @override
+  Stream<Duration> get bufferedPositionStream => _player.bufferedPositionStream;
+  @override
+  bool get playing => _player.playing;
+  @override
+  Future<Duration?> setAudioSource(AudioSource source, {bool preload = true}) =>
+      _player.setAudioSource(source, preload: preload);
+  @override
+  Future<void> play() => _player.play();
+  @override
+  Future<void> pause() => _player.pause();
+  @override
+  Future<void> stop() => _player.stop();
+  @override
+  Future<void> seek(Duration position) => _player.seek(position);
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+  @override
+  Future<void> setSpeed(double speed) => _player.setSpeed(speed);
+  @override
+  Future<void> setLoopMode(LoopMode loopMode) => _player.setLoopMode(loopMode);
+  @override
+  Future<void> dispose() => _player.dispose();
+}
 
 class MusicPlayerManager extends ChangeNotifier {
   static final MusicPlayerManager _instance = MusicPlayerManager._internal();
@@ -62,8 +114,22 @@ class MusicPlayerManager extends ChangeNotifier {
     _currentIndex = -1;
     _isPlaying = false;
     _isBuffering = false;
+    _isTransitioning = false;
+    _currentRequestId = 0;
+    _consecutiveFailures = 0;
     _favoriteIds.clear();
+    _errorMessage = null;
     notifyListeners();
+  }
+
+  @visibleForTesting
+  void setEngineForTesting(AudioPlayerEngine engine) {
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _bufferedPositionSubscription?.cancel();
+    _audioPlayer = engine;
+    _setupSubscriptions();
   }
 
   static bool get _isAndroidNative =>
@@ -75,7 +141,7 @@ class MusicPlayerManager extends ChangeNotifier {
       : null;
   bool get equalizerSupported => _equalizer != null;
 
-  late final AudioPlayer _audioPlayer = _buildPlayer();
+  late AudioPlayerEngine _audioPlayer = JustAudioEngine(_buildPlayer());
 
   AudioPlayer _buildPlayer() {
     final eq = _equalizer;
@@ -120,6 +186,8 @@ class MusicPlayerManager extends ChangeNotifier {
   bool _isLoadingRecommendations = false;
   bool _isTransitioning = false;
   String? _lastInfilledSongId;
+  int _currentRequestId = 0;
+  int _consecutiveFailures = 0;
 
   final Set<String> _favoriteIds = {'1', '2'};
   final List<Song> _recentlyPlayed = [];
@@ -149,6 +217,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   bool get isPlaying => _isPlaying;
   bool get isBuffering => _isBuffering;
+  bool get isTransitioning => _isTransitioning;
   Duration get position => _position;
   Duration get duration => _duration;
   Duration get bufferedPosition => _bufferedPosition;
@@ -246,6 +315,17 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     });
 
+    _setupSubscriptions();
+
+    fetchOnlineTrending();
+  }
+
+  void _setupSubscriptions() {
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _bufferedPositionSubscription?.cancel();
+
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
       (state) {
@@ -271,7 +351,13 @@ class MusicPlayerManager extends ChangeNotifier {
         }
         notifyListeners();
       },
-      onError: (Object e) {
+      onError: (Object e, StackTrace stackTrace) {
+        CrashReportingService.recordError(
+          e,
+          stackTrace,
+          reason: 'AudioPlayer stream playback error',
+          fatal: false,
+        );
         _errorMessage = "Playback error: $e";
         _isBuffering = false;
         _isPlaying = false;
@@ -324,8 +410,6 @@ class MusicPlayerManager extends ChangeNotifier {
       _bufferedPosition = buf;
       notifyListeners();
     });
-
-    fetchOnlineTrending();
   }
 
   void _hydrateFromDatabase() {
@@ -502,6 +586,7 @@ class MusicPlayerManager extends ChangeNotifier {
     List<Song>? newQueue,
     List<Song>? playlistContext,
   }) async {
+    final requestId = ++_currentRequestId;
     _isTransitioning = true;
     _errorMessage = null;
 
@@ -617,6 +702,10 @@ class MusicPlayerManager extends ChangeNotifier {
         duration: song.duration.inSeconds > 0 ? song.duration : null,
       );
 
+      // Stop previous playback before loading new source
+      await _audioPlayer.stop();
+      if (requestId != _currentRequestId) return;
+
       final isDl = DownloadService().isDownloaded(song.id);
       final offlineUri = await DownloadService().playableUriFor(
         song.id,
@@ -638,14 +727,23 @@ class MusicPlayerManager extends ChangeNotifier {
             '[Playback] NOTICE: "${song.title}" is in downloaded list but local file not found. Falling back to stream URI.',
           );
         }
-        sourceUri = Uri.parse(song.audioUrl);
+        var rawUrl = song.audioUrl.trim();
+        if (rawUrl.startsWith('http://')) {
+          rawUrl = 'https://${rawUrl.substring(7)}';
+        }
+        sourceUri = Uri.tryParse(rawUrl) ?? Uri.parse(song.audioUrl);
         debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
       }
 
-      await _audioPlayer.setAudioSource(
-        AudioSource.uri(sourceUri, tag: mediaItem),
-        preload: true,
-      );
+      await _audioPlayer
+          .setAudioSource(
+            AudioSource.uri(sourceUri, tag: mediaItem),
+            preload: true,
+          )
+          .timeout(const Duration(seconds: 20));
+
+      if (requestId != _currentRequestId) return;
+
       unawaited(_applyEqualizerPreset());
       await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
@@ -653,10 +751,16 @@ class MusicPlayerManager extends ChangeNotifier {
       await _audioPlayer.setLoopMode(
         _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
       );
+
+      if (requestId != _currentRequestId) return;
+
       _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
-    } catch (e) {
+      _consecutiveFailures = 0;
+    } catch (e, stackTrace) {
+      if (requestId != _currentRequestId) return;
+
       final isDl = DownloadService().isDownloaded(song.id);
       if (isDl &&
           await DownloadService().playableUriFor(song.id, title: song.title) ==
@@ -666,14 +770,52 @@ class MusicPlayerManager extends ChangeNotifier {
       } else {
         _errorMessage = "Unable to play audio: $e";
       }
+
+      CrashReportingService.recordError(
+        e,
+        stackTrace,
+        reason: 'playSong failed for ${song.title} (${song.id})',
+        fatal: false,
+      );
       debugPrint('[Playback] FAILED: $_errorMessage (original: $e)');
+
+      _consecutiveFailures++;
       _isBuffering = false;
       _isPlaying = false;
       MediaSessionService.updatePlaybackState(isPlaying: false);
+
+      if (_consecutiveFailures < 3) {
+        debugPrint(
+          '[Playback] Auto-skipping to next song (failure $_consecutiveFailures/3)...',
+        );
+        unawaited(next());
+      } else {
+        debugPrint(
+          '[Playback] Reached 3 consecutive failures. Stopping playback gracefully.',
+        );
+        await _stopPlaybackGracefully();
+      }
     } finally {
-      _isTransitioning = false;
-      notifyListeners();
+      if (requestId == _currentRequestId) {
+        _isTransitioning = false;
+        notifyListeners();
+      }
     }
+  }
+
+  Future<void> _stopPlaybackGracefully() async {
+    _isPlaying = false;
+    _isBuffering = false;
+    _position = Duration.zero;
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
+    MediaSessionService.updatePlaybackState(isPlaying: false);
+    PresenceService.instance.updateListeningStatus(
+      song: null,
+      isPlaying: false,
+    );
+    notifyListeners();
   }
 
   Future<void> playPlaylist(List<Song> songs, {int initialIndex = 0}) async {
@@ -722,6 +864,43 @@ class MusicPlayerManager extends ChangeNotifier {
       _isPlaying = _audioPlayer.playing;
       notifyListeners();
     }
+  }
+
+  Future<void> play() async {
+    if (!_isPlaying) {
+      await togglePlay();
+    }
+  }
+
+  Future<void> pause() async {
+    if (_isPlaying) {
+      await togglePlay();
+    }
+  }
+
+  Future<void> resume() => play();
+
+  Future<void> stop() async {
+    _isPlaying = false;
+    _isBuffering = false;
+    _position = Duration.zero;
+    try {
+      await _audioPlayer.stop();
+    } catch (_) {}
+    MediaSessionService.updatePlaybackState(isPlaying: false);
+    PresenceService.instance.updateListeningStatus(
+      song: null,
+      isPlaying: false,
+    );
+    notifyListeners();
+  }
+
+  Future<void> setLoopMode(LoopMode mode) async {
+    _loopMode = mode;
+    await _audioPlayer.setLoopMode(
+      _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+    );
+    notifyListeners();
   }
 
   /// A fallback track from library / trending / offline when queue has no alternative song

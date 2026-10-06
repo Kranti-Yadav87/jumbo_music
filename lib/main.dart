@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:just_audio_background/just_audio_background.dart';
+import 'package:audio_service/audio_service.dart';
 import 'firebase_options.dart';
 import 'config/app_config.dart';
 import 'services/database_service.dart';
@@ -11,25 +11,38 @@ import 'services/theme_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/presence_service.dart';
 import 'services/crash_reporting_service.dart';
+import 'services/music_player_manager.dart';
+import 'services/jumbo_audio_handler.dart';
 import 'screens/auth_gate.dart';
+
+AudioHandler? audioHandler;
 
 void main() async {
   await CrashReportingService.runWithCrashReporting(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
     // Initialize native background audio notification controls
-    if (!kIsWeb) {
+    if (!kIsWeb && AppConfig.isNativeMediaControlsEnabled) {
       try {
-        await JustAudioBackground.init(
-          androidNotificationChannelId: AppConfig.audioNotificationChannelId,
-          androidNotificationChannelName:
-              AppConfig.audioNotificationChannelName,
-          androidNotificationOngoing: true,
-          androidShowNotificationBadge: true,
-          androidNotificationIcon: 'mipmap/ic_launcher',
+        audioHandler = await AudioService.init(
+          builder: () => JumboAudioHandler(MusicPlayerManager()),
+          config: const AudioServiceConfig(
+            androidNotificationChannelId: AppConfig.audioNotificationChannelId,
+            androidNotificationChannelName:
+                AppConfig.audioNotificationChannelName,
+            androidNotificationIcon: 'drawable/ic_stat_music',
+            androidNotificationOngoing: false,
+            androidStopForegroundOnPause: true,
+          ),
         );
-      } catch (e) {
-        debugPrint('JustAudioBackground init note: $e');
+      } catch (e, stackTrace) {
+        CrashReportingService.recordError(
+          e,
+          stackTrace,
+          reason: 'AudioService init failure',
+          fatal: false,
+        );
+        debugPrint('AudioService init note: $e');
       }
     }
 

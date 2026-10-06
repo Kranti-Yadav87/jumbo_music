@@ -39,7 +39,7 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
-        <!-- just_audio_background AudioService -->
+        <!-- audio_service AudioService -->
         <service
             android:name="com.ryanheise.audioservice.AudioService"
             android:foregroundServiceType="mediaPlayback"
