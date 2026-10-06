@@ -48,6 +48,10 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
       }
       await eq.setEnabled(_soundPreset != 'Normal');
     } catch (e) {
+      CrashReportingService.swallow(
+        e,
+        'music_player_equalizer_delegate.dart:_applyEqualizerPreset',
+      );
       debugPrint('Equalizer note: $e');
     }
   }
