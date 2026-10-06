@@ -15,7 +15,7 @@ extension MusicPlayerLibrarySync on MusicPlayerManager {
     final rawArtist = song.artist.split(',').first.split('&').first.trim();
     final mainArtist = rawArtist.isNotEmpty ? rawArtist : 'Featured Artist';
     final artistPlaylistId =
-        'artist_${mainArtist.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+        'artist_${mainArtist.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_')}';
 
     final artistIndex = _playlists.indexWhere((p) => p.id == artistPlaylistId);
     if (artistIndex != -1) {
@@ -51,7 +51,7 @@ extension MusicPlayerLibrarySync on MusicPlayerManager {
     // 3. Mood / Genre Station
     final genre = song.genre.isNotEmpty ? song.genre : 'Bollywood';
     final genrePlaylistId =
-        'genre_${genre.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+        'genre_${genre.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '_')}';
 
     final genreIndex = _playlists.indexWhere((p) => p.id == genrePlaylistId);
     if (genreIndex != -1) {

@@ -136,7 +136,7 @@ class LyricsService {
           '',
         )
         .replaceAll(RegExp(r'\[.*?\]'), '')
-        .replaceAll(RegExp(r'-.*?from.*', caseSensitive: false), '')
+        .replaceAll(RegExp('-.*?from.*', caseSensitive: false), '')
         .trim();
   }
 

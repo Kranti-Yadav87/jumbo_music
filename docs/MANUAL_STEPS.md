@@ -1,49 +1,77 @@
-# Jumbo Music — Manual steps (Hinglish, step-by-step)
+# Jumbo Music — Manual Deployment & Operations Guide
 
-> Mujhe (Claude) yahan Flutter SDK aur internet nahi mila, isliye code **compile/test nahi kiya gaya**.
-> Isliye STEP 0 sabse pehle karo.
+This guide covers operational setup, security rules deployment, and configuration steps for developers and maintainers.
 
-## STEP 0 — Zip ko apne project mein lao aur check karo
-1. Git branch banao: `git checkout -b upgrade-v2`
-2. Zip ke andar ka content apne `jumbo_music` folder mein copy-paste karke overwrite karo.
-3. Terminal mein, project folder ke andar:
+---
+
+## 1. Quality Gate & Local Verification
+
+Before committing or pushing changes:
+```bash
+flutter pub get
+dart format lib test --set-exit-if-changed
+flutter analyze --no-fatal-infos
+flutter test
+```
+
+---
+
+## 2. Deploy Firestore Security Rules
+
+Cloud Firestore security rules protect user privacy (`users/{uid}`), manage real-time presence (`presence/{uid}`), collaborative playlists (`shared_playlists`), and write-only rate-limited error reports (`client_errors`).
+
+### Via Firebase CLI
+```bash
+firebase login
+firebase use jumbo-music-ff58c
+firebase deploy --only firestore:rules
+```
+
+### Via Firebase Console
+1. Navigate to **Firebase Console** -> **Firestore Database** -> **Rules**.
+2. Paste the contents of `firestore.rules`.
+3. Click **Publish**.
+
+---
+
+## 3. Remote Crash Reporting & Observability
+
+Jumbo Music includes a lightweight error logging service for production:
+- In release builds, compact, rate-limited error payloads are stored in the write-only `client_errors` collection.
+- Test error logging locally:
+  ```bash
+  flutter run -d chrome --dart-define=REPORT_ERRORS=true
+  ```
+- To monitor budgets on Google Cloud:
+  1. Open **Google Cloud Console** -> **Billing** -> **Budgets & alerts**.
+  2. Set a monthly budget alert (e.g., \$5 / ₹500).
+
+---
+
+## 4. Jamendo Legal Catalog Integration (Optional)
+
+To enable legal, full-length Creative Commons music streaming:
+1. Register at [Jamendo Developer Portal](https://devportal.jamendo.com) and create an application to obtain a `client_id`.
+2. Run with Jamendo enabled:
    ```bash
-   flutter pub get
-   dart format lib test
-   flutter analyze --no-fatal-infos
-   flutter test
+   flutter run -d chrome --dart-define=JAMENDO_CLIENT_ID=<your-jamendo-client-id>
    ```
-4. Agar koi error aaye → poora error text copy karke mujhe (ya Antigravity ko) bhej do. Pass hone par hi merge karo.
+3. For CI/CD builds, configure GitHub Repository Secret: `JAMENDO_CLIENT_ID`.
 
-## STEP 1 — Firestore rules deploy karo (crash reports ke liye zaroori)
-Option A (CLI): `firebase login` → `firebase use jumbo-music-ff58c` → `firebase deploy --only firestore:rules`
-Option B (console): Firebase Console → Build → Firestore Database → **Rules** tab → `firestore.rules` ka poora content paste → **Publish**.
-Bina iske crash reports silently reject honge (app crash nahi hoga).
+---
 
-## STEP 2 — Crash reporting test karo
-1. Kisi screen ke `initState` mein temporarily ye line daalo:
-   `CrashReportingService.recordError(Exception('manual test'), StackTrace.current, reason: 'manual test');`
-2. Chalao: `flutter run -d chrome --dart-define=REPORT_ERRORS=true`
-3. Firebase Console → Firestore Database → collection **client_errors** → naya document dikhna chahiye.
-4. Test line hata do.
+## 5. Android Release Keystore & App Signing
 
-## STEP 3 — Firestore abuse/bill se bachao
-`client_errors` bina login ke write ho sakta hai (guest users ke liye). Isliye:
-1. Google Cloud Console → Billing → **Budgets & alerts** → budget (jaise ₹500) + email alert banao.
-2. (Recommended) Firebase Console → Build → **App Check** → web app ke liye reCAPTCHA v3, Android ke liye Play Integrity register karo. Pehle "Monitor" mode mein rakho, enforce baad mein.
-
-## STEP 4 — Jamendo (legal, poore gaane) chalu karo
-1. https://devportal.jamendo.com par account banao → New application → **client_id** copy karo.
-2. Local test: `flutter run -d chrome --dart-define=JAMENDO_CLIENT_ID=<id>`
-3. GitHub repo → Settings → Secrets and variables → Actions → **New repository secret** → name `JAMENDO_CLIENT_ID`.
-4. Vercel → Project → Settings → Environment Variables → `JAMENDO_CLIENT_ID` add → Redeploy.
-5. Dhyan do: Jamendo free API **sirf non-commercial** ke liye hai, aur catalog indie/CC music hai (Bollywood nahi).
-
-## STEP 5 — Android release signing (Play Store ke liye)
-1. `keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload`
-2. `base64 -w0 upload-keystore.jks` (Mac: `base64 -i upload-keystore.jks`) ka output copy karo.
-3. GitHub secrets banao: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
-4. **.jks file kabhi git mein commit mat karo, aur backup safe rakho** — kho gayi to Play Store update band.
-
-## STEP 6 — Jo main blind (bina compiler ke) nahi kar paya
-Ye Antigravity (jisme compiler/emulator chalta hai) se karwao. Ready prompts: `docs/PRODUCT_ROADMAP.md`.
+For Google Play Store or self-hosted release APK signing:
+1. Generate an upload keystore:
+   ```bash
+   keytool -genkey -v -keystore upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+2. Base64-encode the keystore for GitHub Actions:
+   - macOS: `base64 -i upload-keystore.jks`
+   - Linux: `base64 -w0 upload-keystore.jks`
+3. Configure repository secrets in GitHub (`Settings` -> `Secrets and variables` -> `Actions`):
+   - `ANDROID_KEYSTORE_BASE64`
+   - `ANDROID_KEYSTORE_PASSWORD`
+   - `ANDROID_KEY_ALIAS`
+   - `ANDROID_KEY_PASSWORD`

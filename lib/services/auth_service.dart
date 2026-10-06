@@ -312,7 +312,7 @@ class AuthService {
         'User';
     final email = user.email ?? 'user@jumbomusic.app';
     final photoUrl = user.photoURL ?? '';
-    final userId = 'JM-${(user.uid.hashCode.abs() % 90000 + 10000)}';
+    final userId = 'JM-${user.uid.hashCode.abs() % 90000 + 10000}';
 
     final db = DatabaseService.instance;
     await db.login(email: email, name: name, userId: userId, uid: user.uid);
