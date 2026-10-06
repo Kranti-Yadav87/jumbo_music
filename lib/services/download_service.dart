@@ -313,7 +313,7 @@ class DownloadService extends ChangeNotifier {
         _toast(
           context,
           kIsWeb
-              ? 'Browser is song ko download nahi kar paya (source blocked). Android app me offline download kaam karega.'
+              ? 'Browser cannot save offline audio due to host CORS policy. Use Android app for full offline caching.'
               : 'Download failed for "${song.title}". Check your connection and try again.',
           color: const Color(0xFF3B1D1D),
         );

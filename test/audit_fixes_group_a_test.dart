@@ -90,5 +90,16 @@ void main() {
       final content = workflowFile.readAsStringSync();
       expect(content, contains('dart format --set-exit-if-changed lib test'));
     });
+
+    test('Item #12: DownloadService error messages use standard English', () {
+      final file = File('lib/services/download_service.dart');
+      expect(file.existsSync(), isTrue);
+      final content = file.readAsStringSync();
+      expect(
+        content,
+        contains('Browser cannot save offline audio due to host CORS policy'),
+      );
+      expect(content, isNot(contains('nahi kar paya')));
+    });
   });
 }
