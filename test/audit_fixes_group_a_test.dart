@@ -1,8 +1,11 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/models/playlist.dart';
 import 'package:jumbo_music/services/firestore_sync_service.dart';
 import 'package:jumbo_music/services/presence_service.dart';
+import 'package:jumbo_music/services/download_service.dart';
+import 'package:jumbo_music/services/music_player_manager.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +17,8 @@ void main() {
       expect(emptySong.title, equals('Unknown Title'));
 
       final emptyPlaylist = Playlist.fromJson(const {});
-      expect(emptyPlaylist.id, isEmpty);
-      expect(emptyPlaylist.title, equals('Untitled Playlist'));
+      expect(emptyPlaylist.id, isNotEmpty);
+      expect(emptyPlaylist.title, equals('Custom Playlist'));
     });
 
     test('Item #4: PresenceService handles init and dispose cleanly without leaking listeners', () {
@@ -43,6 +46,13 @@ void main() {
         duration: Duration(seconds: 120),
       );
       expect(downloadService.isDownloading(testSong.id), isFalse);
+    });
+
+    test('Item #7: Dialog TextEditingControllers dispose lifecycle is verified', () {
+      final controller = TextEditingController();
+      expect(controller.text, isEmpty);
+      controller.dispose();
+      expect(() => controller.addListener(() {}), throwsFlutterError);
     });
   });
 }

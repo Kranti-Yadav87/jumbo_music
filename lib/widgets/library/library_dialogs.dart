@@ -142,7 +142,7 @@ void showCreatePlaylistDialog(
         ],
       );
     },
-  );
+  ).whenComplete(titleController.dispose);
 }
 
 /// Shows modal bottom sheet for Library View and Sorting options.

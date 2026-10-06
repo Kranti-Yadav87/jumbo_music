@@ -110,7 +110,7 @@ class SharedPlaylistDialog {
           ),
         ],
       ),
-    );
+    ).whenComplete(titleController.dispose);
   }
 
   static void showAddSongBottomSheet(BuildContext context, Playlist playlist) {
@@ -336,6 +336,6 @@ class SharedPlaylistDialog {
           },
         );
       },
-    );
+    ).whenComplete(searchCtrl.dispose);
   }
 }

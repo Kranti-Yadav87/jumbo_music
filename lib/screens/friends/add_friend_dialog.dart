@@ -147,6 +147,6 @@ class AddFriendDialog {
           ],
         ),
       ),
-    );
+    ).whenComplete(emailController.dispose);
   }
 }

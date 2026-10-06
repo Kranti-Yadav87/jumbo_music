@@ -258,5 +258,5 @@ void showCreatePlaylistDialogForTrack(
         ],
       );
     },
-  );
+  ).whenComplete(titleController.dispose);
 }

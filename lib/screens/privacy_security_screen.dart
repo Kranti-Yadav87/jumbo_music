@@ -183,7 +183,7 @@ class PrivacySecurityScreen extends StatelessWidget {
           );
         },
       ),
-    );
+    ).whenComplete(passwordController.dispose);
   }
 
   @override
