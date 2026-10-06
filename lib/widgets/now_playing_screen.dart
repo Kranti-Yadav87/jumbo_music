@@ -69,10 +69,6 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
         final isFav = manager.isFavorite(song.id);
         final isDl = downloadService.isDownloaded(song.id);
         final isDling = downloadService.isDownloading(song.id);
-        final currentPos = manager.position;
-        final totalDur = manager.duration.inSeconds > 0
-            ? manager.duration
-            : song.duration;
 
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
@@ -362,106 +358,128 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                           // 5. SEEK SLIDER BAR + REAL-TIME DURATION (Screenshot 2: Glowing cyan progress line)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                SliderTheme(
-                                  data: SliderTheme.of(context).copyWith(
-                                    trackHeight: 3.5,
-                                    activeTrackColor: const Color(
-                                      0xFF38BDF8,
-                                    ), // Glowing Light Sky Blue from Screenshot 2
-                                    inactiveTrackColor: Colors.white
-                                        .withOpacity(0.15),
-                                    thumbColor: Colors.white,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 6.0,
-                                    ),
-                                    overlayColor: const Color(
-                                      0xFF38BDF8,
-                                    ).withOpacity(0.2),
-                                    overlayShape: const RoundSliderOverlayShape(
-                                      overlayRadius: 14.0,
-                                    ),
-                                  ),
-                                  child: Slider(
-                                    value:
-                                        (_dragValue ??
-                                                currentPos.inMilliseconds
-                                                    .toDouble())
-                                            .clamp(
-                                              0.0,
-                                              max(
-                                                1.0,
-                                                totalDur.inMilliseconds
-                                                    .toDouble(),
-                                              ),
+                            child: ValueListenableBuilder<Duration>(
+                              valueListenable: manager.positionNotifier,
+                              builder: (context, currentPos, _) {
+                                return ValueListenableBuilder<Duration>(
+                                  valueListenable: manager.durationNotifier,
+                                  builder: (context, durationVal, _) {
+                                    final totalDur = durationVal.inSeconds > 0
+                                        ? durationVal
+                                        : song.duration;
+                                    return Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SliderTheme(
+                                          data: SliderTheme.of(context).copyWith(
+                                            trackHeight: 3.5,
+                                            activeTrackColor: const Color(
+                                              0xFF38BDF8,
+                                            ), // Glowing Light Sky Blue from Screenshot 2
+                                            inactiveTrackColor: Colors.white
+                                                .withOpacity(0.15),
+                                            thumbColor: Colors.white,
+                                            thumbShape:
+                                                const RoundSliderThumbShape(
+                                                  enabledThumbRadius: 6.0,
+                                                ),
+                                            overlayColor: const Color(
+                                              0xFF38BDF8,
+                                            ).withOpacity(0.2),
+                                            overlayShape:
+                                                const RoundSliderOverlayShape(
+                                                  overlayRadius: 14.0,
+                                                ),
+                                          ),
+                                          child: Slider(
+                                            value:
+                                                (_dragValue ??
+                                                        currentPos
+                                                            .inMilliseconds
+                                                            .toDouble())
+                                                    .clamp(
+                                                      0.0,
+                                                      max(
+                                                        1.0,
+                                                        totalDur.inMilliseconds
+                                                            .toDouble(),
+                                                      ),
+                                                    ),
+                                            min: 0.0,
+                                            max: max(
+                                              1.0,
+                                              totalDur.inMilliseconds
+                                                  .toDouble(),
                                             ),
-                                    min: 0.0,
-                                    max: max(
-                                      1.0,
-                                      totalDur.inMilliseconds.toDouble(),
-                                    ),
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _dragValue = val;
-                                      });
-                                    },
-                                    onChangeEnd: (val) {
-                                      manager.seek(
-                                        Duration(milliseconds: val.toInt()),
-                                      );
-                                      setState(() {
-                                        _dragValue = null;
-                                      });
-                                    },
-                                  ),
-                                ),
+                                            onChanged: (val) {
+                                              setState(() {
+                                                _dragValue = val;
+                                              });
+                                            },
+                                            onChangeEnd: (val) {
+                                              manager.seek(
+                                                Duration(
+                                                  milliseconds: val.toInt(),
+                                                ),
+                                              );
+                                              setState(() {
+                                                _dragValue = null;
+                                              });
+                                            },
+                                          ),
+                                        ),
 
-                                // Time Stamps: 0:00 (left) vs -3:24 (right) matching Screenshot 2
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        _formatTime(
-                                          _dragValue != null
-                                              ? Duration(
-                                                  milliseconds: _dragValue!
-                                                      .toInt(),
-                                                )
-                                              : currentPos,
+                                        // Time Stamps: 0:00 (left) vs -3:24 (right) matching Screenshot 2
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                _formatTime(
+                                                  _dragValue != null
+                                                      ? Duration(
+                                                          milliseconds:
+                                                              _dragValue!
+                                                                  .toInt(),
+                                                        )
+                                                      : currentPos,
+                                                ),
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withOpacity(0.55),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontFeatures: const [
+                                                    FontFeature.tabularFigures(),
+                                                  ],
+                                                ),
+                                              ),
+                                              Text(
+                                                totalDur > currentPos
+                                                    ? '-${_formatTime(totalDur - (_dragValue != null ? Duration(milliseconds: _dragValue!.toInt()) : currentPos))}'
+                                                    : _formatTime(totalDur),
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withOpacity(0.55),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontFeatures: const [
+                                                    FontFeature.tabularFigures(),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.55),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          fontFeatures: const [
-                                            FontFeature.tabularFigures(),
-                                          ],
-                                        ),
-                                      ),
-                                      Text(
-                                        totalDur > currentPos
-                                            ? '-${_formatTime(totalDur - (_dragValue != null ? Duration(milliseconds: _dragValue!.toInt()) : currentPos))}'
-                                            : _formatTime(totalDur),
-                                        style: TextStyle(
-                                          color: Colors.white.withOpacity(0.55),
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          fontFeatures: const [
-                                            FontFeature.tabularFigures(),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
                             ),
                           ),
 

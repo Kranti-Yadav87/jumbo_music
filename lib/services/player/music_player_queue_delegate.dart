@@ -44,9 +44,12 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
   Future<void> _infillSmartQueue(
     Song seedSong, {
     int targetQueueSize = 60,
+    bool force = false,
   }) async {
-    if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
-    if (_lastInfilledSongId == seedSong.id &&
+    if (!_autoplay || _isQueueLocked) return;
+    if (!force && _isLoadingRecommendations) return;
+    if (!force &&
+        _lastInfilledSongId == seedSong.id &&
         _queue.length >= targetQueueSize) {
       return;
     }

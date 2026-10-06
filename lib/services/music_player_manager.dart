@@ -53,7 +53,6 @@ class MusicPlayerManager extends ChangeNotifier {
   bool _isBuffering = false;
   Duration _position = Duration.zero;
   Duration _duration = Duration.zero;
-  Duration _bufferedPosition = Duration.zero;
 
   bool _isShuffle = false;
   LoopMode _loopMode = LoopMode.off;
@@ -89,6 +88,17 @@ class MusicPlayerManager extends ChangeNotifier {
 
   String? _errorMessage;
 
+  final ValueNotifier<Duration> positionNotifier = ValueNotifier(Duration.zero);
+  final ValueNotifier<Duration> durationNotifier = ValueNotifier(Duration.zero);
+  final ValueNotifier<Duration> bufferedPositionNotifier = ValueNotifier(
+    Duration.zero,
+  );
+
+  ValueListenable<Duration> get positionListenable => positionNotifier;
+  ValueListenable<Duration> get durationListenable => durationNotifier;
+  ValueListenable<Duration> get bufferedPositionListenable =>
+      bufferedPositionNotifier;
+
   StreamSubscription? _playerStateSubscription;
   StreamSubscription? _positionSubscription;
   StreamSubscription? _durationSubscription;
@@ -108,9 +118,9 @@ class MusicPlayerManager extends ChangeNotifier {
 
   bool get isPlaying => _isPlaying;
   bool get isBuffering => _isBuffering;
-  Duration get position => _position;
-  Duration get duration => _duration;
-  Duration get bufferedPosition => _bufferedPosition;
+  Duration get position => positionNotifier.value;
+  Duration get duration => durationNotifier.value;
+  Duration get bufferedPosition => bufferedPositionNotifier.value;
 
   bool get isShuffle => _isShuffle;
   LoopMode get loopMode => _loopMode;
@@ -243,36 +253,45 @@ class MusicPlayerManager extends ChangeNotifier {
       },
     );
 
+    int? lastMediaSessionPositionSecond;
+
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
       _position = pos;
+      positionNotifier.value = pos;
       if (_isBuffering && (_isPlaying || pos.inMilliseconds > 0)) {
         _isBuffering = false;
+        notifyListeners();
       }
-      final dur = _duration.inSeconds > 0
-          ? _duration.inSeconds.toDouble()
-          : (currentSong != null
-                ? currentSong!.duration.inSeconds.toDouble()
-                : 240.0);
-      MediaSessionService.updatePositionState(
-        durationSeconds: dur,
-        positionSeconds: pos.inSeconds.toDouble(),
-        playbackRate: _playbackSpeed,
-      );
-      notifyListeners();
+
+      // Throttle MediaSession position updates to at most 1 per second
+      final currentSecond = pos.inSeconds;
+      if (lastMediaSessionPositionSecond != currentSecond) {
+        lastMediaSessionPositionSecond = currentSecond;
+        final dur = _duration.inSeconds > 0
+            ? _duration.inSeconds.toDouble()
+            : (currentSong != null
+                  ? currentSong!.duration.inSeconds.toDouble()
+                  : 240.0);
+        MediaSessionService.updatePositionState(
+          durationSeconds: dur,
+          positionSeconds: pos.inSeconds.toDouble(),
+          playbackRate: _playbackSpeed,
+        );
+      }
     });
 
     // Listen to duration
     _durationSubscription = _audioPlayer.durationStream.listen((dur) {
       if (dur != null && dur > Duration.zero) {
         _duration = dur;
+        durationNotifier.value = dur;
         final posSec = _position.inSeconds.toDouble();
         MediaSessionService.updatePositionState(
           durationSeconds: dur.inSeconds.toDouble(),
           positionSeconds: posSec,
           playbackRate: _playbackSpeed,
         );
-        notifyListeners();
       }
     });
 
@@ -280,8 +299,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _bufferedPositionSubscription = _audioPlayer.bufferedPositionStream.listen((
       buf,
     ) {
-      _bufferedPosition = buf;
-      notifyListeners();
+      bufferedPositionNotifier.value = buf;
     });
 
     fetchOnlineTrending();
@@ -688,15 +706,18 @@ class MusicPlayerManager extends ChangeNotifier {
     final curId = currentSong?.id;
     final curTitle = currentSong?.title.trim().toLowerCase();
 
-    // 1. Check allSongs
-    final candidatePool = _allSongs.where((s) {
+    bool isDistinct(Song s) {
       if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
+      if (curTitle != null &&
+          curTitle.isNotEmpty &&
+          s.title.trim().toLowerCase() == curTitle) {
         return false;
       }
       return s.audioUrl.isNotEmpty;
-    }).toList();
+    }
 
+    // 1. Check allSongs
+    final candidatePool = _allSongs.where(isDistinct).toList();
     if (candidatePool.isNotEmpty) {
       final recentIds = _recentlyPlayed.take(10).map((s) => s.id).toSet();
       final fresh = candidatePool
@@ -707,20 +728,50 @@ class MusicPlayerManager extends ChangeNotifier {
       return list.first;
     }
 
-    // 2. Check offline downloads
-    final dlSongs = DownloadService().downloadedSongs.where((s) {
-      if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
-        return false;
-      }
-      return true;
-    }).toList();
+    // 2. Check online trending and new releases
+    final onlinePool = [
+      ..._onlineTrending,
+      ..._newReleases,
+    ].where(isDistinct).toList();
+    if (onlinePool.isNotEmpty) {
+      onlinePool.shuffle();
+      return onlinePool.first;
+    }
+
+    // 3. Check offline downloads
+    final dlSongs = DownloadService().downloadedSongs
+        .where(isDistinct)
+        .toList();
     if (dlSongs.isNotEmpty) {
       dlSongs.shuffle();
       return dlSongs.first;
     }
 
+    // 4. Check recently played history
+    final historySongs = _recentlyPlayed.where(isDistinct).toList();
+    if (historySongs.isNotEmpty) {
+      return historySongs.first;
+    }
+
     return null;
+  }
+
+  Future<void> _stopPlaybackGracefully() async {
+    _isPlaying = false;
+    _isBuffering = false;
+    _isTransitioning = false;
+    _position = Duration.zero;
+    positionNotifier.value = Duration.zero;
+    try {
+      await _audioPlayer.pause();
+      await _audioPlayer.seek(Duration.zero);
+    } catch (_) {}
+    MediaSessionService.updatePlaybackState(isPlaying: false);
+    PresenceService.instance.updateListeningStatus(
+      song: null,
+      isPlaying: false,
+    );
+    notifyListeners();
   }
 
   Future<void> next() async {
@@ -729,14 +780,23 @@ class MusicPlayerManager extends ChangeNotifier {
       if (fallback != null) {
         _queue = [fallback];
         await playSong(fallback);
+      } else {
+        await _stopPlaybackGracefully();
       }
+      return;
+    }
+
+    // Replay single track if loopMode is one
+    if (_loopMode == LoopMode.one && currentSong != null) {
+      await seek(Duration.zero);
+      _startPlayback();
       return;
     }
 
     if (_autoplay &&
         currentSong != null &&
         _currentIndex >= _queue.length - 6) {
-      _infillSmartQueue(currentSong!);
+      await _infillSmartQueue(currentSong!);
     }
 
     if (_isShuffle && _queue.length > 1) {
@@ -756,17 +816,40 @@ class MusicPlayerManager extends ChangeNotifier {
     int nextIndex = _currentIndex + 1;
     if (nextIndex >= _queue.length) {
       if (_autoplay && currentSong != null) {
-        await _infillSmartQueue(currentSong!);
+        // Attempt smart infill
+        await _infillSmartQueue(currentSong!, force: true);
+        // If still at the end, retry once
+        if (nextIndex >= _queue.length) {
+          await _infillSmartQueue(currentSong!, force: true);
+        }
         if (_queue.length > nextIndex) {
           await playSong(_queue[nextIndex]);
           return;
         }
       }
-      nextIndex = 0;
+
+      if (_loopMode == LoopMode.all && _queue.isNotEmpty) {
+        final distinctFirst = _queue.indexWhere((s) => s.id != currentSong?.id);
+        if (distinctFirst != -1) {
+          await playSong(_queue[distinctFirst]);
+          return;
+        }
+      }
+
+      // No more tracks in queue: try distinct fallback track
+      final fallback = _findDistinctNextTrack();
+      if (fallback != null) {
+        _queue.add(fallback);
+        await playSong(fallback);
+        return;
+      }
+
+      // No distinct track found anywhere: STOP playback gracefully
+      await _stopPlaybackGracefully();
+      return;
     }
 
     final target = _queue[nextIndex];
-    // Next button must never re-play the exact same track when other tracks exist
     if (target.id == currentSong?.id && _loopMode != LoopMode.one) {
       final fallback = _findDistinctNextTrack();
       if (fallback != null) {
@@ -774,6 +857,8 @@ class MusicPlayerManager extends ChangeNotifier {
         await playSong(fallback);
         return;
       }
+      await _stopPlaybackGracefully();
+      return;
     }
 
     await playSong(target);
@@ -797,6 +882,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   Future<void> seek(Duration newPosition) async {
     _position = newPosition;
+    positionNotifier.value = newPosition;
     final dur = _duration.inSeconds > 0
         ? _duration.inSeconds.toDouble()
         : (currentSong != null
@@ -807,7 +893,6 @@ class MusicPlayerManager extends ChangeNotifier {
       positionSeconds: newPosition.inSeconds.toDouble(),
       playbackRate: _playbackSpeed,
     );
-    notifyListeners();
     await _audioPlayer.seek(newPosition);
   }
 
@@ -818,40 +903,20 @@ class MusicPlayerManager extends ChangeNotifier {
     try {
       if (_sleepAfterCurrentSong) {
         cancelSleepTimer();
-        await _audioPlayer.pause();
-        _isPlaying = false;
-        _isTransitioning = false;
-        notifyListeners();
+        await _stopPlaybackGracefully();
         return;
       }
 
-      if (_loopMode == LoopMode.one) {
+      if (_loopMode == LoopMode.one && currentSong != null) {
         await _audioPlayer.seek(Duration.zero);
+        positionNotifier.value = Duration.zero;
         _startPlayback();
         _isTransitioning = false;
         return;
       }
 
-      if (_currentIndex < _queue.length - 1) {
-        _isTransitioning = false;
-        await next();
-      } else if (_autoplay && currentSong != null) {
-        await _infillSmartQueue(currentSong!);
-        _isTransitioning = false;
-        await next();
-      } else if (_loopMode == LoopMode.all && _queue.isNotEmpty) {
-        _isTransitioning = false;
-        if (_queue.length > 1) {
-          await playSong(_queue[0]);
-        } else {
-          await next();
-        }
-      } else {
-        _isPlaying = false;
-        _isTransitioning = false;
-        MediaSessionService.updatePlaybackState(isPlaying: false);
-        notifyListeners();
-      }
+      _isTransitioning = false;
+      await next();
     } catch (_) {
       _isTransitioning = false;
     }
