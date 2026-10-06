@@ -28,7 +28,13 @@ void main() async {
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'mipmap/ic_launcher',
         );
-      } catch (e) {
+      } catch (e, stackTrace) {
+        CrashReportingService.recordError(
+          e,
+          stackTrace,
+          reason: 'JustAudioBackground init failure',
+          fatal: false,
+        );
         debugPrint('JustAudioBackground init note: $e');
       }
     }
