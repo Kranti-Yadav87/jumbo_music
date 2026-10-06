@@ -9,6 +9,7 @@ import 'friends/friend_listening_tile.dart';
 import 'friends/live_jam_dialog.dart';
 import 'friends/shared_playlist_dialog.dart';
 import 'playlist_detail_screen.dart';
+import '../widgets/cover_image.dart';
 
 class FriendsScreen extends StatefulWidget {
   final bool showHeader;
@@ -407,23 +408,13 @@ class _FriendsScreenState extends State<FriendsScreen>
               horizontal: 14,
               vertical: 6,
             ),
-            leading: ClipRRect(
+            leading: CoverImage(
+              imageUrl: p.coverUrl,
+              width: 48,
+              height: 48,
               borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                p.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 48,
-                  height: 48,
-                  color: const Color(0xFFA855F7).withValues(alpha: 0.2),
-                  child: const Icon(
-                    Icons.queue_music_rounded,
-                    color: Color(0xFFA855F7),
-                  ),
-                ),
-              ),
+              fallbackBgColor: const Color(0xFFA855F7).withValues(alpha: 0.2),
+              fallbackIcon: Icons.queue_music_rounded,
             ),
             title: Text(
               p.title,

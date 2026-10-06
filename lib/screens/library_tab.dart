@@ -9,6 +9,7 @@ import 'playlist_detail_screen.dart';
 import 'history_tab.dart';
 import 'search_tab.dart';
 import '../widgets/track_options_sheet.dart';
+import '../widgets/cover_image.dart';
 
 class LibraryTab extends StatefulWidget {
   const LibraryTab({super.key});
@@ -736,23 +737,13 @@ class _LibraryTabState extends State<LibraryTab> {
                           border: Border.all(color: cardBorder),
                         ),
                         child: ListTile(
-                          leading: ClipRRect(
+                          leading: CoverImage(
+                            imageUrl: pl.coverUrl,
+                            width: 48,
+                            height: 48,
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              pl.coverUrl,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 48,
-                                height: 48,
-                                color: const Color(0xFF1E293B),
-                                child: const Icon(
-                                  Icons.queue_music,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ),
+                            fallbackBgColor: const Color(0xFF1E293B),
+                            fallbackIcon: Icons.queue_music,
                           ),
                           title: Text(
                             pl.title,
@@ -817,23 +808,13 @@ class _LibraryTabState extends State<LibraryTab> {
                           ),
                         ),
                         child: ListTile(
-                          leading: ClipRRect(
+                          leading: CoverImage(
+                            imageUrl: song.coverUrl,
+                            width: 48,
+                            height: 48,
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              song.coverUrl,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 48,
-                                height: 48,
-                                color: const Color(0xFF1E293B),
-                                child: const Icon(
-                                  Icons.music_note,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ),
+                            fallbackBgColor: const Color(0xFF1E293B),
+                            fallbackIcon: Icons.music_note,
                           ),
                           title: Text(
                             song.title,
@@ -901,14 +882,13 @@ class _LibraryTabState extends State<LibraryTab> {
                           border: Border.all(color: cardBorder),
                         ),
                         child: ListTile(
-                          leading: ClipRRect(
+                          leading: CoverImage(
+                            imageUrl: pl.coverUrl,
+                            width: 48,
+                            height: 48,
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              pl.coverUrl,
-                              width: 48,
-                              height: 48,
-                              fit: BoxFit.cover,
-                            ),
+                            fallbackBgColor: const Color(0xFF1E293B),
+                            fallbackIcon: Icons.album_rounded,
                           ),
                           title: Text(
                             pl.title,

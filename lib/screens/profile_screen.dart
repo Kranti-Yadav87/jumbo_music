@@ -12,6 +12,7 @@ import '../screens/privacy_security_screen.dart';
 import '../screens/feedback_screen.dart';
 import '../screens/history_tab.dart';
 import '../models/playlist.dart';
+import '../widgets/cover_image.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showHeader;
@@ -934,23 +935,13 @@ class ProfileScreen extends StatelessWidget {
                         final pl = manager.playlists[idx];
                         return ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: ClipRRect(
+                          leading: CoverImage(
+                            imageUrl: pl.coverUrl,
+                            width: 42,
+                            height: 42,
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.network(
-                              pl.coverUrl,
-                              width: 42,
-                              height: 42,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 42,
-                                height: 42,
-                                color: const Color(0xFF1E293B),
-                                child: const Icon(
-                                  Icons.music_note,
-                                  color: Colors.white54,
-                                ),
-                              ),
-                            ),
+                            fallbackBgColor: const Color(0xFF1E293B),
+                            fallbackIcon: Icons.music_note,
                           ),
                           title: Text(
                             pl.title,
