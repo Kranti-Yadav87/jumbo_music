@@ -33,6 +33,7 @@ class PresenceService extends ChangeNotifier {
   }
 
   StreamSubscription? _friendsSubscription;
+  StreamSubscription<User?>? _authSubscription;
   final Map<String, StreamSubscription> _friendUserSubs = {};
   final Map<String, Friend> _liveFriendsMap = {};
 
@@ -53,8 +54,9 @@ class PresenceService extends ChangeNotifier {
 
   /// Initialize and bind auth state changes to presence syncing
   void init() {
+    _authSubscription?.cancel();
     try {
-      _auth?.authStateChanges().listen((user) {
+      _authSubscription = _auth?.authStateChanges().listen((user) {
         if (user != null) {
           _startListeningToFriends(user.uid);
           FriendRequestService.instance.startListening(user.uid);
@@ -372,5 +374,15 @@ class PresenceService extends ChangeNotifier {
       sub.cancel();
     }
     _friendUserSubs.clear();
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    _authSubscription = null;
+    _heartbeat?.cancel();
+    _heartbeat = null;
+    _stopListeningToFriends();
+    super.dispose();
   }
 }
