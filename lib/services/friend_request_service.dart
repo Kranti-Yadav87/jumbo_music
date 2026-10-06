@@ -80,6 +80,18 @@ class FriendRequestService extends ChangeNotifier {
   List<FriendRequest> get incomingRequests =>
       List.unmodifiable(_incomingRequests);
 
+  final StreamController<FriendRequest> _newRequestStreamController =
+      StreamController<FriendRequest>.broadcast();
+  Stream<FriendRequest> get newRequestStream =>
+      _newRequestStreamController.stream;
+
+  void init() {
+    final uid = currentUid;
+    if (uid != null) {
+      startListening(uid);
+    }
+  }
+
   // Testing hooks
   @visibleForTesting
   Future<void> Function(String email)? mockSendRequest;
@@ -112,13 +124,20 @@ class FriendRequestService extends ChangeNotifier {
           .snapshots()
           .listen(
             (snapshot) {
+              final existingIds = _incomingRequests.map((r) => r.id).toSet();
+              final newItems = <FriendRequest>[];
               _incomingRequests.clear();
               for (final doc in snapshot.docs) {
-                _incomingRequests.add(
-                  FriendRequest.fromJson(doc.data(), id: doc.id),
-                );
+                final req = FriendRequest.fromJson(doc.data(), id: doc.id);
+                _incomingRequests.add(req);
+                if (!existingIds.contains(req.id)) {
+                  newItems.add(req);
+                }
               }
               notifyListeners();
+              for (final req in newItems) {
+                _newRequestStreamController.add(req);
+              }
             },
             onError: (e) {
               CrashReportingService.swallow(

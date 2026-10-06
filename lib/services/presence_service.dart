@@ -268,6 +268,17 @@ class PresenceService extends ChangeNotifier {
       } catch (e) {
         debugPrint('PresenceService removeFriend cloud note: $e');
       }
+
+      try {
+        await fs
+            .collection('users')
+            .doc(friendId)
+            .collection('friends')
+            .doc(uid)
+            .delete();
+      } catch (e) {
+        debugPrint('PresenceService removeFriend reverse cloud note: $e');
+      }
     }
 
     _friendUserSubs[friendId]?.cancel();
