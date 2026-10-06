@@ -29,7 +29,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
         .replaceAll('rawal', 'raval')
         .replaceAll('shreya', 'shreya')
         .replaceAll('shing', 'singh')
-        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+        .replaceAll(RegExp('[^a-z0-9]'), '');
   }
 
   Future<void> _openArtist(

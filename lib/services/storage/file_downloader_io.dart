@@ -22,7 +22,7 @@ class FileDownloader {
   }
 
   static String _safeName(String id) =>
-      id.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '_');
+      id.replaceAll(RegExp('[^A-Za-z0-9_-]'), '_');
 
   /// Streams [url] to disk. Writes to a `.part` file first so an interrupted
   /// download never leaves a corrupt "finished" file behind.

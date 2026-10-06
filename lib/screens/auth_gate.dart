@@ -42,7 +42,7 @@ class AuthGate extends StatelessWidget {
           if (!db.isLoggedIn || db.currentScope != 'user_${user.uid}') {
             final name =
                 user.displayName ?? user.email?.split('@').first ?? 'User';
-            final userId = 'JM-${(user.uid.hashCode.abs() % 90000 + 10000)}';
+            final userId = 'JM-${user.uid.hashCode.abs() % 90000 + 10000}';
             db.login(
               email: user.email ?? 'user@jumbomusic.app',
               name: name,

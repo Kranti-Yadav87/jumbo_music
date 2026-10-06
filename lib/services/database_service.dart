@@ -289,7 +289,7 @@ class DatabaseService extends ChangeNotifier {
     }
     return _userId.isNotEmpty
         ? _userId
-        : 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
+        : 'JM-${_userEmail.hashCode.abs() % 90000 + 10000}';
   }
 
   String get userName => _userName;
@@ -360,7 +360,7 @@ class DatabaseService extends ChangeNotifier {
     final randomPart = (nowMs % 90000 + 10000).toString();
     final guestId = customGuestId ?? 'JM-G-$randomPart';
     final guestScope =
-        'guest_${guestId.replaceAll(RegExp(r'[^A-Za-z0-9_]'), '_')}';
+        'guest_${guestId.replaceAll(RegExp('[^A-Za-z0-9_]'), '_')}';
 
     await switchUserScope(guestScope);
     await clearAllUserData();
@@ -386,7 +386,7 @@ class DatabaseService extends ChangeNotifier {
     _isLoggedIn = true;
     _userEmail = email.trim();
     _userName = name.trim().isNotEmpty ? name.trim() : email.split('@').first;
-    _userId = userId ?? 'JM-${(_userEmail.hashCode.abs() % 90000 + 10000)}';
+    _userId = userId ?? 'JM-${_userEmail.hashCode.abs() % 90000 + 10000}';
 
     // Switch storage scope to UID (or generated userId)
     final targetScope = (uid != null && uid.isNotEmpty) ? uid : _userId;
