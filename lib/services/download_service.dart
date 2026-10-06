@@ -227,8 +227,8 @@ class DownloadService extends ChangeNotifier {
       return;
     }
 
-    if (isDownloaded(song.id)) {
-      if (context != null && context.mounted) {
+    if (isDownloaded(song.id) || isDownloading(song.id)) {
+      if (isDownloaded(song.id) && context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: const Color(0xFF1E1E2E),

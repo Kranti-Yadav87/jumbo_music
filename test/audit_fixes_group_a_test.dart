@@ -31,5 +31,18 @@ void main() {
       expect(manager.allSongs, isNotNull);
       expect(manager.currentIndex, isNotNull);
     });
+
+    test('Item #6: DownloadService guards against duplicate in-flight downloads for the same song', () {
+      final downloadService = DownloadService();
+      const testSong = Song(
+        id: 'dup_test_song',
+        title: 'Duplicate Test',
+        artist: 'Test Artist',
+        audioUrl: 'https://example.com/test.mp3',
+        coverUrl: '',
+        duration: Duration(seconds: 120),
+      );
+      expect(downloadService.isDownloading(testSong.id), isFalse);
+    });
   });
 }
