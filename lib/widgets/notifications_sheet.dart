@@ -214,11 +214,8 @@ class NotificationsSheet extends StatelessWidget {
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(16),
-                              onTap: () => _handleNotificationTap(
-                                context,
-                                notif,
-                                db,
-                              ),
+                              onTap: () =>
+                                  _handleNotificationTap(context, notif, db),
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
@@ -234,7 +231,9 @@ class NotificationsSheet extends StatelessWidget {
                                     color: isRead
                                         ? Colors.transparent
                                         : (isDark
-                                              ? const Color(0xFFFF5E3A).withOpacity(0.3)
+                                              ? const Color(
+                                                  0xFFFF5E3A,
+                                                ).withOpacity(0.3)
                                               : const Color(0xFFE2E8F0)),
                                   ),
                                 ),
@@ -270,7 +269,9 @@ class NotificationsSheet extends StatelessWidget {
                                                     fontSize: 14,
                                                     color: isDark
                                                         ? Colors.white
-                                                        : const Color(0xFF0F172A),
+                                                        : const Color(
+                                                            0xFF0F172A,
+                                                          ),
                                                   ),
                                                 ),
                                               ),
@@ -278,10 +279,13 @@ class NotificationsSheet extends StatelessWidget {
                                                 Container(
                                                   width: 8,
                                                   height: 8,
-                                                  decoration: const BoxDecoration(
-                                                    color: Color(0xFFFF5E3A),
-                                                    shape: BoxShape.circle,
-                                                  ),
+                                                  decoration:
+                                                      const BoxDecoration(
+                                                        color: Color(
+                                                          0xFFFF5E3A,
+                                                        ),
+                                                        shape: BoxShape.circle,
+                                                      ),
                                                 ),
                                             ],
                                           ),
@@ -303,11 +307,14 @@ class NotificationsSheet extends StatelessWidget {
                                       icon: Icon(
                                         Icons.close_rounded,
                                         size: 16,
-                                        color: isDark ? Colors.white38 : Colors.black38,
+                                        color: isDark
+                                            ? Colors.white38
+                                            : Colors.black38,
                                       ),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
-                                      onPressed: () => db.deleteNotification(notifId),
+                                      onPressed: () =>
+                                          db.deleteNotification(notifId),
                                       tooltip: 'Dismiss',
                                     ),
                                   ],

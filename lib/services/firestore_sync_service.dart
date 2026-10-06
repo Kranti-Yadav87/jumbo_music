@@ -52,7 +52,10 @@ class FirestoreSyncService {
 
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:syncUserProfile');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:syncUserProfile',
+      );
     }
   }
 
@@ -76,7 +79,10 @@ class FirestoreSyncService {
           .doc(uid)
           .set(data, SetOptions(merge: true));
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:updateProfileInCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:updateProfileInCloud',
+      );
     }
   }
 
@@ -93,7 +99,10 @@ class FirestoreSyncService {
       await _pullHistoryFromCloud(user.uid);
       _startRealtimeListeners(user.uid);
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:syncAllUserData');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:syncAllUserData',
+      );
     } finally {
       _isSyncing = false;
     }
@@ -120,7 +129,10 @@ class FirestoreSyncService {
         await docRef.delete();
       }
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushFavoriteToCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:pushFavoriteToCloud',
+      );
     }
   }
 
@@ -141,7 +153,10 @@ class FirestoreSyncService {
       data['updatedAt'] = FieldValue.serverTimestamp();
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushPlaylistToCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:pushPlaylistToCloud',
+      );
     }
   }
 
@@ -159,7 +174,10 @@ class FirestoreSyncService {
           .doc(playlistId)
           .delete();
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:deletePlaylistFromCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:deletePlaylistFromCloud',
+      );
     }
   }
 
@@ -180,7 +198,10 @@ class FirestoreSyncService {
       data['playedAt'] = FieldValue.serverTimestamp();
       await docRef.set(data, SetOptions(merge: true));
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:pushHistoryToCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:pushHistoryToCloud',
+      );
     }
   }
 
@@ -206,7 +227,10 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullFavoritesFromCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:_pullFavoritesFromCloud',
+      );
     }
   }
 
@@ -232,7 +256,10 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullPlaylistsFromCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:_pullPlaylistsFromCloud',
+      );
     }
   }
 
@@ -258,7 +285,10 @@ class FirestoreSyncService {
         _isRemoteSyncing = false;
       }
     } catch (e) {
-      CrashReportingService.swallow(e, 'firestore_sync_service.dart:_pullHistoryFromCloud');
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:_pullHistoryFromCloud',
+      );
     }
   }
 
@@ -271,41 +301,47 @@ class FirestoreSyncService {
         .doc(uid)
         .collection('favorites')
         .snapshots()
-        .listen((snapshot) {
-          if (_isRemoteSyncing) return;
-          final db = DatabaseService.instance;
-          _isRemoteSyncing = true;
-          try {
-            for (final change in snapshot.docChanges) {
-              if (change.type == DocumentChangeType.added) {
-                final data = change.doc.data();
-                if (data == null) continue;
-                final song = Song.fromJson(data);
-                if (!db.isFavorite(song.id)) {
-                  db.toggleFavorite(song, syncToCloud: false);
-                }
-              } else if (change.type == DocumentChangeType.removed) {
-                final id = change.doc.id;
-                if (db.isFavorite(id)) {
-                  final song = db.favoriteSongs.firstWhere(
-                    (s) => s.id == id,
-                    orElse: () => Song(
-                      id: id,
-                      title: '',
-                      artist: '',
-                      audioUrl: '',
-                      coverUrl: '',
-                      duration: Duration.zero,
-                    ),
-                  );
-                  db.toggleFavorite(song, syncToCloud: false);
+        .listen(
+          (snapshot) {
+            if (_isRemoteSyncing) return;
+            final db = DatabaseService.instance;
+            _isRemoteSyncing = true;
+            try {
+              for (final change in snapshot.docChanges) {
+                if (change.type == DocumentChangeType.added) {
+                  final data = change.doc.data();
+                  if (data == null) continue;
+                  final song = Song.fromJson(data);
+                  if (!db.isFavorite(song.id)) {
+                    db.toggleFavorite(song, syncToCloud: false);
+                  }
+                } else if (change.type == DocumentChangeType.removed) {
+                  final id = change.doc.id;
+                  if (db.isFavorite(id)) {
+                    final song = db.favoriteSongs.firstWhere(
+                      (s) => s.id == id,
+                      orElse: () => Song(
+                        id: id,
+                        title: '',
+                        artist: '',
+                        audioUrl: '',
+                        coverUrl: '',
+                        duration: Duration.zero,
+                      ),
+                    );
+                    db.toggleFavorite(song, syncToCloud: false);
+                  }
                 }
               }
+            } finally {
+              _isRemoteSyncing = false;
             }
-          } finally {
-            _isRemoteSyncing = false;
-          }
-        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:favorites_listener'));
+          },
+          onError: (e) => CrashReportingService.swallow(
+            e,
+            'firestore_sync_service.dart:favorites_listener',
+          ),
+        );
 
     // 2. Listen to cloud playlists changes
     _playlistsSubscription = _firestore
@@ -313,26 +349,32 @@ class FirestoreSyncService {
         .doc(uid)
         .collection('playlists')
         .snapshots()
-        .listen((snapshot) {
-          if (_isRemoteSyncing) return;
-          final db = DatabaseService.instance;
-          _isRemoteSyncing = true;
-          try {
-            for (final change in snapshot.docChanges) {
-              if (change.type == DocumentChangeType.added ||
-                  change.type == DocumentChangeType.modified) {
-                final data = change.doc.data();
-                if (data == null) continue;
-                final playlist = Playlist.fromJson(data);
-                db.addCustomPlaylist(playlist, syncToCloud: false);
-              } else if (change.type == DocumentChangeType.removed) {
-                db.deletePlaylist(change.doc.id, syncToCloud: false);
+        .listen(
+          (snapshot) {
+            if (_isRemoteSyncing) return;
+            final db = DatabaseService.instance;
+            _isRemoteSyncing = true;
+            try {
+              for (final change in snapshot.docChanges) {
+                if (change.type == DocumentChangeType.added ||
+                    change.type == DocumentChangeType.modified) {
+                  final data = change.doc.data();
+                  if (data == null) continue;
+                  final playlist = Playlist.fromJson(data);
+                  db.addCustomPlaylist(playlist, syncToCloud: false);
+                } else if (change.type == DocumentChangeType.removed) {
+                  db.deletePlaylist(change.doc.id, syncToCloud: false);
+                }
               }
+            } finally {
+              _isRemoteSyncing = false;
             }
-          } finally {
-            _isRemoteSyncing = false;
-          }
-        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:playlists_listener'));
+          },
+          onError: (e) => CrashReportingService.swallow(
+            e,
+            'firestore_sync_service.dart:playlists_listener',
+          ),
+        );
 
     // 3. Listen to cloud history changes
     _historySubscription = _firestore
@@ -342,23 +384,29 @@ class FirestoreSyncService {
         .orderBy('playedAt', descending: true)
         .limit(30)
         .snapshots()
-        .listen((snapshot) {
-          if (_isRemoteSyncing) return;
-          final db = DatabaseService.instance;
-          _isRemoteSyncing = true;
-          try {
-            for (final change in snapshot.docChanges) {
-              if (change.type == DocumentChangeType.added) {
-                final data = change.doc.data();
-                if (data == null) continue;
-                final song = Song.fromJson(data);
-                db.addToHistory(song, syncToCloud: false);
+        .listen(
+          (snapshot) {
+            if (_isRemoteSyncing) return;
+            final db = DatabaseService.instance;
+            _isRemoteSyncing = true;
+            try {
+              for (final change in snapshot.docChanges) {
+                if (change.type == DocumentChangeType.added) {
+                  final data = change.doc.data();
+                  if (data == null) continue;
+                  final song = Song.fromJson(data);
+                  db.addToHistory(song, syncToCloud: false);
+                }
               }
+            } finally {
+              _isRemoteSyncing = false;
             }
-          } finally {
-            _isRemoteSyncing = false;
-          }
-        }, onError: (e) => CrashReportingService.swallow(e, 'firestore_sync_service.dart:history_listener'));
+          },
+          onError: (e) => CrashReportingService.swallow(
+            e,
+            'firestore_sync_service.dart:history_listener',
+          ),
+        );
   }
 
   void cancelRealtimeListeners() {

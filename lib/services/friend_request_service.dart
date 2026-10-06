@@ -127,7 +127,8 @@ class FriendRequestService extends ChangeNotifier {
                       : (req.fromEmail.isNotEmpty ? req.fromEmail : 'A friend');
                   DatabaseService.instance.addNotification(
                     title: 'Friend Request',
-                    message: '$senderName sent you a friend request. Tap to view and accept.',
+                    message:
+                        '$senderName sent you a friend request. Tap to view and accept.',
                     type: 'friend',
                     targetId: req.id,
                   );
@@ -175,7 +176,8 @@ class FriendRequestService extends ChangeNotifier {
                     _notifiedAcceptedFriendIds.add(toUid);
                     DatabaseService.instance.addNotification(
                       title: 'Friend Request Accepted',
-                      message: '${newFriend.name} accepted your friend request! You can now listen together.',
+                      message:
+                          '${newFriend.name} accepted your friend request! You can now listen together.',
                       type: 'friend',
                       targetId: toUid,
                     );
