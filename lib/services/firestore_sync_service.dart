@@ -278,7 +278,9 @@ class FirestoreSyncService {
           try {
             for (final change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
-                final song = Song.fromJson(change.doc.data()!);
+                final data = change.doc.data();
+                if (data == null) continue;
+                final song = Song.fromJson(data);
                 if (!db.isFavorite(song.id)) {
                   db.toggleFavorite(song, syncToCloud: false);
                 }
@@ -319,7 +321,9 @@ class FirestoreSyncService {
             for (final change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added ||
                   change.type == DocumentChangeType.modified) {
-                final playlist = Playlist.fromJson(change.doc.data()!);
+                final data = change.doc.data();
+                if (data == null) continue;
+                final playlist = Playlist.fromJson(data);
                 db.addCustomPlaylist(playlist, syncToCloud: false);
               } else if (change.type == DocumentChangeType.removed) {
                 db.deletePlaylist(change.doc.id, syncToCloud: false);
@@ -345,7 +349,9 @@ class FirestoreSyncService {
           try {
             for (final change in snapshot.docChanges) {
               if (change.type == DocumentChangeType.added) {
-                final song = Song.fromJson(change.doc.data()!);
+                final data = change.doc.data();
+                if (data == null) continue;
+                final song = Song.fromJson(data);
                 db.addToHistory(song, syncToCloud: false);
               }
             }
