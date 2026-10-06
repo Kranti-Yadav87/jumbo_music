@@ -32,15 +32,16 @@ jobs:
       - name: Prepare signing key (if secrets exist)
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          SP: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KP: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          KA: ${{ secrets.ANDROID_KEY_ALIAS }}
         run: |
           if [ -n "$KS" ]; then
             echo "$KS" | base64 -d > android/upload-keystore.jks
-            cat > android/key.properties <<PROPS
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          PROPS
+            echo "storePassword=$SP" > android/key.properties
+            echo "keyPassword=$KP" >> android/key.properties
+            echo "keyAlias=$KA" >> android/key.properties
+            echo "storeFile=upload-keystore.jks" >> android/key.properties
           else
             echo "No keystore secrets found - APK will be debug-signed (installable, not for Play Store)."
           fi
@@ -64,10 +65,10 @@ jobs:
       - name: Publish GitHub Release (this makes the in-app APK link work)
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/tags/')
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: apk-v2.0.0-${{ github.run_number }}
           name: Jumbo Music APK v2.0.0 (Build ${{ github.run_number }})
           make_latest: true
           files: app-release.apk
+
