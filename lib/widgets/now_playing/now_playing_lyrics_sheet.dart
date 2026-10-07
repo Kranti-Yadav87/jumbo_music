@@ -161,19 +161,20 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
     if (key?.currentContext != null) {
       Scrollable.ensureVisible(
         key!.currentContext!,
-        alignment: 0.35,
-        duration: animated ? const Duration(milliseconds: 350) : Duration.zero,
+        alignment:
+            0.18, // Auto-scroll active line to top 18% so upcoming lines below are fully visible
+        duration: animated ? const Duration(milliseconds: 380) : Duration.zero,
         curve: Curves.easeOutCubic,
       );
     } else if (widget.scrollController.hasClients) {
-      final target = (index * 60.0 - 100.0).clamp(
+      final target = (index * 62.0 - 30.0).clamp(
         0.0,
         widget.scrollController.position.maxScrollExtent,
       );
       if (animated) {
         widget.scrollController.animateTo(
           target,
-          duration: const Duration(milliseconds: 350),
+          duration: const Duration(milliseconds: 380),
           curve: Curves.easeOutCubic,
         );
       } else {
@@ -324,9 +325,11 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                   child: ListView.builder(
                     controller: widget.scrollController,
                     physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 24,
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      20,
+                      16,
+                      MediaQuery.of(context).size.height * 0.55,
                     ),
                     itemCount: _lines.length,
                     itemBuilder: (context, index) {
@@ -393,8 +396,8 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                                     timeStr,
                                     style: TextStyle(
                                       color: isPast
-                                          ? Colors.white38
-                                          : Colors.white24,
+                                          ? Colors.white24
+                                          : Colors.white38,
                                       fontSize: 11,
                                       fontFamily: 'monospace',
                                     ),
@@ -409,8 +412,11 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                                     color: isCurrent
                                         ? const Color(0xFF38BDF8)
                                         : isPast
-                                        ? Colors.white.withOpacity(0.85)
-                                        : Colors.white38,
+                                        ? Colors
+                                              .white38 // Passed lines are softly dimmed
+                                        : Colors.white.withOpacity(
+                                            0.92,
+                                          ), // Upcoming (niche wali) lines are crisp & bright
                                     fontSize: isCurrent ? 18 : 15,
                                     fontWeight: isCurrent
                                         ? FontWeight.w700
