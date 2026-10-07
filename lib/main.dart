@@ -24,7 +24,7 @@ void main() async {
           androidNotificationChannelId: AppConfig.audioNotificationChannelId,
           androidNotificationChannelName:
               AppConfig.audioNotificationChannelName,
-          androidNotificationOngoing: false,
+          androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'drawable/ic_notification',
           androidStopForegroundOnPause: false,

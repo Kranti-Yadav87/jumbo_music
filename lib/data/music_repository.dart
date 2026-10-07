@@ -86,6 +86,17 @@ class MusicRepository {
           'darshan raval dharshan rawal darshan rawal dharshan raval kamariya chogada',
     },
     {
+      'id': 'art_taylorswift',
+      'name': 'Taylor Swift',
+      'role': 'Global Pop Phenomenon',
+      'listeners': '105M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Taylor_Swift_003_20200827170119_500x500.jpg',
+      'query': 'Taylor Swift hits',
+      'keywords':
+          'taylor swift cruel summer blank space love story shake it off anti hero',
+    },
+    {
       'id': 'art_arijit',
       'name': 'Arijit Singh',
       'role': 'King of Soulful Melodies',
@@ -94,6 +105,28 @@ class MusicRepository {
           'https://c.saavncdn.com/artists/Arijit_Singh_002_20230323062147_500x500.jpg',
       'query': 'Arijit Singh hits',
       'keywords': 'arijit singh arijit romantic hits tum hi ho kesariya',
+    },
+    {
+      'id': 'art_theweeknd',
+      'name': 'The Weeknd',
+      'role': 'King of R&B & Synthwave',
+      'listeners': '110M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/The_Weeknd_003_20230323062635_500x500.jpg',
+      'query': 'The Weeknd hits',
+      'keywords':
+          'the weeknd abel blinding lights starboy save your tears die for you',
+    },
+    {
+      'id': 'art_edsheeran',
+      'name': 'Ed Sheeran',
+      'role': 'Global Acoustic Pop Superstar',
+      'listeners': '88M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Ed_Sheeran_003_20230323062615_500x500.jpg',
+      'query': 'Ed Sheeran hits',
+      'keywords':
+          'ed sheeran shape of you perfect thinking out loud bad habits',
     },
     {
       'id': 'art_jubin',
@@ -106,6 +139,16 @@ class MusicRepository {
       'keywords': 'jubin nautiyal jubin hits raataan lambiyan lut gaye',
     },
     {
+      'id': 'art_justinbieber',
+      'name': 'Justin Bieber',
+      'role': 'Global Pop Legend',
+      'listeners': '82M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Justin_Bieber_003_20230323062650_500x500.jpg',
+      'query': 'Justin Bieber hits',
+      'keywords': 'justin bieber stay baby peaches ghost sorry',
+    },
+    {
       'id': 'art_karan',
       'name': 'Karan Aujla',
       'role': 'Singer & Lyricist',
@@ -114,6 +157,16 @@ class MusicRepository {
           'https://c.saavncdn.com/artists/Karan_Aujla_004_20230609071019_500x500.jpg',
       'query': 'Karan Aujla hits',
       'keywords': 'karan aujla aujla tauba tauba winning speech',
+    },
+    {
+      'id': 'art_billieeilish',
+      'name': 'Billie Eilish',
+      'role': 'Alt-Pop Innovator',
+      'listeners': '76M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Billie_Eilish_003_20230323062725_500x500.jpg',
+      'query': 'Billie Eilish hits',
+      'keywords': 'billie eilish bad guy lovely birds of a feather ocean eyes',
     },
     {
       'id': 'art_diljit',
@@ -126,6 +179,16 @@ class MusicRepository {
       'keywords': 'diljit dosanjh diljit goat born to shine lover',
     },
     {
+      'id': 'art_dualipa',
+      'name': 'Dua Lipa',
+      'role': 'Queen of Modern Disco Pop',
+      'listeners': '74M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Dua_Lipa_003_20230323062740_500x500.jpg',
+      'query': 'Dua Lipa hits',
+      'keywords': 'dua lipa levitating don\'t start now new rules houdini',
+    },
+    {
       'id': 'art_shreya',
       'name': 'Shreya Ghoshal',
       'role': 'Melody Queen of India',
@@ -136,6 +199,17 @@ class MusicRepository {
       'keywords': 'shreya ghoshal shreya shreya hits deewani mastani',
     },
     {
+      'id': 'art_brunomars',
+      'name': 'Bruno Mars',
+      'role': 'Funk & Soul Pop King',
+      'listeners': '78M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Bruno_Mars_003_20230323062800_500x500.jpg',
+      'query': 'Bruno Mars hits',
+      'keywords':
+          'bruno mars uptown funk die with a smile 24k magic locked out of heaven',
+    },
+    {
       'id': 'art_kk',
       'name': 'KK (Krishnakumar Kunnath)',
       'role': 'Voice of a Generation',
@@ -143,6 +217,16 @@ class MusicRepository {
       'imageUrl': 'https://c.saavncdn.com/artists/KK_500x500.jpg',
       'query': 'KK hits',
       'keywords': 'kk krishnakumar kunnath kya mujhe pyar hai zara sa alvida',
+    },
+    {
+      'id': 'art_drake',
+      'name': 'Drake',
+      'role': 'Global Hip-Hop & Rap Icon',
+      'listeners': '84M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Drake_003_20230323062815_500x500.jpg',
+      'query': 'Drake hits',
+      'keywords': 'drake one dance hotline bling god\'s plan passionfruit',
     },
     {
       'id': 'art_sidhu',
@@ -155,6 +239,16 @@ class MusicRepository {
       'keywords': 'sidhu moose wala sidhu moosewala 295 so high',
     },
     {
+      'id': 'art_postmalone',
+      'name': 'Post Malone',
+      'role': 'Genre-Blending Superstar',
+      'listeners': '70M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Post_Malone_003_20230323062835_500x500.jpg',
+      'query': 'Post Malone hits',
+      'keywords': 'post malone sunflower circles rockstar congratulations',
+    },
+    {
       'id': 'art_anirudh',
       'name': 'Anirudh Ravichander',
       'role': 'Rockstar Music Director',
@@ -163,6 +257,17 @@ class MusicRepository {
           'https://c.saavncdn.com/artists/Anirudh_Ravichander_002_20230328080355_500x500.jpg',
       'query': 'Anirudh Ravichander hits',
       'keywords': 'anirudh ravichander anirudh leo jailer hukuum arabic kuthu',
+    },
+    {
+      'id': 'art_arianagrande',
+      'name': 'Ariana Grande',
+      'role': 'Vocal Queen & Pop Icon',
+      'listeners': '75M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Ariana_Grande_003_20230323062855_500x500.jpg',
+      'query': 'Ariana Grande hits',
+      'keywords':
+          'ariana grande 7 rings thank u next side to side we can\'t be friends',
     },
     {
       'id': 'art_atif',
@@ -175,6 +280,27 @@ class MusicRepository {
       'keywords': 'atif aslam atif aadat tere bin pehli nazar mein',
     },
     {
+      'id': 'art_coldplay',
+      'name': 'Coldplay',
+      'role': 'Legendary Global Rock Band',
+      'listeners': '68M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Coldplay_003_20230323062915_500x500.jpg',
+      'query': 'Coldplay hits',
+      'keywords':
+          'coldplay yellow viva la vida hymn for the weekend paradise a sky full of stars',
+    },
+    {
+      'id': 'art_alanwalker',
+      'name': 'Alan Walker',
+      'role': 'Global Electronic & EDM Star',
+      'listeners': '48M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Alan_Walker_003_20230323062935_500x500.jpg',
+      'query': 'Alan Walker hits',
+      'keywords': 'alan walker faded alone on my way the spectre darkside',
+    },
+    {
       'id': 'art_kishore',
       'name': 'Kishore Kumar',
       'role': 'Evergreen Legend of Golden Era',
@@ -185,6 +311,17 @@ class MusicRepository {
           'kishore kumar kishore da purane gaane roop tera mastana mere sapno ki rani',
     },
     {
+      'id': 'art_charlieputh',
+      'name': 'Charlie Puth',
+      'role': 'Pop Maestro & Pitch Perfect',
+      'listeners': '52M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Charlie_Puth_003_20230323062955_500x500.jpg',
+      'query': 'Charlie Puth hits',
+      'keywords':
+          'charlie puth see you again attention we don\'t talk anymore left and right',
+    },
+    {
       'id': 'art_lata',
       'name': 'Lata Mangeshkar',
       'role': 'Nightingale of India',
@@ -193,6 +330,39 @@ class MusicRepository {
       'query': 'Lata Mangeshkar golden era hits',
       'keywords':
           'lata mangeshkar lata ji aaja piya tohe pyar doon lag ja gale purane gaane',
+    },
+    {
+      'id': 'art_selenagomez',
+      'name': 'Selena Gomez',
+      'role': 'Global Pop Sensation',
+      'listeners': '55M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Selena_Gomez_003_20230323063015_500x500.jpg',
+      'query': 'Selena Gomez hits',
+      'keywords':
+          'selena gomez calm down lose you to love me wolves love you like a love song',
+    },
+    {
+      'id': 'art_zayn',
+      'name': 'Zayn Malik',
+      'role': 'R&B & Pop Vocalist',
+      'listeners': '42M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Zayn_003_20230323063035_500x500.jpg',
+      'query': 'Zayn hits',
+      'keywords':
+          'zayn malik zayn dusk till dawn pillowtalk let me i don\'t wanna live forever',
+    },
+    {
+      'id': 'art_eminem',
+      'name': 'Eminem',
+      'role': 'Rap God & Global Legend',
+      'listeners': '68M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/artists/Eminem_003_20230323063055_500x500.jpg',
+      'query': 'Eminem hits',
+      'keywords':
+          'eminem rap god lose yourself love the way you lie without me not afraid',
     },
     {
       'id': 'art_rafi',
