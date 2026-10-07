@@ -61,46 +61,49 @@ void main() {
       expect(song.coverUrl, contains('500x500.jpg'));
     });
 
-    test('normalizeSongTitle and deduplicateSongs eliminate duplicate versions', () {
-      const song1 = Song(
-        id: 'id_1',
-        title: 'Tum Hi Ho (From "Aashiqui 2")',
-        artist: 'Arijit Singh, Mithoon',
-        duration: Duration(seconds: 262),
-        audioUrl: 'https://example.com/1.mp3',
-        coverUrl: '',
-      );
-      const song2 = Song(
-        id: 'id_2',
-        title: 'Tum Hi Ho [Remastered]',
-        artist: 'Arijit Singh',
-        duration: Duration(seconds: 262),
-        audioUrl: 'https://example.com/2.mp3',
-        coverUrl: '',
-      );
-      const song3 = Song(
-        id: 'id_3',
-        title: 'Channa Mereya',
-        artist: 'Arijit Singh',
-        duration: Duration(seconds: 289),
-        audioUrl: 'https://example.com/3.mp3',
-        coverUrl: '',
-      );
+    test(
+      'normalizeSongTitle and deduplicateSongs eliminate duplicate versions',
+      () {
+        const song1 = Song(
+          id: 'id_1',
+          title: 'Tum Hi Ho (From "Aashiqui 2")',
+          artist: 'Arijit Singh, Mithoon',
+          duration: Duration(seconds: 262),
+          audioUrl: 'https://example.com/1.mp3',
+          coverUrl: '',
+        );
+        const song2 = Song(
+          id: 'id_2',
+          title: 'Tum Hi Ho [Remastered]',
+          artist: 'Arijit Singh',
+          duration: Duration(seconds: 262),
+          audioUrl: 'https://example.com/2.mp3',
+          coverUrl: '',
+        );
+        const song3 = Song(
+          id: 'id_3',
+          title: 'Channa Mereya',
+          artist: 'Arijit Singh',
+          duration: Duration(seconds: 289),
+          audioUrl: 'https://example.com/3.mp3',
+          coverUrl: '',
+        );
 
-      expect(
-        SongParserUtils.normalizeSongTitle(song1.title),
-        equals('tum hi ho'),
-      );
-      expect(
-        SongParserUtils.normalizeSongTitle(song2.title),
-        equals('tum hi ho'),
-      );
+        expect(
+          SongParserUtils.normalizeSongTitle(song1.title),
+          equals('tum hi ho'),
+        );
+        expect(
+          SongParserUtils.normalizeSongTitle(song2.title),
+          equals('tum hi ho'),
+        );
 
-      final deduped = SongParserUtils.deduplicateSongs([song1, song2, song3]);
-      expect(deduped.length, equals(2));
-      expect(deduped[0].id, equals('id_1'));
-      expect(deduped[1].id, equals('id_3'));
-    });
+        final deduped = SongParserUtils.deduplicateSongs([song1, song2, song3]);
+        expect(deduped.length, equals(2));
+        expect(deduped[0].id, equals('id_1'));
+        expect(deduped[1].id, equals('id_3'));
+      },
+    );
   });
 
   group('MusicTagClassifier Pure Logic Tests', () {

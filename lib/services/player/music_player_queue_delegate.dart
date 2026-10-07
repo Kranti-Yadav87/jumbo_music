@@ -91,8 +91,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       // 1. First immediately seed from local _allSongs strictly matching language & era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
         final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-        final Set<String> currentQueueKeys =
-            _queue.map(SongParserUtils.songDeduplicationKey).toSet();
+        final Set<String> currentQueueKeys = _queue
+            .map(SongParserUtils.songDeduplicationKey)
+            .toSet();
 
         final localCandidates = _allSongs.where((s) {
           if (currentQueueIds.contains(s.id)) return false;
@@ -143,7 +144,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
 
         final needed = targetQueueSize - _queue.length;
         if (needed > 0 && localCandidates.isNotEmpty) {
-          final dedupedLocal = SongParserUtils.deduplicateSongs(localCandidates);
+          final dedupedLocal = SongParserUtils.deduplicateSongs(
+            localCandidates,
+          );
           _queue.addAll(dedupedLocal.take(needed));
           _queue = SongParserUtils.deduplicateSongs(_queue);
           notify();
@@ -157,8 +160,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       );
       if (freshTracks.isNotEmpty) {
         final currentQueueIds = _queue.map((s) => s.id).toSet();
-        final currentQueueKeys =
-            _queue.map(SongParserUtils.songDeduplicationKey).toSet();
+        final currentQueueKeys = _queue
+            .map(SongParserUtils.songDeduplicationKey)
+            .toSet();
 
         final List<Song> dedupedFresh = SongParserUtils.deduplicateSongs(
           freshTracks,
@@ -174,8 +178,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           final playedPart = _queue.sublist(0, _currentIndex + 1);
           final upcomingPart = _queue.sublist(_currentIndex + 1);
 
-          final Set<String> freshKeys =
-              newTracks.map(SongParserUtils.songDeduplicationKey).toSet();
+          final Set<String> freshKeys = newTracks
+              .map(SongParserUtils.songDeduplicationKey)
+              .toSet();
           final remainingUpcoming = upcomingPart.where((s) {
             final key = SongParserUtils.songDeduplicationKey(s);
             if (freshKeys.contains(key)) return false;
@@ -218,8 +223,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           ]).take(targetQueueSize).toList();
 
           // Add to allSongs as well
-          final Set<String> allKeys =
-              _allSongs.map(SongParserUtils.songDeduplicationKey).toSet();
+          final Set<String> allKeys = _allSongs
+              .map(SongParserUtils.songDeduplicationKey)
+              .toSet();
           for (final track in newTracks) {
             final key = SongParserUtils.songDeduplicationKey(track);
             if (!allKeys.contains(key)) {
