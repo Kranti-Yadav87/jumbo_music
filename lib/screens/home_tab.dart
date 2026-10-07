@@ -12,6 +12,9 @@ import 'new_releases_screen.dart';
 import '../widgets/home/continue_playing_section.dart';
 import '../widgets/home/language_section.dart';
 import '../widgets/home/mood_mixes_section.dart';
+import '../widgets/home/search_inspired_section.dart';
+import '../widgets/home/featured_playlists_section.dart';
+import '../widgets/home/romance_section.dart';
 import 'artists_screen.dart';
 import 'downloaded_songs_screen.dart';
 
@@ -446,8 +449,17 @@ class _HomeTabState extends State<HomeTab> {
                 ),
               ),
 
+              // SEARCH-DRIVEN PERSONALIZED FEED ("Inspired by your searches")
+              const SliverToBoxAdapter(child: SearchInspiredSection()),
+
+              // FEATURED PLAYLISTS FOR YOU
+              const SliverToBoxAdapter(child: FeaturedPlaylistsSection()),
+
               // CONTINUE PLAYING (recent + currently loaded song)
               const SliverToBoxAdapter(child: ContinuePlayingSection()),
+
+              // SOULFUL ROMANCE SECTION
+              const SliverToBoxAdapter(child: RomanceSection()),
 
               // SONGS BY LANGUAGE (Hindi, English, Punjabi, Bhojpuri, Tamil...)
               const SliverToBoxAdapter(child: LanguageSection()),

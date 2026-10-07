@@ -4,6 +4,39 @@ import '../models/playlist.dart';
 class MusicRepository {
   static const List<Song> sampleSongs = [];
 
+  static const List<Song> romanceEssentials = [
+    Song(
+      id: 'romance_kesariya',
+      title: 'Kesariya',
+      artist: 'Arijit Singh, Pritam',
+      album: 'Brahmastra',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 268),
+    ),
+    Song(
+      id: 'romance_raataan',
+      title: 'Raataan Lambiyan',
+      artist: 'Jubin Nautiyal, Asees Kaur',
+      album: 'Shershaah',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 230),
+    ),
+    Song(
+      id: 'romance_hawabanke',
+      title: 'Hawa Banke',
+      artist: 'Darshan Raval',
+      album: 'Hawa Banke',
+      coverUrl:
+          'https://c.saavncdn.com/artists/Darshan_Raval_005_20230323062306_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 215),
+    ),
+  ];
+
   static final List<Song> newReleases = [];
 
   static final List<Playlist> samplePlaylists = [
@@ -67,6 +100,49 @@ class MusicRepository {
       id: 'p_sufi',
       title: 'Sufi & Qawwali Hits',
       description: 'Rahat Fateh Ali Khan, Atif Aslam, Nusrat Fateh Ali Khan',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/SoulfulSufi_20210416065535_500x500.jpg',
+      songIds: [],
+    ),
+  ];
+
+  static final List<Playlist> featuredPlaylistsForYou = [
+    Playlist(
+      id: 'fp_daily_mix',
+      title: 'Daily Mix For You',
+      description: 'Personalized mix • Trending Bollywood & Global Pop',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+      songIds: [],
+    ),
+    Playlist(
+      id: 'fp_global_top50',
+      title: 'Global & Bollywood Top 50',
+      description: 'Arijit, Taylor Swift, The Weeknd, Diljit, Ed Sheeran',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      songIds: [],
+    ),
+    Playlist(
+      id: 'fp_late_night',
+      title: 'Late Night Chill & Drive',
+      description: 'Slowed & Reverb, Lofi Chill, Melancholy Beats',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/BestOfIndieHindi_20230324103126_500x500.jpg',
+      songIds: [],
+    ),
+    Playlist(
+      id: 'fp_viral_2026',
+      title: 'Viral Hits 2026',
+      description: 'Internet chartbusters & trending social anthems',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_PunjabiTopSongs_500x500.jpg',
+      songIds: [],
+    ),
+    Playlist(
+      id: 'fp_acoustic',
+      title: 'Acoustic Coffeehouse',
+      description: 'Soulful acoustic guitars, unplugged & soothing vibes',
       coverUrl:
           'https://c.saavncdn.com/editorial/SoulfulSufi_20210416065535_500x500.jpg',
       songIds: [],

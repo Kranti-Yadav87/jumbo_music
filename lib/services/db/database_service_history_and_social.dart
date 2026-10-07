@@ -328,7 +328,7 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
       'title': title,
       'message': message,
       'type': type,
-      if (targetId != null) 'targetId': targetId,
+      'targetId': ?targetId,
       'timestamp': DateTime.now().toIso8601String(),
       'isRead': false,
     };
