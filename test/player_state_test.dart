@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
 
@@ -45,5 +46,29 @@ void main() {
       await manager.toggleShuffle();
       expect(manager.isShuffle, initialShuffle);
     });
+
+    test(
+      'cycleRepeatAndAutoplayMode cycles through playback modes properly',
+      () async {
+        // 1. From default (Autoplay=true, LoopMode=off) -> LoopMode.all (Autoplay=false)
+        await manager.cycleRepeatAndAutoplayMode();
+        expect(manager.loopMode, LoopMode.all);
+        expect(manager.autoplay, isFalse);
+
+        // 2. From LoopMode.all -> LoopMode.one (Repeat current)
+        await manager.cycleRepeatAndAutoplayMode();
+        expect(manager.loopMode, LoopMode.one);
+
+        // 3. From LoopMode.one -> LoopMode.off (Repeat off, autoplay=false)
+        await manager.cycleRepeatAndAutoplayMode();
+        expect(manager.loopMode, LoopMode.off);
+        expect(manager.autoplay, isFalse);
+
+        // 4. From LoopMode.off -> LoopMode.off with Autoplay=true (Infinite Radio)
+        await manager.cycleRepeatAndAutoplayMode();
+        expect(manager.loopMode, LoopMode.off);
+        expect(manager.autoplay, isTrue);
+      },
+    );
   });
 }

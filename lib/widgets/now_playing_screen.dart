@@ -582,23 +582,35 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   onPressed: () => manager.next(),
                                 ),
 
-                                // Loop / Autoplay Button
+                                // Loop / Repeat / Autoplay Mode Button
                                 IconButton(
                                   icon: Icon(
-                                    manager.autoplay
-                                        ? Icons.all_inclusive_rounded
-                                        : (manager.loopMode == LoopMode.one
-                                              ? Icons.repeat_one_rounded
-                                              : Icons.repeat_rounded),
+                                    manager.loopMode == LoopMode.one
+                                        ? Icons.repeat_one_rounded
+                                        : (manager.loopMode == LoopMode.all
+                                              ? Icons.repeat_rounded
+                                              : (manager.autoplay
+                                                    ? Icons
+                                                          .all_inclusive_rounded
+                                                    : Icons.repeat_rounded)),
                                     color:
-                                        manager.autoplay ||
-                                            manager.loopMode != LoopMode.off
+                                        manager.loopMode != LoopMode.off ||
+                                            manager.autoplay
                                         ? const Color(0xFF38BDF8)
                                         : Colors.white60,
                                     size: 24,
                                   ),
-                                  tooltip: 'Autoplay / Repeat',
-                                  onPressed: () => manager.toggleAutoplay(),
+                                  tooltip: manager.loopMode == LoopMode.one
+                                      ? 'Repeat: Current Track'
+                                      : (manager.loopMode == LoopMode.all
+                                            ? 'Repeat: All Queue'
+                                            : (manager.autoplay
+                                                  ? 'Autoplay: Infinite Radio'
+                                                  : 'Repeat: Off')),
+                                  onPressed: () {
+                                    HapticFeedback.lightImpact();
+                                    manager.cycleRepeatAndAutoplayMode();
+                                  },
                                 ),
                               ],
                             ),

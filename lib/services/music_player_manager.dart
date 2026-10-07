@@ -701,7 +701,68 @@ class MusicPlayerManager extends ChangeNotifier {
       _isPlaying = true;
       _isBuffering = false;
     } catch (e) {
+      // 10/10 Resilience: Attempt automatic stream auto-heal if online URL was expired or broken
       final isDl = DownloadService().isDownloaded(song.id);
+      if (!isDl && song.title.isNotEmpty) {
+        try {
+          debugPrint(
+            '[Playback] Attempting stream auto-heal for "${song.title}"...',
+          );
+          final healedSongs = await MusicApiService.searchLiveSongs(
+            '${song.title} ${song.artist}',
+            limit: 3,
+          );
+          if (healedSongs.isNotEmpty &&
+              healedSongs.first.audioUrl.isNotEmpty &&
+              healedSongs.first.audioUrl != song.audioUrl) {
+            final freshTrack = song.copyWith(
+              audioUrl: healedSongs.first.audioUrl,
+            );
+            final idx = _queue.indexWhere((s) => s.id == song.id);
+            if (idx != -1) _queue[idx] = freshTrack;
+
+            final mediaItem = MediaItem(
+              id: freshTrack.id,
+              album: freshTrack.album.isNotEmpty
+                  ? freshTrack.album
+                  : 'Jumbo Music',
+              title: freshTrack.title,
+              artist: freshTrack.artist,
+              artUri: freshTrack.coverUrl.isNotEmpty
+                  ? Uri.tryParse(freshTrack.coverUrl)
+                  : null,
+              duration: freshTrack.duration.inSeconds > 0
+                  ? freshTrack.duration
+                  : null,
+              playable: true,
+              displayTitle: freshTrack.title,
+              displaySubtitle: freshTrack.artist,
+              displayDescription: freshTrack.album.isNotEmpty
+                  ? freshTrack.album
+                  : 'Jumbo Music',
+            );
+
+            await _audioPlayer.setAudioSource(
+              AudioSource.uri(Uri.parse(freshTrack.audioUrl), tag: mediaItem),
+              preload: true,
+            );
+            unawaited(_applyEqualizerPreset());
+            await _audioPlayer.seek(Duration.zero);
+            await _audioPlayer.setSpeed(_playbackSpeed);
+            await _audioPlayer.setVolume(_volume);
+            _startPlayback();
+            _isPlaying = true;
+            _isBuffering = false;
+            _errorMessage = null;
+            _isTransitioning = false;
+            notifyListeners();
+            return;
+          }
+        } catch (healError) {
+          debugPrint('[Playback] Auto-heal failed: $healError');
+        }
+      }
+
       if (isDl &&
           await DownloadService().playableUriFor(song.id, title: song.title) ==
               null) {
@@ -976,6 +1037,33 @@ class MusicPlayerManager extends ChangeNotifier {
     await _audioPlayer.setLoopMode(
       _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
     );
+    notifyListeners();
+  }
+
+  Future<void> cycleRepeatAndAutoplayMode() async {
+    if (_loopMode == LoopMode.off && _autoplay) {
+      // 1. Switch from Autoplay to Repeat Queue
+      _autoplay = false;
+      _loopMode = LoopMode.all;
+    } else if (_loopMode == LoopMode.all) {
+      // 2. Switch from Repeat Queue to Repeat Current Track
+      _loopMode = LoopMode.one;
+    } else if (_loopMode == LoopMode.one) {
+      // 3. Switch to Repeat Off
+      _loopMode = LoopMode.off;
+      _autoplay = false;
+    } else {
+      // 4. Switch back to Autoplay (Infinite Radio)
+      _loopMode = LoopMode.off;
+      _autoplay = true;
+      if (currentSong != null && _queue.length < 30) {
+        _infillSmartQueue(currentSong!);
+      }
+    }
+    await _audioPlayer.setLoopMode(
+      _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+    );
+    DatabaseService.instance.updateSetting('autoplay', _autoplay);
     notifyListeners();
   }
 
