@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -321,6 +322,9 @@ class MusicPlayerManager extends ChangeNotifier {
     try {
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
+      await session.setActive(true);
+      await _audioPlayer.setAutomaticallyWaitsToMinimizeStalling(true);
+
       session.interruptionEventStream.listen((event) {
         if (event.begin) {
           switch (event.type) {
@@ -619,6 +623,14 @@ class MusicPlayerManager extends ChangeNotifier {
     _position = Duration.zero;
     _duration = song.duration;
     notifyListeners();
+
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      Permission.notification.isGranted.then((granted) {
+        if (!granted) {
+          Permission.notification.request();
+        }
+      });
+    }
 
     try {
       MediaSessionService.updateMetadata(

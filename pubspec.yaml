@@ -37,6 +37,7 @@ dependencies:
   just_audio: ^0.10.5
   just_audio_background: ^0.0.1-beta.13
   audio_session: ^0.1.25
+  permission_handler: ^11.3.1
   cached_network_image: ^3.4.1
   connectivity_plus: ^6.1.1
   http: ^1.2.2
