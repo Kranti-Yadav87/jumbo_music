@@ -180,4 +180,57 @@ class SongParserUtils {
       return null;
     }
   }
+
+  /// Normalizes a song title by lowercasing, stripping parentheses content like
+  /// (From "Movie"), (feat. Artist), [Remastered], (Lofi), etc., and punctuation.
+  static String normalizeSongTitle(String title) {
+    var clean = unescape(title).toLowerCase().trim();
+    // Remove content inside parentheses, brackets, braces
+    clean = clean.replaceAll(RegExp(r'\s*[\(\[\{][^\)\]\}]*[\)\]\}]'), ' ');
+    // Remove common trailing prefixes like "- From ...", "- Remastered", etc.
+    clean = clean.replaceAll(
+      RegExp(
+        r'\s*-\s*(from|remastered|lofi|original|reprise|acoustic|bonus|extended).*$',
+      ),
+      '',
+    );
+    // Remove punctuation
+    clean = clean.replaceAll(RegExp(r'[^a-z0-9\s]'), '');
+    // Collapse multiple spaces
+    clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return clean;
+  }
+
+  /// Normalizes primary artist name
+  static String normalizeArtist(String artist) {
+    var clean = unescape(artist).toLowerCase().trim();
+    clean = clean.replaceAll(RegExp(r'[^a-z0-9\s]'), '');
+    clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return clean.split(' ').first; // Use primary artist first name
+  }
+
+  /// Returns a canonical identity string for a song to prevent duplicate suggestions
+  static String songDeduplicationKey(Song song) {
+    final t = normalizeSongTitle(song.title);
+    final a = normalizeArtist(song.artist);
+    if (t.isNotEmpty) {
+      return '$t|$a';
+    }
+    return song.id;
+  }
+
+  /// Deduplicates a list of songs by ID and by canonical title+artist identity
+  static List<Song> deduplicateSongs(Iterable<Song> songs) {
+    final Set<String> seenIds = {};
+    final Set<String> seenKeys = {};
+    final List<Song> result = [];
+
+    for (final song in songs) {
+      final key = songDeduplicationKey(song);
+      if (seenIds.add(song.id) && seenKeys.add(key)) {
+        result.add(song);
+      }
+    }
+    return result;
+  }
 }

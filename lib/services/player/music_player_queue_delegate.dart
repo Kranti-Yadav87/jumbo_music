@@ -91,8 +91,14 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       // 1. First immediately seed from local _allSongs strictly matching language & era
       if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
         final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
+        final Set<String> currentQueueKeys =
+            _queue.map(SongParserUtils.songDeduplicationKey).toSet();
+
         final localCandidates = _allSongs.where((s) {
           if (currentQueueIds.contains(s.id)) return false;
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (currentQueueKeys.contains(key)) return false;
+
           final candLang = MusicApiService.detectSongLanguage(s);
           if (candLang != songLang) return false;
 
@@ -137,7 +143,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
 
         final needed = targetQueueSize - _queue.length;
         if (needed > 0 && localCandidates.isNotEmpty) {
-          _queue.addAll(localCandidates.take(needed));
+          final dedupedLocal = SongParserUtils.deduplicateSongs(localCandidates);
+          _queue.addAll(dedupedLocal.take(needed));
+          _queue = SongParserUtils.deduplicateSongs(_queue);
           notify();
         }
       }
@@ -148,21 +156,30 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         limit: 55,
       );
       if (freshTracks.isNotEmpty) {
-        final Set<String> playedIds = _queue
-            .take(_currentIndex + 1)
-            .map((s) => s.id)
-            .toSet();
-        final List<Song> newTracks = freshTracks
-            .where((s) => !playedIds.contains(s.id))
-            .toList();
+        final currentQueueIds = _queue.map((s) => s.id).toSet();
+        final currentQueueKeys =
+            _queue.map(SongParserUtils.songDeduplicationKey).toSet();
+
+        final List<Song> dedupedFresh = SongParserUtils.deduplicateSongs(
+          freshTracks,
+        );
+        final List<Song> newTracks = dedupedFresh.where((s) {
+          if (currentQueueIds.contains(s.id)) return false;
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (currentQueueKeys.contains(key)) return false;
+          return true;
+        }).toList();
 
         if (newTracks.isNotEmpty) {
           final playedPart = _queue.sublist(0, _currentIndex + 1);
           final upcomingPart = _queue.sublist(_currentIndex + 1);
 
-          final Set<String> freshIds = newTracks.map((s) => s.id).toSet();
+          final Set<String> freshKeys =
+              newTracks.map(SongParserUtils.songDeduplicationKey).toSet();
           final remainingUpcoming = upcomingPart.where((s) {
-            if (freshIds.contains(s.id)) return false;
+            final key = SongParserUtils.songDeduplicationKey(s);
+            if (freshKeys.contains(key)) return false;
+
             final candLang = MusicApiService.detectSongLanguage(s);
             if (candLang != songLang) return false;
             if (songLang == 'Hindi') {
@@ -194,17 +211,20 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
             return true;
           }).toList();
 
-          _queue = [
+          _queue = SongParserUtils.deduplicateSongs([
             ...playedPart,
             ...newTracks,
             ...remainingUpcoming,
-          ].take(targetQueueSize).toList();
+          ]).take(targetQueueSize).toList();
 
           // Add to allSongs as well
-          final Set<String> allIds = _allSongs.map((s) => s.id).toSet();
+          final Set<String> allKeys =
+              _allSongs.map(SongParserUtils.songDeduplicationKey).toSet();
           for (final track in newTracks) {
-            if (!allIds.contains(track.id)) {
+            final key = SongParserUtils.songDeduplicationKey(track);
+            if (!allKeys.contains(key)) {
               _allSongs.add(track);
+              allKeys.add(key);
             }
           }
         }
