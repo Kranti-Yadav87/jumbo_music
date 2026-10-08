@@ -280,6 +280,142 @@
       } catch (e) {}
     };
 
+    // === Real Web Audio DSP 5-Band Studio Equalizer Engine ===
+    window._jumboEqState = {
+      enabled: true,
+      gains: [0.0, 0.0, 0.0, 0.0, 0.0],
+      bass: 0.0,
+      virtualizer: 0.0,
+      loudness: 0.0
+    };
+    window._jumboEqNodes = null;
+    window._jumboAudioSourceMap = new WeakMap();
+
+    function getAudioContext() {
+      var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!window._jumboAudioCtx && AudioContextClass) {
+        window._jumboAudioCtx = new AudioContextClass();
+      }
+      return window._jumboAudioCtx;
+    }
+
+    window.jumboInitWebAudioDSP = function(audioElement) {
+      if (!audioElement || window._jumboAudioSourceMap.has(audioElement)) return;
+      try {
+        var ctx = getAudioContext();
+        if (!ctx) return;
+
+        if (!audioElement.crossOrigin) {
+          audioElement.crossOrigin = 'anonymous';
+        }
+
+        var source = ctx.createMediaElementSource(audioElement);
+        window._jumboAudioSourceMap.set(audioElement, source);
+
+        if (!window._jumboEqNodes) {
+          var freqs = [60, 230, 910, 3600, 14000];
+          var filters = freqs.map(function(f, idx) {
+            var node = ctx.createBiquadFilter();
+            node.type = (idx === 0) ? 'lowshelf' : (idx === freqs.length - 1 ? 'highshelf' : 'peaking');
+            node.frequency.value = f;
+            node.Q.value = 1.4;
+            node.gain.value = 0.0;
+            return node;
+          });
+
+          // Dedicated 100Hz Low-Shelf Bass Boost Filter
+          var bassFilter = ctx.createBiquadFilter();
+          bassFilter.type = 'lowshelf';
+          bassFilter.frequency.value = 100;
+          bassFilter.gain.value = 0.0;
+
+          // Studio Dynamics Compressor to prevent digital clipping / distortion
+          var compressor = ctx.createDynamicsCompressor();
+          compressor.threshold.value = -12;
+          compressor.knee.value = 30;
+          compressor.ratio.value = 8;
+          compressor.attack.value = 0.003;
+          compressor.release.value = 0.25;
+
+          // Master Loudness Gain
+          var masterGain = ctx.createGain();
+          masterGain.gain.value = 1.0;
+
+          // Cascade: filters[0..4] -> bassFilter -> compressor -> masterGain -> destination
+          for (var i = 0; i < filters.length - 1; i++) {
+            filters[i].connect(filters[i + 1]);
+          }
+          filters[filters.length - 1].connect(bassFilter);
+          bassFilter.connect(compressor);
+          compressor.connect(masterGain);
+          masterGain.connect(ctx.destination);
+
+          window._jumboEqNodes = {
+            inputNode: filters[0],
+            filters: filters,
+            bassFilter: bassFilter,
+            compressor: compressor,
+            masterGain: masterGain
+          };
+        }
+
+        source.connect(window._jumboEqNodes.inputNode);
+        window.jumboApplyEQ(
+          window._jumboEqState.enabled,
+          window._jumboEqState.gains,
+          window._jumboEqState.bass,
+          window._jumboEqState.virtualizer,
+          window._jumboEqState.loudness
+        );
+      } catch (e) {
+        console.warn('Web Audio DSP graph note:', e);
+      }
+    };
+
+    window.jumboApplyEQ = function(enabled, gains, bass, virtualizer, loudness) {
+      window._jumboEqState = {
+        enabled: !!enabled,
+        gains: Array.isArray(gains) ? gains : [0, 0, 0, 0, 0],
+        bass: typeof bass === 'number' ? bass : 0.0,
+        virtualizer: typeof virtualizer === 'number' ? virtualizer : 0.0,
+        loudness: typeof loudness === 'number' ? loudness : 0.0
+      };
+
+      if (!window._jumboEqNodes || !window._jumboAudioCtx) return;
+      try {
+        var ctx = window._jumboAudioCtx;
+        var now = ctx.currentTime;
+        var timeConst = 0.03; // Smooth 30ms transition
+
+        var eq = window._jumboEqNodes;
+        var isEn = window._jumboEqState.enabled;
+
+        for (var i = 0; i < eq.filters.length; i++) {
+          var targetGain = isEn ? (window._jumboEqState.gains[i] || 0.0) : 0.0;
+          eq.filters[i].gain.setTargetAtTime(targetGain, now, timeConst);
+        }
+
+        var targetBass = isEn ? (window._jumboEqState.bass * 12.0) : 0.0;
+        eq.bassFilter.gain.setTargetAtTime(targetBass, now, timeConst);
+
+        var targetMaster = isEn ? (1.0 + window._jumboEqState.loudness * 0.4) : 1.0;
+        eq.masterGain.gain.setTargetAtTime(targetMaster, now, timeConst);
+      } catch (e) {
+        console.warn('Error applying Web Audio EQ parameters:', e);
+      }
+    };
+
+    // Auto-listen to audio element playback across the entire app
+    document.addEventListener('play', function(e) {
+      if (e.target && e.target.tagName === 'AUDIO') {
+        var ctx = getAudioContext();
+        if (ctx && ctx.state === 'suspended') {
+          ctx.resume().catch(function(){});
+        }
+        window.jumboInitWebAudioDSP(e.target);
+      }
+    }, true);
+
     // User gesture handler to enable Web Audio Context & KeepAlive
     document.addEventListener('pointerdown', function() {
       if (window._jumboAudioCtx && window._jumboAudioCtx.state === 'suspended') {

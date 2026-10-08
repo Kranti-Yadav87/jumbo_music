@@ -12,8 +12,9 @@ class UpdateCheckerService {
   bool _checked = false;
 
   Future<void> checkForUpdates(BuildContext context) async {
-    if (_checked || kIsWeb || defaultTargetPlatform != TargetPlatform.android)
+    if (_checked || kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       return;
+    }
     _checked = true;
 
     try {

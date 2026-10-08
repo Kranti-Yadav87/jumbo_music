@@ -121,14 +121,55 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
 
   /// Applies active DSP and equalizer curve to audio engine
   Future<void> _applyEqualizerPreset() async {
-    // Dynamic DSP loudness and gain adjustments
-    if (!_equalizerEnabled) return;
-    // Volume scaling for loudness gain
-    if (_loudnessGain > 0.0) {
+    // 1. Web Audio DSP Live Biquad Filtering
+    if (kIsWeb) {
+      WebDspBridge.applyEqualizer(
+        enabled: _equalizerEnabled,
+        gains: _bandGains,
+        bass: _bassBoost,
+        virtualizer: _virtualizer,
+        loudness: _loudnessGain,
+      );
+    }
+
+    // 2. Android Hardware Equalizer & Loudness Enhancer
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      try {
+        await _androidEqualizer.setEnabled(_equalizerEnabled);
+        if (_equalizerEnabled) {
+          final params = await _androidEqualizer.parameters;
+          if (params.bands.isNotEmpty) {
+            final gains = EqPresets.gainsFor(
+              _soundPreset,
+              bandCount: params.bands.length,
+              minDb: params.minDecibels,
+              maxDb: params.maxDecibels,
+            );
+            for (int i = 0; i < params.bands.length && i < gains.length; i++) {
+              await params.bands[i].setGain(gains[i]);
+            }
+          }
+          await _androidLoudnessEnhancer.setEnabled(_loudnessGain > 0.0);
+          if (_loudnessGain > 0.0) {
+            await _androidLoudnessEnhancer.setTargetGain(
+              _loudnessGain * 1000.0,
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Android EQ apply note: $e');
+      }
+    }
+
+    // Dynamic Volume scaling for loudness gain on other platforms
+    if (_equalizerEnabled &&
+        _loudnessGain > 0.0 &&
+        !kIsWeb &&
+        defaultTargetPlatform != TargetPlatform.android) {
       final boosted = (_volume * (1.0 + _loudnessGain * 0.25)).clamp(0.0, 1.0);
-      _audioPlayer.setVolume(boosted);
+      await _audioPlayer.setVolume(boosted);
     } else {
-      _audioPlayer.setVolume(_volume);
+      await _audioPlayer.setVolume(_volume);
     }
   }
 }

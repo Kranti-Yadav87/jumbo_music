@@ -1,13 +1,19 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'database_service.dart';
+import 'presence_service.dart';
 
 class PrivacySecurityService extends ChangeNotifier {
   static final PrivacySecurityService _instance =
       PrivacySecurityService._internal();
   factory PrivacySecurityService() => _instance;
 
-  PrivacySecurityService._internal();
+  PrivacySecurityService._internal() {
+    _isIncognitoMode =
+        DatabaseService.instance.getSetting('incognitoMode', false) as bool;
+    _biometricLockEnabled =
+        DatabaseService.instance.getSetting('biometricLock', false) as bool;
+  }
 
   bool _isIncognitoMode = false;
   bool _analyticsEnabled = false;
@@ -21,16 +27,31 @@ class PrivacySecurityService extends ChangeNotifier {
 
   void toggleIncognitoMode() {
     _isIncognitoMode = !_isIncognitoMode;
+    DatabaseService.instance.updateSetting('incognitoMode', _isIncognitoMode);
+    if (_isIncognitoMode) {
+      PresenceService.instance.updateListeningStatus(
+        isPlaying: false,
+        isIncognito: true,
+      );
+    }
     notifyListeners();
   }
 
   void toggleAnalytics() {
     _analyticsEnabled = !_analyticsEnabled;
+    DatabaseService.instance.updateSetting(
+      'analyticsEnabled',
+      _analyticsEnabled,
+    );
     notifyListeners();
   }
 
   void toggleBiometricLock() {
     _biometricLockEnabled = !_biometricLockEnabled;
+    DatabaseService.instance.updateSetting(
+      'biometricLock',
+      _biometricLockEnabled,
+    );
     notifyListeners();
   }
 
@@ -41,10 +62,10 @@ class PrivacySecurityService extends ChangeNotifier {
   }) {
     final data = {
       'app': 'Jumbo Music',
-      'version': '1.0.0',
-      'exported_at': DateTime.now().toIso8601String(),
-      'privacy_policy':
-          'Zero-knowledge client storage. No data shared with third parties.',
+      'version': '2.0.0',
+      'exported_at': DateTime.now().toUtc().toIso8601String(),
+      'privacy_guarantee':
+          'Zero-knowledge client storage. No listening habits or audio data sold or shared.',
       'user_data': {
         'favorites_count': favoriteIds.length,
         'favorite_song_ids': favoriteIds,
@@ -52,6 +73,7 @@ class PrivacySecurityService extends ChangeNotifier {
         'downloaded_ids': downloadedSongIds,
         'custom_playlists_count': playlistCount,
         'incognito_mode_active': _isIncognitoMode,
+        'vault_encrypted': _localVaultEncrypted,
       },
     };
     return const JsonEncoder.withIndent('  ').convert(data);

@@ -15,6 +15,7 @@ import 'eq_presets.dart';
 import 'presence_service.dart';
 import 'media_session_service.dart';
 import 'crash_reporting_service.dart';
+import 'player/web_dsp_bridge.dart';
 
 part 'player/music_player_sleep_timer.dart';
 part 'player/music_player_equalizer_delegate.dart';
@@ -76,8 +77,15 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  late final AudioPlayer _audioPlayer = AudioPlayer();
-  bool get equalizerSupported => false;
+  late final AndroidEqualizer _androidEqualizer = AndroidEqualizer();
+  late final AndroidLoudnessEnhancer _androidLoudnessEnhancer =
+      AndroidLoudnessEnhancer();
+  late final AudioPlayer _audioPlayer = AudioPlayer(
+    audioPipeline: AudioPipeline(
+      androidAudioEffects: [_androidEqualizer, _androidLoudnessEnhancer],
+    ),
+  );
+  bool get equalizerSupported => true;
 
   List<Song> _allSongs = [];
   List<Song> _queue = [];

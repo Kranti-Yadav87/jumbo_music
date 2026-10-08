@@ -2,61 +2,261 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn() { return request.auth != null; }
-    function isOwner(userId) { return signedIn() && request.auth.uid == userId; }
-
-    // PRIVATE: only the owner can read/write their account data (incl. email).
-    match /users/{userId} {
-      allow read, write: if isOwner(userId);
-
-      match /favorites/{songId}     { allow read, write: if isOwner(userId); }
-      match /playlists/{playlistId} { allow read, write: if isOwner(userId); }
-      match /history/{historyId}    { allow read, write: if isOwner(userId); }
-      match /friends/{friendId}     { allow read, write: if isOwner(userId); }
+    // Helper functions
+    function signedIn() {
+      return request.auth != null;
     }
 
-    // PUBLIC (minimal): display name + lowercase email so people can be found
-    // by exact email. Bulk listing is blocked (queries may return 1 result).
+    function isOwner(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    // 1. USERS COLLECTION & SUBCOLLECTIONS
+    // Private: only the authenticated owner can read/write their account data.
+    match /users/{userId} {
+      allow read, delete: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'photoURL', 'bio', 'lastSeen', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.get('uid', userId) == userId
+        && (request.resource.data.get('email', '') is string && request.resource.data.get('email', '').size() <= 150)
+        && (request.resource.data.get('displayName', '') is string && request.resource.data.get('displayName', '').size() <= 100)
+        && (request.resource.data.get('photoURL', '') is string && request.resource.data.get('photoURL', '').size() <= 1000)
+        && (request.resource.data.get('bio', '') is string && request.resource.data.get('bio', '').size() <= 500)
+        && (request.resource.data.get('lastSeen', null) == null || request.resource.data.lastSeen is timestamp)
+        && (request.resource.data.get('createdAt', null) == null || request.resource.data.createdAt is timestamp)
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+
+      allow update: if isOwner(userId)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'email', 'displayName', 'photoURL', 'bio', 'lastSeen', 'createdAt', 'updatedAt'
+        ])
+        && request.resource.data.get('uid', userId) == userId
+        && (resource.data.get('createdAt', null) == null || request.resource.data.get('createdAt', null) == resource.data.createdAt)
+        && (request.resource.data.get('email', '') is string && request.resource.data.get('email', '').size() <= 150)
+        && (request.resource.data.get('displayName', '') is string && request.resource.data.get('displayName', '').size() <= 100)
+        && (request.resource.data.get('photoURL', '') is string && request.resource.data.get('photoURL', '').size() <= 1000)
+        && (request.resource.data.get('bio', '') is string && request.resource.data.get('bio', '').size() <= 500)
+        && (request.resource.data.get('lastSeen', null) == null || request.resource.data.lastSeen is timestamp)
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+
+      // Subcollection: favorites
+      match /favorites/{songId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly([
+            'id', 'title', 'artist', 'album', 'durationSec', 'audioUrl',
+            'coverUrl', 'genre', 'language', 'lyrics', 'isFavorite',
+            'releaseYear', 'quality', 'isLiveStream', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll(['id', 'title', 'artist'])
+          && request.resource.data.id == songId
+          && request.resource.data.id is string && request.resource.data.id.size() <= 128
+          && request.resource.data.title is string && request.resource.data.title.size() <= 200
+          && request.resource.data.artist is string && request.resource.data.artist.size() <= 200
+          && (request.resource.data.get('album', '') is string && request.resource.data.get('album', '').size() <= 200)
+          && (request.resource.data.get('durationSec', 0) is int && request.resource.data.get('durationSec', 0) >= 0 && request.resource.data.get('durationSec', 0) <= 86400)
+          && (request.resource.data.get('audioUrl', '') is string && request.resource.data.get('audioUrl', '').size() <= 2000)
+          && (request.resource.data.get('coverUrl', '') is string && request.resource.data.get('coverUrl', '').size() <= 2000)
+          && (request.resource.data.get('genre', '') is string && request.resource.data.get('genre', '').size() <= 100)
+          && (request.resource.data.get('language', '') is string && request.resource.data.get('language', '').size() <= 100)
+          && (request.resource.data.get('lyrics', '') is string && request.resource.data.get('lyrics', '').size() <= 30000)
+          && (request.resource.data.get('isFavorite', true) is bool)
+          && (request.resource.data.get('releaseYear', '') is string && request.resource.data.get('releaseYear', '').size() <= 30)
+          && (request.resource.data.get('quality', '') is string && request.resource.data.get('quality', '').size() <= 50)
+          && (request.resource.data.get('isLiveStream', false) is bool)
+          && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+      }
+
+      // Subcollection: playlists
+      match /playlists/{playlistId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly([
+            'id', 'title', 'description', 'coverUrl', 'songIds', 'songs',
+            'type', 'createdAt', 'isCollaborative', 'collaboratorNames',
+            'friendEmail', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll(['id', 'title', 'songIds'])
+          && request.resource.data.id == playlistId
+          && request.resource.data.id is string && request.resource.data.id.size() <= 128
+          && request.resource.data.title is string && request.resource.data.title.size() <= 150
+          && (request.resource.data.get('description', '') is string && request.resource.data.get('description', '').size() <= 1000)
+          && (request.resource.data.get('coverUrl', '') is string && request.resource.data.get('coverUrl', '').size() <= 2000)
+          && request.resource.data.songIds is list && request.resource.data.songIds.size() <= 1000
+          && (request.resource.data.get('songs', []) is list && request.resource.data.get('songs', []).size() <= 1000)
+          && (request.resource.data.get('type', '') is string && request.resource.data.get('type', '').size() <= 50)
+          && (request.resource.data.get('isCollaborative', false) is bool)
+          && (request.resource.data.get('collaboratorNames', []) is list && request.resource.data.get('collaboratorNames', []).size() <= 100)
+          && (request.resource.data.get('friendEmail', '') is string && request.resource.data.get('friendEmail', '').size() <= 150)
+          && (request.resource.data.get('createdAt', '') is string || request.resource.data.get('createdAt', null) is timestamp || request.resource.data.get('createdAt', null) == null)
+          && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+      }
+
+      // Subcollection: history
+      match /history/{historyId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly([
+            'id', 'title', 'artist', 'album', 'durationSec', 'audioUrl',
+            'coverUrl', 'genre', 'language', 'lyrics', 'isFavorite',
+            'releaseYear', 'quality', 'isLiveStream', 'playedAt', 'updatedAt'
+          ])
+          && request.resource.data.keys().hasAll(['id', 'title', 'artist'])
+          && request.resource.data.id == historyId
+          && request.resource.data.id is string && request.resource.data.id.size() <= 128
+          && request.resource.data.title is string && request.resource.data.title.size() <= 200
+          && request.resource.data.artist is string && request.resource.data.artist.size() <= 200
+          && (request.resource.data.get('album', '') is string && request.resource.data.get('album', '').size() <= 200)
+          && (request.resource.data.get('durationSec', 0) is int && request.resource.data.get('durationSec', 0) >= 0 && request.resource.data.get('durationSec', 0) <= 86400)
+          && (request.resource.data.get('audioUrl', '') is string && request.resource.data.get('audioUrl', '').size() <= 2000)
+          && (request.resource.data.get('coverUrl', '') is string && request.resource.data.get('coverUrl', '').size() <= 2000)
+          && (request.resource.data.get('genre', '') is string && request.resource.data.get('genre', '').size() <= 100)
+          && (request.resource.data.get('language', '') is string && request.resource.data.get('language', '').size() <= 100)
+          && (request.resource.data.get('lyrics', '') is string && request.resource.data.get('lyrics', '').size() <= 30000)
+          && (request.resource.data.get('isFavorite', false) is bool)
+          && (request.resource.data.get('releaseYear', '') is string && request.resource.data.get('releaseYear', '').size() <= 30)
+          && (request.resource.data.get('quality', '') is string && request.resource.data.get('quality', '').size() <= 50)
+          && (request.resource.data.get('isLiveStream', false) is bool)
+          && (request.resource.data.get('playedAt', null) == null || request.resource.data.playedAt is timestamp)
+          && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+      }
+
+      // Subcollection: friends
+      match /friends/{friendId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['friendUid', 'email', 'name', 'createdAt'])
+          && request.resource.data.keys().hasAll(['friendUid'])
+          && request.resource.data.friendUid == friendId
+          && request.resource.data.friendUid is string && request.resource.data.friendUid.size() <= 128
+          && (request.resource.data.get('email', '') is string && request.resource.data.get('email', '').size() <= 150)
+          && (request.resource.data.get('name', '') is string && request.resource.data.get('name', '').size() <= 100)
+          && (request.resource.data.get('createdAt', null) == null || request.resource.data.createdAt is timestamp);
+      }
+
+      // Subcollection: settings
+      match /settings/{settingId} {
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().size() <= 50;
+      }
+    }
+
+    // 2. PUBLIC PROFILES
+    // Display name + lowercase email so users can be found by exact email.
+    // Bulk listing is blocked (queries may return at most 1 result).
     match /public_profiles/{uid} {
       allow get: if signedIn();
       allow list: if signedIn() && request.query.limit <= 1;
-      allow create, update: if isOwner(uid) &&
-        request.resource.data.keys().hasOnly(['displayName', 'emailLower', 'updatedAt']);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['displayName', 'emailLower', 'updatedAt'])
+        && request.resource.data.keys().hasAll(['displayName', 'emailLower'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() > 0
+        && request.resource.data.displayName.size() <= 100
+        && request.resource.data.emailLower is string
+        && request.resource.data.emailLower.size() > 0
+        && request.resource.data.emailLower.size() <= 150
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
       allow delete: if isOwner(uid);
     }
 
-    // LIVE PRESENCE: readable one-by-one by id (no listing, no email inside).
+    // 3. LIVE PRESENCE
+    // Readable one-by-one by ID (no listing).
     match /presence/{uid} {
       allow get: if signedIn();
       allow list: if false;
-      allow write: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'isOnline', 'isListening', 'lastSeen', 'updatedAt',
+          'currentSongTitle', 'currentSongArtist', 'currentSongId',
+          'currentSongCover', 'currentSongAudioUrl', 'currentSongDurationSeconds'
+        ])
+        && request.resource.data.keys().hasAll(['isOnline'])
+        && request.resource.data.isOnline is bool
+        && (request.resource.data.get('isListening', false) is bool)
+        && (request.resource.data.get('lastSeen', null) == null || request.resource.data.lastSeen is timestamp)
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp)
+        && (request.resource.data.get('currentSongTitle', '') is string && request.resource.data.get('currentSongTitle', '').size() <= 200)
+        && (request.resource.data.get('currentSongArtist', '') is string && request.resource.data.get('currentSongArtist', '').size() <= 200)
+        && (request.resource.data.get('currentSongId', '') is string && request.resource.data.get('currentSongId', '').size() <= 128)
+        && (request.resource.data.get('currentSongCover', '') is string && request.resource.data.get('currentSongCover', '').size() <= 2000)
+        && (request.resource.data.get('currentSongAudioUrl', '') is string && request.resource.data.get('currentSongAudioUrl', '').size() <= 2000)
+        && (request.resource.data.get('currentSongDurationSeconds', 0) is int && request.resource.data.get('currentSongDurationSeconds', 0) >= 0 && request.resource.data.get('currentSongDurationSeconds', 0) <= 86400);
+      allow delete: if isOwner(uid);
     }
 
-    // Collaborative shared playlists
+    // 4. SHARED PLAYLISTS
+    // Read and updated by owner or explicitly listed collaborators.
     match /shared_playlists/{playlistId} {
       allow read: if signedIn() && (
         resource.data.ownerId == request.auth.uid ||
         (request.auth.token.email != null &&
          request.auth.token.email in resource.data.get('collaboratorEmails', []))
       );
-      allow create: if signedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if signedIn() &&
-        request.resource.data.ownerId == resource.data.ownerId && (
+
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'description', 'coverUrl', 'songIds',
+          'songs', 'collaboratorEmails', 'collaboratorNames', 'createdAt',
+          'updatedAt', 'isCollaborative', 'type'
+        ])
+        && request.resource.data.keys().hasAll(['ownerId', 'title', 'songIds'])
+        && request.resource.data.ownerId is string && request.resource.data.ownerId.size() <= 128
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
+        && (request.resource.data.get('id', playlistId) == playlistId)
+        && (request.resource.data.get('description', '') is string && request.resource.data.get('description', '').size() <= 1000)
+        && (request.resource.data.get('coverUrl', '') is string && request.resource.data.get('coverUrl', '').size() <= 2000)
+        && request.resource.data.songIds is list && request.resource.data.songIds.size() <= 1000
+        && (request.resource.data.get('songs', []) is list && request.resource.data.get('songs', []).size() <= 1000)
+        && (request.resource.data.get('collaboratorEmails', []) is list && request.resource.data.get('collaboratorEmails', []).size() <= 100)
+        && (request.resource.data.get('collaboratorNames', []) is list && request.resource.data.get('collaboratorNames', []).size() <= 100)
+        && (request.resource.data.get('isCollaborative', false) is bool)
+        && (request.resource.data.get('type', '') is string && request.resource.data.get('type', '').size() <= 50)
+        && (request.resource.data.get('createdAt', null) == null || request.resource.data.createdAt is timestamp || request.resource.data.createdAt is string)
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp);
+
+      allow update: if signedIn()
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.keys().hasOnly([
+          'id', 'ownerId', 'title', 'description', 'coverUrl', 'songIds',
+          'songs', 'collaboratorEmails', 'collaboratorNames', 'createdAt',
+          'updatedAt', 'isCollaborative', 'type'
+        ])
+        && request.resource.data.keys().hasAll(['ownerId', 'title', 'songIds'])
+        && request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 150
+        && (request.resource.data.get('description', '') is string && request.resource.data.get('description', '').size() <= 1000)
+        && (request.resource.data.get('coverUrl', '') is string && request.resource.data.get('coverUrl', '').size() <= 2000)
+        && request.resource.data.songIds is list && request.resource.data.songIds.size() <= 1000
+        && (request.resource.data.get('songs', []) is list && request.resource.data.get('songs', []).size() <= 1000)
+        && (request.resource.data.get('collaboratorEmails', []) is list && request.resource.data.get('collaboratorEmails', []).size() <= 100)
+        && (request.resource.data.get('collaboratorNames', []) is list && request.resource.data.get('collaboratorNames', []).size() <= 100)
+        && (request.resource.data.get('isCollaborative', false) is bool)
+        && (request.resource.data.get('type', '') is string && request.resource.data.get('type', '').size() <= 50)
+        && (request.resource.data.get('updatedAt', null) == null || request.resource.data.updatedAt is timestamp)
+        && (
           resource.data.ownerId == request.auth.uid ||
           (request.auth.token.email != null &&
            request.auth.token.email in resource.data.get('collaboratorEmails', []) &&
            request.resource.data.get('collaboratorEmails', []) == resource.data.get('collaboratorEmails', []))
         );
+
       allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
     }
 
-    // FRIEND REQUESTS: asynchronous friendship requests between users.
-    // Sender creates a pending request. Only recipient can accept or decline.
+    // 5. FRIEND REQUESTS
+    // Asynchronous friendship requests.
+    // Sender creates a pending request. Only recipient can accept or decline. Deletions disabled.
     match /friend_requests/{requestId} {
       allow read: if signedIn() && (
         resource.data.fromUid == request.auth.uid ||
         resource.data.toUid == request.auth.uid
       );
+
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly([
           'fromUid', 'toUid', 'status', 'createdAt',
@@ -89,8 +289,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // USER FEEDBACK (write-only): user feedback reports.
-    // Cannot be read, modified, or deleted by clients; read in Firebase Console.
+    // 6. APP FEEDBACK (write-only)
+    // Client write-only feedback collection with strict validation and size limits.
     match /app_feedback/{feedbackId} {
       allow create: if request.resource.data.keys().hasOnly([
           'rating', 'category', 'message', 'userId', 'userName',
@@ -116,9 +316,8 @@ service cloud.firestore {
       allow read, update, delete: if false;
     }
 
-    // CLIENT ERROR REPORTS (write-only): the app uploads compact crash/error
-    // reports here. Nobody can read, change or delete them from a client;
-    // read them in the Firebase console. Size limits stop abuse.
+    // 7. CLIENT ERROR REPORTS (write-only)
+    // Crash and exception logging. Write-only with strict string and payload bounds.
     match /client_errors/{reportId} {
       allow create: if request.resource.data.keys().hasOnly([
           'message', 'stack', 'reason', 'fatal', 'platform',
@@ -139,7 +338,7 @@ service cloud.firestore {
         && request.resource.data.appVersion is string
         && request.resource.data.appVersion.size() <= 20
         && (request.resource.data.get('uid', null) == null
-            || request.resource.data.uid is string)
+            || (request.resource.data.uid is string && request.resource.data.uid.size() <= 128))
         && request.resource.data.createdAt == request.time;
       allow read, update, delete: if false;
     }
@@ -147,3 +346,4 @@ service cloud.firestore {
     // Everything else is denied by default.
   }
 }
+
