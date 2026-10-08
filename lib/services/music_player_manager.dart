@@ -36,15 +36,22 @@ class MusicPlayerManager extends ChangeNotifier {
     List<Song>? queue,
     List<Song>? allSongs,
   }) {
+    _currentSong = currentSong;
     if (currentSong != null) {
       _queue = queue ?? [currentSong];
-      _currentIndex = 0;
+      _currentIndex = _queue.indexWhere((s) => s.id == currentSong.id);
+      if (_currentIndex == -1) {
+        _queue.insert(0, currentSong);
+        _currentIndex = 0;
+      }
     } else if (queue != null) {
       _queue = queue;
       _currentIndex = queue.isNotEmpty ? 0 : -1;
+      _currentSong = queue.isNotEmpty ? queue[0] : null;
     } else {
       _queue = [];
       _currentIndex = -1;
+      _currentSong = null;
     }
     if (allSongs != null) {
       _allSongs = allSongs;
@@ -60,6 +67,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   @visibleForTesting
   void resetStateForTesting() {
+    _currentSong = null;
     _queue = [];
     _currentIndex = -1;
     _isPlaying = false;
@@ -91,6 +99,21 @@ class MusicPlayerManager extends ChangeNotifier {
   List<Song> _allSongs = [];
   List<Song> _queue = [];
   int _currentIndex = -1;
+  Song? _currentSong;
+
+  void _syncCurrentSongAndIndex() {
+    if (_currentSong != null) {
+      final idx = _queue.indexWhere((s) => s.id == _currentSong!.id);
+      if (idx != -1) {
+        _currentIndex = idx;
+      } else {
+        _queue.insert(0, _currentSong!);
+        _currentIndex = 0;
+      }
+    } else if (_currentIndex >= 0 && _currentIndex < _queue.length) {
+      _currentSong = _queue[_currentIndex];
+    }
+  }
 
   bool _isPlaying = false;
   bool _isBuffering = false;
@@ -145,9 +168,11 @@ class MusicPlayerManager extends ChangeNotifier {
   List<Song> get allSongs => _allSongs;
   List<Song> get queue => _queue;
   int get currentIndex => _currentIndex;
-  Song? get currentSong => (_currentIndex >= 0 && _currentIndex < _queue.length)
-      ? _queue[_currentIndex]
-      : null;
+  Song? get currentSong =>
+      _currentSong ??
+      ((_currentIndex >= 0 && _currentIndex < _queue.length)
+          ? _queue[_currentIndex]
+          : null);
 
   bool get isPlaying => _isPlaying;
   bool get isBuffering => _isBuffering;
@@ -419,8 +444,14 @@ class MusicPlayerManager extends ChangeNotifier {
           _allSongs.insert(0, dl);
         }
       }
-      if (_queue.isEmpty) {
+      if (_queue.isEmpty && _currentSong == null) {
         _queue = List.from(_allSongs);
+        if (_queue.isNotEmpty) {
+          _currentIndex = 0;
+          _currentSong = _queue[0];
+        }
+      } else {
+        _syncCurrentSongAndIndex();
       }
     }
   }
@@ -533,7 +564,15 @@ class MusicPlayerManager extends ChangeNotifier {
           _playlists = [...livePlaylists, ..._playlists];
         }
 
-        _queue = List.from(_allSongs);
+        if (_queue.isEmpty && _currentSong == null) {
+          _queue = List.from(_allSongs);
+          if (_queue.isNotEmpty) {
+            _currentIndex = 0;
+            _currentSong = _queue[0];
+          }
+        } else {
+          _syncCurrentSongAndIndex();
+        }
       }
     } catch (error) {
       CrashReportingService.swallow(error, 'music_player_manager.dart:441');
@@ -557,6 +596,7 @@ class MusicPlayerManager extends ChangeNotifier {
   }) async {
     _isTransitioning = true;
     _errorMessage = null;
+    _currentSong = song;
 
     if (!_allSongs.any((s) => s.id == song.id)) {
       _allSongs.insert(0, song);
@@ -567,6 +607,15 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue = List.from(queueToUse);
     } else if (_queue.isEmpty || !_queue.any((s) => s.id == song.id)) {
       _queue = [song];
+    }
+
+    // Ensure song is firmly inside _queue
+    final index = _queue.indexWhere((s) => s.id == song.id);
+    if (index != -1) {
+      _currentIndex = index;
+    } else {
+      _queue.insert(0, song);
+      _currentIndex = 0;
     }
 
     final songLang = MusicApiService.detectSongLanguage(song);
@@ -628,8 +677,7 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    final index = _queue.indexWhere((s) => s.id == song.id);
-    _currentIndex = index != -1 ? index : 0;
+    _syncCurrentSongAndIndex();
 
     _recentlyPlayed.removeWhere((item) => item.id == song.id);
     _recentlyPlayed.insert(0, song);

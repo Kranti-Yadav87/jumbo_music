@@ -7,9 +7,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       next();
     }
     _queue.removeAt(index);
-    if (_currentIndex > index) {
-      _currentIndex--;
-    }
+    _syncCurrentSongAndIndex();
     notify();
   }
 
@@ -19,13 +17,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     }
     final item = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, item);
-    if (_currentIndex == oldIndex) {
-      _currentIndex = newIndex;
-    } else if (oldIndex < _currentIndex && newIndex >= _currentIndex) {
-      _currentIndex--;
-    } else if (oldIndex > _currentIndex && newIndex <= _currentIndex) {
-      _currentIndex++;
-    }
+    _syncCurrentSongAndIndex();
     notify();
   }
 
@@ -34,8 +26,10 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     _queue.clear();
     if (current != null) {
       _queue.add(current);
+      _currentSong = current;
       _currentIndex = 0;
     } else {
+      _currentSong = null;
       _currentIndex = -1;
     }
     notify();
@@ -152,6 +146,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           );
           _queue.addAll(dedupedLocal.take(needed));
           _queue = SongParserUtils.deduplicateSongs(_queue);
+          _syncCurrentSongAndIndex();
           notify();
         }
       }
@@ -227,6 +222,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
             ...newTracks,
             ...remainingUpcoming,
           ]).take(targetQueueSize).toList();
+          _syncCurrentSongAndIndex();
 
           // Add to allSongs as well
           final Set<String> allKeys = _allSongs
