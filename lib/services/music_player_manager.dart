@@ -116,6 +116,12 @@ class MusicPlayerManager extends ChangeNotifier {
   // Sound Preset / Equalizer
   String _soundPreset = 'Normal';
   final List<String> soundPresets = EqPresets.names;
+  bool _equalizerEnabled = true;
+  List<double> _bandGains = [0.0, 0.0, 0.0, 0.0, 0.0];
+  double _bassBoost = 0.0;
+  double _virtualizer = 0.0;
+  double _loudnessGain = 0.0;
+  final Map<String, List<double>> _customPresets = {};
 
   // Sleep Timer
   Timer? _sleepTimer;
@@ -170,6 +176,14 @@ class MusicPlayerManager extends ChangeNotifier {
   double get volume => _volume;
   bool get isMuted => _isMuted;
   String get soundPreset => _soundPreset;
+  bool get equalizerEnabled => _equalizerEnabled;
+  List<double> get bandGains => List.unmodifiable(_bandGains);
+  double get bassBoost => _bassBoost;
+  double get virtualizer => _virtualizer;
+  double get loudnessGain => _loudnessGain;
+  Map<String, List<double>> get customPresets =>
+      Map.unmodifiable(_customPresets);
+  List<String> get allPresetNames => [...soundPresets, ..._customPresets.keys];
 
   bool get isSleepTimerActive =>
       _sleepSecondsRemaining > 0 || _sleepAfterCurrentSong;
@@ -393,7 +407,29 @@ class MusicPlayerManager extends ChangeNotifier {
     final db = DatabaseService.instance;
 
     _autoplay = db.getSetting('autoplay', true) as bool;
-    _soundPreset = db.getSetting('soundPreset', 'Normal') as String;
+    _soundPreset = db.getSetting(
+          'eq_preset',
+          db.getSetting('soundPreset', 'Normal'),
+        )
+        as String;
+    _equalizerEnabled = db.getSetting('eq_enabled', true) as bool;
+    final rawGains = db.getSetting('eq_gains', null);
+    if (rawGains is List && rawGains.length == 5) {
+      _bandGains = rawGains.map((e) => (e as num).toDouble()).toList();
+    }
+    _bassBoost = (db.getSetting('eq_bass', 0.0) as num).toDouble();
+    _virtualizer = (db.getSetting('eq_virtualizer', 0.0) as num).toDouble();
+    _loudnessGain = (db.getSetting('eq_loudness', 0.0) as num).toDouble();
+    final rawCustom = db.getSetting('eq_custom_presets', null);
+    if (rawCustom is Map) {
+      _customPresets.clear();
+      rawCustom.forEach((k, v) {
+        if (v is List) {
+          _customPresets[k.toString()] =
+              v.map((e) => (e as num).toDouble()).toList();
+        }
+      });
+    }
     _volume = (db.getSetting('volume', 1.0) as num).toDouble();
     _playbackSpeed = (db.getSetting('playbackSpeed', 1.0) as num).toDouble();
 

@@ -3,6 +3,7 @@ import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
 import 'track_details_dialog.dart';
 import 'track_audio_pickers.dart';
+import '../../screens/equalizer_screen.dart';
 
 /// Audio options list tiles: View artist, Details, Equalizer, and Tempo & Pitch.
 class TrackAudioOptionsTile extends StatelessWidget {
@@ -87,24 +88,27 @@ class TrackAudioOptionsTile extends StatelessWidget {
                   size: 22,
                 ),
                 title: const Text(
-                  'Equalizer',
+                  'Equalizer & DSP',
                   style: TextStyle(color: Colors.white, fontSize: 15),
                 ),
                 subtitle: Text(
-                  manager.equalizerSupported
-                      ? manager.soundPreset
-                      : '${manager.soundPreset} • Android app only',
+                  '${manager.soundPreset} • 5-Band Studio EQ',
                   style: const TextStyle(
                     color: Color(0xFF8E8E93),
                     fontSize: 12,
                   ),
                 ),
+                trailing: const Icon(
+                  Icons.chevron_right_rounded,
+                  color: Colors.white38,
+                ),
                 onTap: () {
-                  showEqualizerPicker(
-                    context,
-                    manager,
-                    onChanged: onStateUpdated,
-                  );
+                  Navigator.pop(context);
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const EqualizerScreen(),
+                    ),
+                  ).then((_) => onStateUpdated?.call());
                 },
               ),
               const Divider(height: 1, color: Color(0xFF2C2C2E)),

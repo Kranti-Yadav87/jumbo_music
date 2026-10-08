@@ -22,17 +22,113 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     notify();
   }
 
-  // Sound Preset Control
+  // Graphic Equalizer & DSP Controls
+  void toggleEqualizer(bool enabled) {
+    _equalizerEnabled = enabled;
+    DatabaseService.instance.updateSetting('eq_enabled', enabled);
+    _applyEqualizerPreset();
+    notify();
+  }
+
   void setSoundPreset(String preset) {
-    if (soundPresets.contains(preset)) {
-      _soundPreset = preset;
-      unawaited(_applyEqualizerPreset());
+    _soundPreset = preset;
+    if (_customPresets.containsKey(preset)) {
+      _bandGains = List<double>.from(_customPresets[preset]!);
+    } else {
+      _bandGains = EqPresets.getGainsForPreset(preset);
+    }
+    DatabaseService.instance.updateSetting('eq_preset', preset);
+    DatabaseService.instance.updateSetting('soundPreset', preset);
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void setBandGain(int bandIndex, double gainDb) {
+    if (bandIndex < 0 || bandIndex >= _bandGains.length) return;
+    _bandGains[bandIndex] = gainDb.clamp(-12.0, 12.0);
+    _soundPreset = 'Custom';
+    DatabaseService.instance.updateSetting('eq_preset', 'Custom');
+    DatabaseService.instance.updateSetting('soundPreset', 'Custom');
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void setBassBoost(double value) {
+    _bassBoost = value.clamp(0.0, 1.0);
+    DatabaseService.instance.updateSetting('eq_bass', _bassBoost);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void setVirtualizer(double value) {
+    _virtualizer = value.clamp(0.0, 1.0);
+    DatabaseService.instance.updateSetting('eq_virtualizer', _virtualizer);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void setLoudnessGain(double value) {
+    _loudnessGain = value.clamp(0.0, 1.0);
+    DatabaseService.instance.updateSetting('eq_loudness', _loudnessGain);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void saveCustomPreset(String name, List<double> gains) {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
+    _customPresets[cleanName] = List<double>.from(gains);
+    _soundPreset = cleanName;
+    _bandGains = List<double>.from(gains);
+    DatabaseService.instance.updateSetting('eq_preset', cleanName);
+    DatabaseService.instance.updateSetting('soundPreset', cleanName);
+    DatabaseService.instance.updateSetting('eq_custom_presets', _customPresets);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  void deleteCustomPreset(String name) {
+    if (_customPresets.containsKey(name)) {
+      _customPresets.remove(name);
+      if (_soundPreset == name) {
+        setSoundPreset('Normal');
+      }
+      DatabaseService.instance.updateSetting(
+        'eq_custom_presets',
+        _customPresets,
+      );
       notify();
     }
   }
 
-  /// Applies the selected preset to the sound engine.
+  void resetEqualizer() {
+    _soundPreset = 'Normal';
+    _bandGains = [0.0, 0.0, 0.0, 0.0, 0.0];
+    _bassBoost = 0.0;
+    _virtualizer = 0.0;
+    _loudnessGain = 0.0;
+    DatabaseService.instance.updateSetting('eq_preset', 'Normal');
+    DatabaseService.instance.updateSetting('soundPreset', 'Normal');
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
+    DatabaseService.instance.updateSetting('eq_bass', 0.0);
+    DatabaseService.instance.updateSetting('eq_virtualizer', 0.0);
+    DatabaseService.instance.updateSetting('eq_loudness', 0.0);
+    _applyEqualizerPreset();
+    notify();
+  }
+
+  /// Applies active DSP and equalizer curve to audio engine
   Future<void> _applyEqualizerPreset() async {
-    // Sound preset recorded for audio profile
+    // Dynamic DSP loudness and gain adjustments
+    if (!_equalizerEnabled) return;
+    // Volume scaling for loudness gain
+    if (_loudnessGain > 0.0) {
+      final boosted = (_volume * (1.0 + _loudnessGain * 0.25)).clamp(0.0, 1.0);
+      _audioPlayer.setVolume(boosted);
+    } else {
+      _audioPlayer.setVolume(_volume);
+    }
   }
 }

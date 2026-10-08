@@ -8,6 +8,7 @@ import 'home_tab.dart';
 import 'search_tab.dart';
 import 'library_tab.dart';
 import 'profile_screen.dart';
+import '../services/update_checker_service.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -31,6 +32,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       const LibraryTab(),
       const ProfileScreen(showHeader: false),
     ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      UpdateCheckerService.instance.checkForUpdates(context);
+    });
   }
 
   void _openNowPlaying(BuildContext context) {

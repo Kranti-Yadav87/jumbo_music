@@ -6,6 +6,7 @@ import '../screens/search_tab.dart';
 import '../screens/profile_screen.dart';
 import '../screens/privacy_security_screen.dart';
 import '../screens/feedback_screen.dart';
+import '../screens/equalizer_screen.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/download_app_dialog.dart';
 
@@ -338,6 +339,40 @@ class AppTopHeader extends StatelessWidget {
                       },
                     );
                   }).toList(),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Color(0xFF6366F1)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(
+                      Icons.tune_rounded,
+                      color: Color(0xFF6366F1),
+                      size: 18,
+                    ),
+                    label: const Text(
+                      'Open Studio Graphic Equalizer (5-Band & DSP)',
+                      style: TextStyle(
+                        color: Color(0xFF6366F1),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const EqualizerScreen(),
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
               ],

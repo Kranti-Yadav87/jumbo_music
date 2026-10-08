@@ -12,12 +12,58 @@ import 'services/connectivity_service.dart';
 import 'services/presence_service.dart';
 import 'services/crash_reporting_service.dart';
 import 'screens/auth_gate.dart';
+import 'services/keyboard_shortcuts_service.dart';
 
 void main() async {
   await CrashReportingService.runWithCrashReporting(() async {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Initialize native background audio notification controls
+    // 1. Global Framework Error Boundaries
+    CrashReportingService.init();
+    ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
+      return Material(
+        color: const Color(0xFF0D0D12),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline_rounded,
+                  color: Color(0xFF6366F1),
+                  size: 44,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Display Error Handled Gracefully',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  errorDetails.exceptionAsString(),
+                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    };
+
+    // 2. High-Performance Image Cache Limits (Prevents OOM on budget devices)
+    PaintingBinding.instance.imageCache.maximumSizeBytes = 120 * 1024 * 1024;
+    PaintingBinding.instance.imageCache.maximumSize = 300;
+
+    // 3. Initialize native background audio notification controls
     if (!kIsWeb) {
       try {
         await JustAudioBackground.init(
@@ -35,7 +81,7 @@ void main() async {
       }
     }
 
-    // Initialize Firebase
+    // 4. Initialize Firebase
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
@@ -44,7 +90,7 @@ void main() async {
       debugPrint('Firebase initialization note: $e');
     }
 
-    // Initialize persistent database engine, presence sync & network observer
+    // 5. Initialize persistent database engine, presence sync & network observer
     await DatabaseService.instance.init();
     DownloadService().hydrateFromDatabase();
     PresenceService.instance.init();
@@ -72,13 +118,15 @@ class JumboMusicApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: themeManager,
       builder: (context, _) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Jumbo Music',
-          theme: AppThemeManager.lightTheme,
-          darkTheme: AppThemeManager.darkTheme,
-          themeMode: themeManager.themeMode,
-          home: const AuthGate(),
+        return GlobalKeyboardShortcutsWrapper(
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'Jumbo Music',
+            theme: AppThemeManager.lightTheme,
+            darkTheme: AppThemeManager.darkTheme,
+            themeMode: themeManager.themeMode,
+            home: const AuthGate(),
+          ),
         );
       },
     );

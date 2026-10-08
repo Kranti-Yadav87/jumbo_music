@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/friend.dart';
 import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
+import '../../services/music_api_service.dart';
 import 'shared_playlist_dialog.dart';
 
 class FriendListeningSheet {
@@ -127,9 +128,10 @@ class FriendListeningSheet {
                         fontSize: 12,
                       ),
                     ),
-                    onTap: () {
+                    onTap: () async {
                       Navigator.pop(ctx);
-                      final matchingSong = manager.allSongs.firstWhere(
+                      Song? targetSong;
+                      final localMatches = manager.allSongs.where(
                         (s) =>
                             s.title.toLowerCase().contains(
                               friend.currentSongTitle.toLowerCase(),
@@ -137,36 +139,53 @@ class FriendListeningSheet {
                             s.artist.toLowerCase().contains(
                               friend.currentSongArtist.toLowerCase(),
                             ),
-                        orElse: () => Song(
-                          id: friend.currentSongId.isNotEmpty
-                              ? friend.currentSongId
-                              : 'stream_${DateTime.now().millisecondsSinceEpoch}',
-                          title: friend.currentSongTitle.isNotEmpty
-                              ? friend.currentSongTitle
-                              : 'Live Track',
-                          artist: friend.currentSongArtist.isNotEmpty
-                              ? friend.currentSongArtist
-                              : friend.name,
-                          audioUrl: manager.allSongs.isNotEmpty
-                              ? manager.allSongs.first.audioUrl
-                              : '',
-                          coverUrl: friend.currentSongCover.isNotEmpty
-                              ? friend.currentSongCover
-                              : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
-                          duration: const Duration(seconds: 210),
-                        ),
                       );
-                      manager.playSong(matchingSong);
-                      onJamStarted?.call();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '🎧 Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"',
+                      if (localMatches.isNotEmpty) {
+                        targetSong = localMatches.first;
+                      } else {
+                        final onlineResults =
+                            await MusicApiService.searchLiveSongs(
+                              '${friend.currentSongTitle} ${friend.currentSongArtist}',
+                              limit: 1,
+                            );
+                        if (onlineResults.isNotEmpty) {
+                          targetSong = onlineResults.first;
+                        }
+                      }
+
+                      targetSong ??= Song(
+                        id: friend.currentSongId.isNotEmpty
+                            ? friend.currentSongId
+                            : 'stream_${DateTime.now().millisecondsSinceEpoch}',
+                        title: friend.currentSongTitle.isNotEmpty
+                            ? friend.currentSongTitle
+                            : 'Live Track',
+                        artist: friend.currentSongArtist.isNotEmpty
+                            ? friend.currentSongArtist
+                            : friend.name,
+                        audioUrl: manager.allSongs.isNotEmpty
+                            ? manager.allSongs.first.audioUrl
+                            : '',
+                        coverUrl: friend.currentSongCover.isNotEmpty
+                            ? friend.currentSongCover
+                            : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
+                        duration: const Duration(seconds: 210),
+                      );
+
+                      if (targetSong.audioUrl.isNotEmpty) {
+                        manager.playSong(targetSong);
+                        onJamStarted?.call();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              '🎧 Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"',
+                            ),
+                            backgroundColor: const Color(0xFFFF5E3A),
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          backgroundColor: const Color(0xFFFF5E3A),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                        );
+                      }
                     },
                   ),
 
