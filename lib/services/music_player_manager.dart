@@ -571,6 +571,7 @@ class MusicPlayerManager extends ChangeNotifier {
       final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
       final localCandidates = _allSongs.where((s) {
         if (currentQueueIds.contains(s.id)) return false;
+        if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) return false;
         final candLang = MusicApiService.detectSongLanguage(s);
         if (candLang != songLang) return false;
 

@@ -97,6 +97,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
 
         final localCandidates = _allSongs.where((s) {
           if (currentQueueIds.contains(s.id)) return false;
+          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
+            return false;
+          }
           final key = SongParserUtils.songDeduplicationKey(s);
           if (currentQueueKeys.contains(key)) return false;
 
@@ -169,6 +172,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         );
         final List<Song> newTracks = dedupedFresh.where((s) {
           if (currentQueueIds.contains(s.id)) return false;
+          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
+            return false;
+          }
           final key = SongParserUtils.songDeduplicationKey(s);
           if (currentQueueKeys.contains(key)) return false;
           return true;

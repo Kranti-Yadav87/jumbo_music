@@ -86,7 +86,7 @@ class MusicApiService {
         for (final item in results) {
           if (item is Map<String, dynamic>) {
             final song = SongParserUtils.parseSong(item);
-            if (song != null) {
+            if (song != null && song.duration.inSeconds >= 60) {
               songs.add(song);
             }
           }
@@ -100,9 +100,14 @@ class MusicApiService {
 
     // Fallback 1: Jamendo (legal, full-length tracks) when configured
     final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
-    if (jamendo.isNotEmpty) return jamendo;
+    if (jamendo.isNotEmpty) {
+      final fullJamendo = jamendo
+          .where((s) => s.duration.inSeconds >= 60)
+          .toList();
+      if (fullJamendo.isNotEmpty) return fullJamendo;
+    }
 
-    // Fallback 2: iTunes live search (30-second previews)
+    // Fallback 2: iTunes live search
     return searchOnlineSongsFallback(cleanQuery, limit: limit);
   }
 

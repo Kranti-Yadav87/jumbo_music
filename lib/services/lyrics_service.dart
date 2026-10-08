@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 
@@ -22,7 +21,7 @@ class LyricsService {
       getLyrics(song, forceRefresh: forceRefresh);
 
   /// Retrieves lyrics for a [song]. Checks in-memory cache first, then song's embedded
-  /// lyrics, then attempts external lookup via LRCLIB if needed.
+  /// lyrics, then attempts multi-tier external lookup via LRCLIB and Supabase.
   Future<String?> getLyrics(Song song, {bool forceRefresh = false}) async {
     final cacheKey = _buildCacheKey(song.id, song.title, song.artist);
     if (!forceRefresh && _cache.containsKey(cacheKey)) {
@@ -35,13 +34,14 @@ class LyricsService {
       return _cache[cacheKey];
     }
 
-    // 2. Fetch from online lyrics provider
+    // 2. Fetch from online lyrics provider (LRCLIB with multi-tier fallbacks)
     final fetched = await fetchLyricsByQuery(
       title: song.title,
       artist: song.artist,
       durationSeconds: song.duration.inSeconds > 0
           ? song.duration.inSeconds
           : null,
+      songId: song.id,
     );
 
     if (fetched != null && fetched.trim().isNotEmpty) {
@@ -52,50 +52,105 @@ class LyricsService {
     return null;
   }
 
-  /// Query LRCLIB or external open lyrics API for synchronized or plain lyrics
+  /// Multi-tier LRCLIB & Supabase search for synchronized or plain lyrics
   Future<String?> fetchLyricsByQuery({
     required String title,
     required String artist,
     int? durationSeconds,
+    String? songId,
   }) async {
     final cleanTitle = _cleanSongTitle(title);
     final cleanArtist = _cleanArtistName(artist);
     if (cleanTitle.isEmpty) return null;
 
-    final uri = Uri.https('lrclib.net', '/api/get', {
-      'track_name': cleanTitle,
-      'artist_name': cleanArtist,
-      if (durationSeconds != null && durationSeconds > 0)
-        'duration': durationSeconds.toString(),
-    });
+    const headers = {'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)'};
 
+    // Tier 1: Exact GET with duration
     try {
-      final response = await http
-          .get(
-            uri,
-            headers: {
-              'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)',
-            },
-          )
-          .timeout(const Duration(seconds: 8));
+      final uri1 = Uri.https('lrclib.net', '/api/get', {
+        'track_name': cleanTitle,
+        if (cleanArtist.isNotEmpty) 'artist_name': cleanArtist,
+        if (durationSeconds != null && durationSeconds > 0)
+          'duration': durationSeconds.toString(),
+      });
+      final res1 = await http
+          .get(uri1, headers: headers)
+          .timeout(const Duration(seconds: 4));
+      if (res1.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(res1.bodyBytes));
+        final lrc = _extractLrc(data);
+        if (lrc != null) return lrc;
+      }
+    } catch (_) {}
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(
-          utf8.decode(response.bodyBytes),
-        );
-        final syncedLyrics = data['syncedLyrics'] as String?;
-        final plainLyrics = data['plainLyrics'] as String?;
+    // Tier 2: Exact GET without duration (tolerates duration offsets)
+    try {
+      final uri2 = Uri.https('lrclib.net', '/api/get', {
+        'track_name': cleanTitle,
+        if (cleanArtist.isNotEmpty) 'artist_name': cleanArtist,
+      });
+      final res2 = await http
+          .get(uri2, headers: headers)
+          .timeout(const Duration(seconds: 4));
+      if (res2.statusCode == 200) {
+        final data = jsonDecode(utf8.decode(res2.bodyBytes));
+        final lrc = _extractLrc(data);
+        if (lrc != null) return lrc;
+      }
+    } catch (_) {}
 
-        if (syncedLyrics != null && syncedLyrics.trim().isNotEmpty) {
-          return syncedLyrics.trim();
-        } else if (plainLyrics != null && plainLyrics.trim().isNotEmpty) {
-          return plainLyrics.trim();
+    // Tier 3: Search endpoint with title + artist
+    try {
+      final query = cleanArtist.isNotEmpty
+          ? '$cleanTitle $cleanArtist'
+          : cleanTitle;
+      final uri3 = Uri.https('lrclib.net', '/api/search', {'q': query});
+      final res3 = await http
+          .get(uri3, headers: headers)
+          .timeout(const Duration(seconds: 5));
+      if (res3.statusCode == 200) {
+        final list = jsonDecode(utf8.decode(res3.bodyBytes));
+        if (list is List && list.isNotEmpty) {
+          for (final item in list) {
+            final lrc = _extractLrc(item);
+            if (lrc != null) return lrc;
+          }
         }
       }
-    } catch (e) {
-      debugPrint('LyricsService fetch note: $e');
-    }
+    } catch (_) {}
 
+    // Tier 4: Search endpoint with title only
+    try {
+      final uri4 = Uri.https('lrclib.net', '/api/search', {
+        'track_name': cleanTitle,
+      });
+      final res4 = await http
+          .get(uri4, headers: headers)
+          .timeout(const Duration(seconds: 5));
+      if (res4.statusCode == 200) {
+        final list = jsonDecode(utf8.decode(res4.bodyBytes));
+        if (list is List && list.isNotEmpty) {
+          for (final item in list) {
+            final lrc = _extractLrc(item);
+            if (lrc != null) return lrc;
+          }
+        }
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  String? _extractLrc(dynamic data) {
+    if (data is! Map) return null;
+    final synced = data['syncedLyrics'] as String?;
+    if (synced != null && synced.trim().isNotEmpty) {
+      return synced.trim();
+    }
+    final plain = data['plainLyrics'] as String?;
+    if (plain != null && plain.trim().isNotEmpty) {
+      return plain.trim();
+    }
     return null;
   }
 

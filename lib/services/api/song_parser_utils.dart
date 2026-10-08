@@ -111,6 +111,18 @@ class SongParserUtils {
       final name = unescape(item['name'] ?? item['song'] ?? item['title']);
       if (audioUrl.isEmpty || name.isEmpty) return null;
 
+      final lowerName = name.toLowerCase();
+      // Filter out short ringtones, caller tunes, trailers, dialogue promos
+      if (lowerName.contains('ringtone') ||
+          lowerName.contains('caller tune') ||
+          lowerName.contains('dialogue promo') ||
+          lowerName.contains('official trailer') ||
+          lowerName.contains('teaser') ||
+          lowerName.contains('30 sec') ||
+          lowerName.contains('30sec')) {
+        return null;
+      }
+
       final artist = extractArtists(item);
       final rawAlbum = item['album'];
       final album = rawAlbum is Map
@@ -124,6 +136,11 @@ class SongParserUtils {
 
       final durationSec =
           int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
+      // Filter out tracks shorter than 60s (unless duration wasn't supplied by API)
+      if (durationSec > 0 && durationSec < 60) {
+        return null;
+      }
+
       final year = item['year']?.toString().trim() ?? '';
 
       // Extract language from metadata if present
