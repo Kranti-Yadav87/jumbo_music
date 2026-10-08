@@ -233,6 +233,27 @@ class MusicPlayerManager extends ChangeNotifier {
     db.addListener(_onDatabaseChanged);
     DownloadService().addListener(_onDownloadsChanged);
 
+    // Register lockscreen and background media action callback (Web & System)
+    MediaSessionService.registerActionHandler((action, param) {
+      switch (action) {
+        case 'play':
+          play();
+          break;
+        case 'pause':
+          pause();
+          break;
+        case 'next':
+          next();
+          break;
+        case 'previous':
+          previous();
+          break;
+        case 'seek':
+          seek(Duration(seconds: param.round()));
+          break;
+      }
+    });
+
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
       (state) {
