@@ -20,7 +20,11 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text(
           'Save Custom EQ Preset',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         content: TextField(
           controller: controller,
@@ -40,12 +44,17 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white54)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.white54),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             onPressed: () {
               final name = controller.text.trim();
@@ -61,7 +70,13 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                 );
               }
             },
-            child: const Text('Save', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Save',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -90,11 +105,19 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
             title: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.graphic_eq_rounded, color: Color(0xFF6366F1), size: 22),
+                Icon(
+                  Icons.graphic_eq_rounded,
+                  color: Color(0xFF6366F1),
+                  size: 22,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'Studio Equalizer & DSP',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ],
             ),
@@ -119,7 +142,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
               absorbing: !isEnabled,
               child: ListView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 children: [
                   // 1. Interactive Frequency Spline Waveform
                   Container(
@@ -133,11 +159,11 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                         colors: [Color(0xFF18182E), Color(0xFF0F0F1A)],
                       ),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                      border: Border.all(
+                        color: const Color(0xFF6366F1).withOpacity(0.3),
+                      ),
                     ),
-                    child: CustomPaint(
-                      painter: _EqSplinePainter(gains: gains),
-                    ),
+                    child: CustomPaint(painter: _EqSplinePainter(gains: gains)),
                   ),
 
                   const SizedBox(height: 20),
@@ -174,7 +200,10 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                 },
                                 child: const Text(
                                   'Reset',
-                                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                                  style: TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 12,
+                                  ),
                                 ),
                               ),
                             ],
@@ -194,7 +223,9 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                 Text(
                                   '${gain >= 0 ? '+' : ''}${gain.toStringAsFixed(1)}',
                                   style: TextStyle(
-                                    color: gain != 0 ? const Color(0xFF6366F1) : Colors.white54,
+                                    color: gain != 0
+                                        ? const Color(0xFF6366F1)
+                                        : Colors.white54,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -206,12 +237,19 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                     quarterTurns: 3,
                                     child: SliderTheme(
                                       data: SliderTheme.of(context).copyWith(
-                                        activeTrackColor: const Color(0xFF6366F1),
+                                        activeTrackColor: const Color(
+                                          0xFF6366F1,
+                                        ),
                                         inactiveTrackColor: Colors.white12,
                                         thumbColor: Colors.white,
                                         trackHeight: 4,
-                                        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
-                                        overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                                        thumbShape: const RoundSliderThumbShape(
+                                          enabledThumbRadius: 7,
+                                        ),
+                                        overlayShape:
+                                            const RoundSliderOverlayShape(
+                                              overlayRadius: 14,
+                                            ),
                                       ),
                                       child: Slider(
                                         value: gain,
@@ -315,13 +353,21 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                             ),
                             InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () => _showSavePresetDialog(context, manager),
+                              onTap: () =>
+                                  _showSavePresetDialog(context, manager),
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: const [
-                                    Icon(Icons.add_rounded, color: Color(0xFF6366F1), size: 16),
+                                    Icon(
+                                      Icons.add_rounded,
+                                      color: Color(0xFF6366F1),
+                                      size: 16,
+                                    ),
                                     SizedBox(width: 4),
                                     Text(
                                       'Save Preset',
@@ -350,8 +396,12 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                                 selectedColor: const Color(0xFF6366F1),
                                 backgroundColor: Colors.white.withOpacity(0.06),
                                 labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.white70,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.white70,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   fontSize: 12,
                                 ),
                                 onSelected: (_) {
@@ -361,15 +411,20 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
                               );
                             }),
                             ...manager.customPresets.keys.map((customName) {
-                              final isSelected = manager.soundPreset == customName;
+                              final isSelected =
+                                  manager.soundPreset == customName;
                               return InputChip(
                                 label: Text(customName),
                                 selected: isSelected,
                                 selectedColor: const Color(0xFF8B5CF6),
                                 backgroundColor: Colors.white.withOpacity(0.06),
                                 labelStyle: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.white70,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.white70,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   fontSize: 12,
                                 ),
                                 onSelected: (_) {
@@ -421,7 +476,11 @@ class _EqualizerScreenState extends State<EqualizerScreen> {
           const SizedBox(height: 6),
           Text(
             title,
-            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

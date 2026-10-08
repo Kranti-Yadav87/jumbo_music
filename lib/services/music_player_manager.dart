@@ -407,11 +407,9 @@ class MusicPlayerManager extends ChangeNotifier {
     final db = DatabaseService.instance;
 
     _autoplay = db.getSetting('autoplay', true) as bool;
-    _soundPreset = db.getSetting(
-          'eq_preset',
-          db.getSetting('soundPreset', 'Normal'),
-        )
-        as String;
+    _soundPreset =
+        db.getSetting('eq_preset', db.getSetting('soundPreset', 'Normal'))
+            as String;
     _equalizerEnabled = db.getSetting('eq_enabled', true) as bool;
     final rawGains = db.getSetting('eq_gains', null);
     if (rawGains is List && rawGains.length == 5) {
@@ -425,8 +423,9 @@ class MusicPlayerManager extends ChangeNotifier {
       _customPresets.clear();
       rawCustom.forEach((k, v) {
         if (v is List) {
-          _customPresets[k.toString()] =
-              v.map((e) => (e as num).toDouble()).toList();
+          _customPresets[k.toString()] = v
+              .map((e) => (e as num).toDouble())
+              .toList();
         }
       });
     }

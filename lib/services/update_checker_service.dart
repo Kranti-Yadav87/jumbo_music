@@ -12,14 +12,19 @@ class UpdateCheckerService {
   bool _checked = false;
 
   Future<void> checkForUpdates(BuildContext context) async {
-    if (_checked || kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    if (_checked || kIsWeb || defaultTargetPlatform != TargetPlatform.android)
+      return;
     _checked = true;
 
     try {
-      final res = await http.get(
-        Uri.parse('https://api.github.com/repos/Kranti-Yadav87/jumbo_music/releases/latest'),
-        headers: {'Accept': 'application/vnd.github.v3+json'},
-      ).timeout(const Duration(seconds: 5));
+      final res = await http
+          .get(
+            Uri.parse(
+              'https://api.github.com/repos/Kranti-Yadav87/jumbo_music/releases/latest',
+            ),
+            headers: {'Accept': 'application/vnd.github.v3+json'},
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (res.statusCode == 200) {
         final data = jsonDecode(res.body);
@@ -27,7 +32,9 @@ class UpdateCheckerService {
         final htmlUrl = data['html_url'] as String? ?? AppConfig.apkDownloadUrl;
         final releaseName = data['name'] as String? ?? tagName;
 
-        if (tagName.isNotEmpty && !tagName.contains(AppConfig.appVersion) && context.mounted) {
+        if (tagName.isNotEmpty &&
+            !tagName.contains(AppConfig.appVersion) &&
+            context.mounted) {
           _showUpdateDialog(context, releaseName, htmlUrl);
         }
       }
@@ -36,7 +43,11 @@ class UpdateCheckerService {
     }
   }
 
-  void _showUpdateDialog(BuildContext context, String releaseName, String downloadUrl) {
+  void _showUpdateDialog(
+    BuildContext context,
+    String releaseName,
+    String downloadUrl,
+  ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -44,17 +55,29 @@ class UpdateCheckerService {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: const [
-            Icon(Icons.system_update_rounded, color: Color(0xFF6366F1), size: 24),
+            Icon(
+              Icons.system_update_rounded,
+              color: Color(0xFF6366F1),
+              size: 24,
+            ),
             SizedBox(width: 10),
             Text(
               'New Update Available',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
             ),
           ],
         ),
         content: Text(
           '$releaseName is now available. Update now to enjoy the latest performance improvements, new music streams, and features.',
-          style: const TextStyle(color: Colors.white70, fontSize: 13.5, height: 1.4),
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 13.5,
+            height: 1.4,
+          ),
         ),
         actions: [
           TextButton(
@@ -64,17 +87,33 @@ class UpdateCheckerService {
           ElevatedButton.icon(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            icon: const Icon(Icons.download_rounded, color: Colors.white, size: 18),
-            label: const Text('Get Update', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            icon: const Icon(
+              Icons.download_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            label: const Text(
+              'Get Update',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             onPressed: () async {
               Navigator.pop(ctx);
-              await Clipboard.setData(ClipboardData(text: AppConfig.apkDownloadUrl));
+              await Clipboard.setData(
+                ClipboardData(text: AppConfig.apkDownloadUrl),
+              );
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('📥 Download link copied to clipboard! Open in browser to install.'),
+                    content: Text(
+                      '📥 Download link copied to clipboard! Open in browser to install.',
+                    ),
                     backgroundColor: Color(0xFF6366F1),
                     behavior: SnackBarBehavior.floating,
                   ),

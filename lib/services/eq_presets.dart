@@ -41,8 +41,10 @@ class EqPresets {
   static double curve(String preset, double t) {
     final gains = getGainsForPreset(preset);
     if (gains.isEmpty) return 0.0;
-    final index =
-        (t * (gains.length - 1)).clamp(0.0, (gains.length - 1).toDouble());
+    final index = (t * (gains.length - 1)).clamp(
+      0.0,
+      (gains.length - 1).toDouble(),
+    );
     final low = index.floor();
     final high = index.ceil();
     if (low == high) return (gains[low] / 12.0).clamp(-1.0, 1.0);

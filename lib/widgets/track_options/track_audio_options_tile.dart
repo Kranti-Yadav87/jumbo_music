@@ -104,11 +104,13 @@ class TrackAudioOptionsTile extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const EqualizerScreen(),
-                    ),
-                  ).then((_) => onStateUpdated?.call());
+                  Navigator.of(context)
+                      .push(
+                        MaterialPageRoute(
+                          builder: (_) => const EqualizerScreen(),
+                        ),
+                      )
+                      .then((_) => onStateUpdated?.call());
                 },
               ),
               const Divider(height: 1, color: Color(0xFF2C2C2E)),

@@ -143,11 +143,10 @@ class FriendListeningSheet {
                       if (localMatches.isNotEmpty) {
                         targetSong = localMatches.first;
                       } else {
-                        final onlineResults =
-                            await MusicApiService.searchLiveSongs(
-                              '${friend.currentSongTitle} ${friend.currentSongArtist}',
-                              limit: 1,
-                            );
+                        final onlineResults = await MusicApiService.searchLiveSongs(
+                          '${friend.currentSongTitle} ${friend.currentSongArtist}',
+                          limit: 1,
+                        );
                         if (onlineResults.isNotEmpty) {
                           targetSong = onlineResults.first;
                         }
