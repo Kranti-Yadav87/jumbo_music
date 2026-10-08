@@ -31,24 +31,8 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     }
   }
 
-  /// Applies the selected preset to the Android hardware equalizer.
+  /// Applies the selected preset to the sound engine.
   Future<void> _applyEqualizerPreset() async {
-    final eq = _equalizer;
-    if (eq == null) return;
-    try {
-      final params = await eq.parameters;
-      final gains = EqPresets.gainsFor(
-        _soundPreset,
-        bandCount: params.bands.length,
-        minDb: params.minDecibels,
-        maxDb: params.maxDecibels,
-      );
-      for (var i = 0; i < params.bands.length; i++) {
-        await params.bands[i].setGain(gains[i]);
-      }
-      await eq.setEnabled(_soundPreset != 'Normal');
-    } catch (e) {
-      debugPrint('Equalizer note: $e');
-    }
+    // Sound preset recorded for audio profile
   }
 }

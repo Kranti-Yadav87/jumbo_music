@@ -76,25 +76,8 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  static bool get _isAndroidNative =>
-      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
-
-  /// Real hardware equalizer. just_audio only supports it on Android.
-  final AndroidEqualizer? _equalizer = _isAndroidNative
-      ? AndroidEqualizer()
-      : null;
-  bool get equalizerSupported => _equalizer != null;
-
-  late final AudioPlayer _audioPlayer = _buildPlayer();
-
-  AudioPlayer _buildPlayer() {
-    final eq = _equalizer;
-    return AudioPlayer(
-      audioPipeline: eq == null
-          ? null
-          : AudioPipeline(androidAudioEffects: [eq]),
-    );
-  }
+  late final AudioPlayer _audioPlayer = AudioPlayer();
+  bool get equalizerSupported => false;
 
   List<Song> _allSongs = [];
   List<Song> _queue = [];
