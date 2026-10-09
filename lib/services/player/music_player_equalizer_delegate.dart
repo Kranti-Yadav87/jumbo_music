@@ -37,9 +37,9 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     } else {
       _bandGains = EqPresets.getGainsForPreset(preset);
     }
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     DatabaseService.instance.updateSetting('eq_preset', preset);
     DatabaseService.instance.updateSetting('soundPreset', preset);
-    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     _applyEqualizerPreset();
     notify();
   }
@@ -48,9 +48,9 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     if (bandIndex < 0 || bandIndex >= _bandGains.length) return;
     _bandGains[bandIndex] = gainDb.clamp(-12.0, 12.0);
     _soundPreset = 'Custom';
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     DatabaseService.instance.updateSetting('eq_preset', 'Custom');
     DatabaseService.instance.updateSetting('soundPreset', 'Custom');
-    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     _applyEqualizerPreset();
     notify();
   }
@@ -82,9 +82,10 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     _customPresets[cleanName] = List<double>.from(gains);
     _soundPreset = cleanName;
     _bandGains = List<double>.from(gains);
+    DatabaseService.instance.updateSetting('eq_custom_presets', _customPresets);
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     DatabaseService.instance.updateSetting('eq_preset', cleanName);
     DatabaseService.instance.updateSetting('soundPreset', cleanName);
-    DatabaseService.instance.updateSetting('eq_custom_presets', _customPresets);
     _applyEqualizerPreset();
     notify();
   }
@@ -109,9 +110,9 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
     _bassBoost = 0.0;
     _virtualizer = 0.0;
     _loudnessGain = 0.0;
+    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     DatabaseService.instance.updateSetting('eq_preset', 'Normal');
     DatabaseService.instance.updateSetting('soundPreset', 'Normal');
-    DatabaseService.instance.updateSetting('eq_gains', _bandGains);
     DatabaseService.instance.updateSetting('eq_bass', 0.0);
     DatabaseService.instance.updateSetting('eq_virtualizer', 0.0);
     DatabaseService.instance.updateSetting('eq_loudness', 0.0);
@@ -139,11 +140,12 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
         if (_equalizerEnabled) {
           final params = await _androidEqualizer.parameters;
           if (params.bands.isNotEmpty) {
-            final gains = EqPresets.gainsFor(
-              _soundPreset,
-              bandCount: params.bands.length,
+            final gains = EqPresets.interpolateGains(
+              _bandGains,
+              targetBandCount: params.bands.length,
               minDb: params.minDecibels,
               maxDb: params.maxDecibels,
+              bassBoost: _bassBoost,
             );
             for (int i = 0; i < params.bands.length && i < gains.length; i++) {
               await params.bands[i].setGain(gains[i]);

@@ -66,6 +66,13 @@ class DatabaseService extends ChangeNotifier {
   final Map<String, dynamic> _settings = {
     'autoplay': true,
     'soundPreset': 'Normal',
+    'eq_preset': 'Normal',
+    'eq_enabled': true,
+    'eq_gains': [0.0, 0.0, 0.0, 0.0, 0.0],
+    'eq_bass': 0.0,
+    'eq_virtualizer': 0.0,
+    'eq_loudness': 0.0,
+    'eq_custom_presets': <String, dynamic>{},
     'playbackSpeed': 1.0,
     'volume': 1.0,
     'isMuted': false,

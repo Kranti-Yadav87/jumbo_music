@@ -420,14 +420,16 @@ class MusicPlayerManager extends ChangeNotifier {
             as String;
     _equalizerEnabled = db.getSetting('eq_enabled', true) as bool;
     final rawGains = db.getSetting('eq_gains', null);
-    if (rawGains is List && rawGains.length == 5) {
+    if (rawGains is List &&
+        rawGains.length == 5 &&
+        !identical(rawGains, _bandGains)) {
       _bandGains = rawGains.map((e) => (e as num).toDouble()).toList();
     }
     _bassBoost = (db.getSetting('eq_bass', 0.0) as num).toDouble();
     _virtualizer = (db.getSetting('eq_virtualizer', 0.0) as num).toDouble();
     _loudnessGain = (db.getSetting('eq_loudness', 0.0) as num).toDouble();
     final rawCustom = db.getSetting('eq_custom_presets', null);
-    if (rawCustom is Map) {
+    if (rawCustom is Map && !identical(rawCustom, _customPresets)) {
       _customPresets.clear();
       rawCustom.forEach((k, v) {
         if (v is List) {

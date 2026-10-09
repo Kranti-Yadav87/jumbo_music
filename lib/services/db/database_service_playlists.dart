@@ -201,6 +201,10 @@ extension DatabaseServicePlaylists on DatabaseService {
 
     notify();
     await _flushPlaylists();
+
+    if (_isLoggedIn && _currentScope.startsWith('user_')) {
+      FirestoreSyncService.instance.pushSharedPlaylistToCloud(playlist);
+    }
     return playlist;
   }
 
@@ -213,11 +217,12 @@ extension DatabaseServicePlaylists on DatabaseService {
         final updatedSongs = List<Song>.from(pl.songs)..add(song);
         final updatedCover = pl.coverUrl.isEmpty ? song.coverUrl : pl.coverUrl;
 
-        _customPlaylists[idx] = pl.copyWith(
+        final updatedPlaylist = pl.copyWith(
           songIds: updatedSongIds,
           songs: updatedSongs,
           coverUrl: updatedCover,
         );
+        _customPlaylists[idx] = updatedPlaylist;
 
         addNotification(
           title: 'Song Added to Shared Playlist',
@@ -227,6 +232,12 @@ extension DatabaseServicePlaylists on DatabaseService {
 
         notify();
         await _flushPlaylists();
+
+        if (_isLoggedIn && _currentScope.startsWith('user_')) {
+          FirestoreSyncService.instance.pushSharedPlaylistToCloud(
+            updatedPlaylist,
+          );
+        }
       }
     }
   }

@@ -53,22 +53,66 @@ class EqPresets {
     return (val / 12.0).clamp(-1.0, 1.0);
   }
 
-  /// Gain in decibels for any requested band count
+  /// Gain in decibels for any requested band count from a factory preset name
   static List<double> gainsFor(
     String preset, {
     required int bandCount,
     required double minDb,
     required double maxDb,
   }) {
-    if (bandCount == 5 && factoryPresetGains.containsKey(preset)) {
-      final base = factoryPresetGains[preset]!;
-      return base.map((g) => g.clamp(minDb, maxDb)).toList();
+    final sourceGains = getGainsForPreset(preset);
+    return interpolateGains(
+      sourceGains,
+      targetBandCount: bandCount,
+      minDb: minDb,
+      maxDb: maxDb,
+    );
+  }
+
+  /// Maps arbitrary 5-band gain decibels to target hardware band count, applying optional bass boost
+  static List<double> interpolateGains(
+    List<double> source5Bands, {
+    required int targetBandCount,
+    required double minDb,
+    required double maxDb,
+    double bassBoost = 0.0,
+  }) {
+    if (source5Bands.isEmpty) {
+      return List.filled(targetBandCount, 0.0);
     }
-    return List<double>.generate(bandCount, (i) {
-      final t = bandCount <= 1 ? 0.5 : i / (bandCount - 1);
-      final v = curve(preset, t);
-      final db = v >= 0 ? v * maxDb : v * -minDb;
-      return db.clamp(minDb, maxDb).toDouble();
+    final boostedGains = List<double>.from(source5Bands);
+    if (bassBoost > 0.0) {
+      if (boostedGains.isNotEmpty) {
+        boostedGains[0] = (boostedGains[0] + bassBoost * 8.0).clamp(
+          -12.0,
+          12.0,
+        );
+      }
+      if (boostedGains.length > 1) {
+        boostedGains[1] = (boostedGains[1] + bassBoost * 4.0).clamp(
+          -12.0,
+          12.0,
+        );
+      }
+    }
+
+    if (targetBandCount == boostedGains.length) {
+      return boostedGains.map((g) => g.clamp(minDb, maxDb)).toList();
+    }
+
+    return List<double>.generate(targetBandCount, (i) {
+      final t = targetBandCount <= 1 ? 0.5 : i / (targetBandCount - 1);
+      final index = (t * (boostedGains.length - 1)).clamp(
+        0.0,
+        (boostedGains.length - 1).toDouble(),
+      );
+      final low = index.floor();
+      final high = index.ceil();
+      final val = (low == high)
+          ? boostedGains[low]
+          : boostedGains[low] * (1.0 - (index - low)) +
+                boostedGains[high] * (index - low);
+      return val.clamp(minDb, maxDb);
     });
   }
 }

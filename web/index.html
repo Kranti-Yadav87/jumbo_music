@@ -309,8 +309,16 @@
           audioElement.crossOrigin = 'anonymous';
         }
 
-        var source = ctx.createMediaElementSource(audioElement);
-        window._jumboAudioSourceMap.set(audioElement, source);
+        var source = null;
+        try {
+          source = ctx.createMediaElementSource(audioElement);
+          window._jumboAudioSourceMap.set(audioElement, source);
+        } catch (corsErr) {
+          // If media element source cannot be attached (e.g. cross-origin CORS restriction),
+          // fallback gracefully to standard browser audio playback without throwing
+          console.warn('Web Audio CORS fallback notice:', corsErr);
+          return;
+        }
 
         if (!window._jumboEqNodes) {
           var freqs = [60, 230, 910, 3600, 14000];
@@ -329,7 +337,7 @@
           bassFilter.frequency.value = 100;
           bassFilter.gain.value = 0.0;
 
-          // Studio Dynamics Compressor to prevent digital clipping / distortion
+          // Studio Dynamics Compressor (dynamically bypassed when EQ is disabled)
           var compressor = ctx.createDynamicsCompressor();
           compressor.threshold.value = -12;
           compressor.knee.value = 30;
@@ -337,17 +345,31 @@
           compressor.attack.value = 0.003;
           compressor.release.value = 0.25;
 
+          // 3D Spatial Stereo Panner / Virtualizer Node
+          var panner = null;
+          try {
+            if (ctx.createStereoPanner) {
+              panner = ctx.createStereoPanner();
+              panner.pan.value = 0.0;
+            }
+          } catch (_) {}
+
           // Master Loudness Gain
           var masterGain = ctx.createGain();
           masterGain.gain.value = 1.0;
 
-          // Cascade: filters[0..4] -> bassFilter -> compressor -> masterGain -> destination
+          // Cascade: filters[0..4] -> bassFilter -> compressor -> [panner] -> masterGain -> destination
           for (var i = 0; i < filters.length - 1; i++) {
             filters[i].connect(filters[i + 1]);
           }
           filters[filters.length - 1].connect(bassFilter);
           bassFilter.connect(compressor);
-          compressor.connect(masterGain);
+          if (panner) {
+            compressor.connect(panner);
+            panner.connect(masterGain);
+          } else {
+            compressor.connect(masterGain);
+          }
           masterGain.connect(ctx.destination);
 
           window._jumboEqNodes = {
@@ -355,6 +377,7 @@
             filters: filters,
             bassFilter: bassFilter,
             compressor: compressor,
+            panner: panner,
             masterGain: masterGain
           };
         }
@@ -390,14 +413,31 @@
         var eq = window._jumboEqNodes;
         var isEn = window._jumboEqState.enabled;
 
+        // 1. 5-Band Filter Gains
         for (var i = 0; i < eq.filters.length; i++) {
           var targetGain = isEn ? (window._jumboEqState.gains[i] || 0.0) : 0.0;
           eq.filters[i].gain.setTargetAtTime(targetGain, now, timeConst);
         }
 
+        // 2. Bass Boost Filter Gain
         var targetBass = isEn ? (window._jumboEqState.bass * 12.0) : 0.0;
         eq.bassFilter.gain.setTargetAtTime(targetBass, now, timeConst);
 
+        // 3. Compressor Bypass on EQ disabled (Linear 1:1 identity when disabled)
+        if (eq.compressor) {
+          var compRatio = isEn ? 8.0 : 1.0;
+          var compThreshold = isEn ? -12.0 : 0.0;
+          eq.compressor.ratio.setTargetAtTime(compRatio, now, timeConst);
+          eq.compressor.threshold.setTargetAtTime(compThreshold, now, timeConst);
+        }
+
+        // 4. 3D Spatial Virtualizer / Panner
+        if (eq.panner) {
+          var targetPan = isEn ? (window._jumboEqState.virtualizer * 0.15) : 0.0;
+          eq.panner.pan.setTargetAtTime(targetPan, now, timeConst);
+        }
+
+        // 5. Master Loudness Gain
         var targetMaster = isEn ? (1.0 + window._jumboEqState.loudness * 0.4) : 1.0;
         eq.masterGain.gain.setTargetAtTime(targetMaster, now, timeConst);
       } catch (e) {

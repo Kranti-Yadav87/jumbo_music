@@ -14,6 +14,7 @@ class FirestoreSyncService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   StreamSubscription? _favoritesSubscription;
   StreamSubscription? _playlistsSubscription;
+  StreamSubscription? _sharedPlaylistsSubscription;
   StreamSubscription? _historySubscription;
 
   bool _isSyncing = false;
@@ -173,10 +174,55 @@ class FirestoreSyncService {
           .collection('playlists')
           .doc(playlistId)
           .delete();
+      await _firestore.collection('shared_playlists').doc(playlistId).delete();
     } catch (e) {
       CrashReportingService.swallow(
         e,
         'firestore_sync_service.dart:deletePlaylistFromCloud',
+      );
+    }
+  }
+
+  /// Push collaborative shared playlist to global shared_playlists collection
+  Future<void> pushSharedPlaylistToCloud(Playlist playlist) async {
+    if (_isRemoteSyncing) return;
+    final uid = currentUid;
+    if (uid == null) return;
+
+    try {
+      final userDocRef = _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('playlists')
+          .doc(playlist.id);
+
+      final sharedDocRef = _firestore
+          .collection('shared_playlists')
+          .doc(playlist.id);
+
+      final data = playlist.toJson();
+      data['ownerId'] = uid;
+      final emails = <String>[];
+      if (playlist.friendEmail.trim().isNotEmpty) {
+        emails.add(playlist.friendEmail.trim().toLowerCase());
+      }
+      final currentEmail = FirebaseAuth.instance.currentUser?.email
+          ?.trim()
+          .toLowerCase();
+      if (currentEmail != null && !emails.contains(currentEmail)) {
+        emails.add(currentEmail);
+      }
+      data['collaboratorEmails'] = emails;
+      data['updatedAt'] = FieldValue.serverTimestamp();
+
+      await Future.wait([
+        userDocRef.set(data, SetOptions(merge: true)),
+        sharedDocRef.set(data, SetOptions(merge: true)),
+      ]);
+    } catch (e) {
+      CrashReportingService.swallow(
+        e,
+        'firestore_sync_service.dart:pushSharedPlaylistToCloud',
       );
     }
   }
@@ -376,7 +422,44 @@ class FirestoreSyncService {
           ),
         );
 
-    // 3. Listen to cloud history changes
+    // 3. Listen to collaborative shared_playlists changes
+    final userEmail = FirebaseAuth.instance.currentUser?.email
+        ?.trim()
+        .toLowerCase();
+    if (userEmail != null && userEmail.isNotEmpty) {
+      _sharedPlaylistsSubscription = _firestore
+          .collection('shared_playlists')
+          .where('collaboratorEmails', arrayContains: userEmail)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              if (_isRemoteSyncing) return;
+              final db = DatabaseService.instance;
+              _isRemoteSyncing = true;
+              try {
+                for (final change in snapshot.docChanges) {
+                  if (change.type == DocumentChangeType.added ||
+                      change.type == DocumentChangeType.modified) {
+                    final data = change.doc.data();
+                    if (data == null) continue;
+                    final playlist = Playlist.fromJson(data);
+                    db.addCustomPlaylist(playlist, syncToCloud: false);
+                  } else if (change.type == DocumentChangeType.removed) {
+                    db.deletePlaylist(change.doc.id, syncToCloud: false);
+                  }
+                }
+              } finally {
+                _isRemoteSyncing = false;
+              }
+            },
+            onError: (e) => CrashReportingService.swallow(
+              e,
+              'firestore_sync_service.dart:shared_playlists_listener',
+            ),
+          );
+    }
+
+    // 4. Listen to cloud history changes
     _historySubscription = _firestore
         .collection('users')
         .doc(uid)
@@ -412,9 +495,11 @@ class FirestoreSyncService {
   void cancelRealtimeListeners() {
     _favoritesSubscription?.cancel();
     _playlistsSubscription?.cancel();
+    _sharedPlaylistsSubscription?.cancel();
     _historySubscription?.cancel();
     _favoritesSubscription = null;
     _playlistsSubscription = null;
+    _sharedPlaylistsSubscription = null;
     _historySubscription = null;
   }
 
