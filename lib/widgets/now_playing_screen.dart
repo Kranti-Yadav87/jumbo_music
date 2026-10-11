@@ -11,6 +11,7 @@ import 'track_options_sheet.dart';
 import 'now_playing/now_playing_action_pill.dart';
 import 'now_playing/now_playing_lyrics_sheet.dart';
 import 'now_playing/now_playing_queue_sheet.dart';
+import 'now_playing/ai_song_insights_sheet.dart';
 
 class NowPlayingScreen extends StatefulWidget {
   const NowPlayingScreen({super.key});
@@ -42,6 +43,10 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
   void _showQueueSheet(BuildContext context, MusicPlayerManager manager) {
     NowPlayingQueueSheet.show(context, manager);
+  }
+
+  void _showAiInsightsSheet(BuildContext context, Song song) {
+    AiSongInsightsSheet.show(context, song);
   }
 
   @override
@@ -248,10 +253,13 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
 
                           // 3. QUICK ACTION PILLS ROW: [SHARE] [DOWNLOAD] [LYRICS] - EXACT MATCH TO SCREENSHOT 2
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
                                 // Share Pill Button
                                 NowPlayingActionPill(
                                   icon: Icons.reply_rounded,
@@ -287,9 +295,20 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                                   onTap: () =>
                                       _showLyricsSheet(context, manager, song),
                                 ),
+                                const SizedBox(width: 10),
+
+                                // AI Story & Insights Pill Button
+                                NowPlayingActionPill(
+                                  icon: Icons.auto_awesome_rounded,
+                                  label: 'AI STORY',
+                                  iconColor: const Color(0xFFA855F7),
+                                  onTap: () =>
+                                      _showAiInsightsSheet(context, song),
+                                ),
                               ],
                             ),
                           ),
+                        ),
 
                           const Spacer(flex: 1),
 

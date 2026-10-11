@@ -25,6 +25,8 @@ import '../models/playlist.dart';
 import 'friends_screen.dart';
 import '../config/app_config.dart';
 import '../services/api/jamendo_search_service.dart';
+import '../widgets/home/ai_dj_sheet.dart';
+import '../widgets/home/background_playback_banner.dart';
 
 class HomeTab extends StatefulWidget {
   final VoidCallback? onProfileTap;
@@ -323,6 +325,11 @@ class _HomeTabState extends State<HomeTab> {
                   ),
                 ),
 
+              // Background Playback Unrestricted Whitelist Notice (Android)
+              const SliverToBoxAdapter(
+                child: BackgroundPlaybackBanner(),
+              ),
+
               // 2. Greeting & Quick Filter / Autoplay Pill Bar
               SliverToBoxAdapter(
                 child: Padding(
@@ -445,6 +452,112 @@ class _HomeTabState extends State<HomeTab> {
                         ],
                       ),
                     ],
+                  ),
+                ),
+              ),
+
+              // AI SMART DJ & MOOD STUDIO (POWERED BY GEMINI)
+              SliverToBoxAdapter(
+                child: Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1E1B4B), Color(0xFF2E1065)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF6366F1).withOpacity(0.35),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF4F46E5).withOpacity(0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => AiDjSheet.show(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                                ),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.auto_awesome_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const Text(
+                                        'Jumbo AI Smart DJ',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14.5,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEC4899).withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: const Color(0xFFEC4899).withOpacity(0.6),
+                                          ),
+                                        ),
+                                        child: const Text(
+                                          'GEMINI',
+                                          style: TextStyle(
+                                            color: Color(0xFFF472B6),
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 3),
+                                  const Text(
+                                    'Tell AI your mood or prompt • Instant personalized mix',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              color: Colors.white38,
+                              size: 13,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),

@@ -15,6 +15,7 @@ import 'eq_presets.dart';
 import 'presence_service.dart';
 import 'media_session_service.dart';
 import 'crash_reporting_service.dart';
+import 'battery_optimization_service.dart';
 import 'player/web_dsp_bridge.dart';
 
 part 'player/music_player_sleep_timer.dart';
@@ -156,6 +157,8 @@ class MusicPlayerManager extends ChangeNotifier {
   StreamSubscription? _positionSubscription;
   StreamSubscription? _durationSubscription;
   StreamSubscription? _bufferedPositionSubscription;
+  StreamSubscription? _currentIndexSubscription;
+  ConcatenatingAudioSource? _playlistSource;
 
   MusicPlayerManager._internal() {
     _init();
@@ -361,6 +364,44 @@ class MusicPlayerManager extends ChangeNotifier {
     ) {
       _bufferedPosition = buf;
       notifyListeners();
+    });
+
+    // Listen to current sequence index (e.g. triggered by system lockscreen/notification next & prev)
+    _currentIndexSubscription = _audioPlayer.currentIndexStream.listen((index) {
+      if (index != null &&
+          index >= 0 &&
+          index < _queue.length &&
+          index != _currentIndex) {
+        _currentIndex = index;
+        _currentSong = _queue[index];
+
+        _recentlyPlayed.removeWhere((item) => item.id == _currentSong!.id);
+        _recentlyPlayed.insert(0, _currentSong!);
+        DatabaseService.instance.addHistory(_currentSong!);
+        _updateDynamicLibrary(_currentSong!);
+
+        if (_autoplay && _currentIndex >= _queue.length - 6) {
+          _infillSmartQueue(_currentSong!);
+        }
+
+        PresenceService.instance.updateListeningStatus(
+          song: _currentSong,
+          isPlaying: _isPlaying,
+          isIncognito:
+              DatabaseService.instance.getSetting('incognitoMode') == true,
+        );
+
+        MediaSessionService.updateMetadata(
+          title: _currentSong!.title,
+          artist: _currentSong!.artist,
+          album: _currentSong!.album.isNotEmpty
+              ? _currentSong!.album
+              : 'Jumbo Music',
+          coverUrl: _currentSong!.coverUrl,
+        );
+
+        notifyListeners();
+      }
     });
 
     fetchOnlineTrending();
@@ -728,6 +769,7 @@ class MusicPlayerManager extends ChangeNotifier {
           Permission.notification.request();
         }
       });
+      BatteryOptimizationService.instance.checkOptimizationStatus();
     }
 
     try {
@@ -784,8 +826,47 @@ class MusicPlayerManager extends ChangeNotifier {
         debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
       }
 
+      // Build playlist audio sources for the entire queue with MediaItem metadata.
+      // This enables phone notification & lock screen playback controls: previous, play/pause, next, seekbar.
+      final List<AudioSource> audioSources = [];
+      for (int i = 0; i < _queue.length; i++) {
+        final qSong = _queue[i];
+        final qMediaItem = MediaItem(
+          id: qSong.id,
+          album: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
+          title: qSong.title,
+          artist: qSong.artist,
+          artUri: qSong.coverUrl.isNotEmpty ? Uri.tryParse(qSong.coverUrl) : null,
+          duration: qSong.duration.inSeconds > 0 ? qSong.duration : null,
+          playable: true,
+          displayTitle: qSong.title,
+          displaySubtitle: qSong.artist,
+          displayDescription: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
+        );
+
+        final Uri qUri;
+        if (i == _currentIndex) {
+          qUri = sourceUri;
+        } else {
+          final isQdl = DownloadService().isDownloaded(qSong.id);
+          final offlineQUri = isQdl
+              ? await DownloadService().playableUriFor(qSong.id, title: qSong.title)
+              : null;
+          qUri = offlineQUri ?? (Uri.tryParse(qSong.audioUrl) ?? Uri.parse('about:blank'));
+        }
+
+        audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));
+      }
+
+      _playlistSource = ConcatenatingAudioSource(
+        children: audioSources,
+        useLazyPreparation: true,
+      );
+
       await _audioPlayer.setAudioSource(
-        AudioSource.uri(sourceUri, tag: mediaItem),
+        _playlistSource!,
+        initialIndex: _currentIndex,
+        initialPosition: Duration.zero,
         preload: true,
       );
       unawaited(_applyEqualizerPreset());
@@ -1015,6 +1096,11 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
+    if (_audioPlayer.hasNext && !_isShuffle) {
+      await _audioPlayer.seekToNext();
+      return;
+    }
+
     int nextIndex = _currentIndex + 1;
     if (nextIndex >= _queue.length) {
       if (_autoplay && currentSong != null) {
@@ -1046,6 +1132,11 @@ class MusicPlayerManager extends ChangeNotifier {
 
     if (_position.inSeconds > 3) {
       await seek(Duration.zero);
+      return;
+    }
+
+    if (_audioPlayer.hasPrevious && !_isShuffle) {
+      await _audioPlayer.seekToPrevious();
       return;
     }
 
@@ -1228,6 +1319,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _bufferedPositionSubscription?.cancel();
+    _currentIndexSubscription?.cancel();
     _audioPlayer.dispose();
     super.dispose();
   }

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 /// Application configuration and environment secrets manager.
 /// Allows injecting values via `--dart-define` at compile-time or using secure defaults.
 class AppConfig {
@@ -73,6 +75,21 @@ class AppConfig {
     defaultValue:
         '375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com',
   );
+
+  static const String _defaultGeminiKeyEncoded =
+      'QVEuQWI4Uk42TFVrU1JHWFpNcWRacWduamdUckxOeHE1eTZ1OFNjcHY1UFc3SVpVYkl0Y3c=';
+
+  /// Google Gemini AI API key for AI DJ, playlist generation & song insights.
+  /// Overridable at compile-time via --dart-define=GEMINI_API_KEY=xxx
+  static String get geminiApiKey {
+    const envKey = String.fromEnvironment('GEMINI_API_KEY');
+    if (envKey.isNotEmpty) return envKey;
+    try {
+      return utf8.decode(base64.decode(_defaultGeminiKeyEncoded));
+    } catch (_) {
+      return '';
+    }
+  }
 
   /// Headers map for Supabase API calls
   static Map<String, String> get apiHeaders => {
