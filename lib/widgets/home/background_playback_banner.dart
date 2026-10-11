@@ -48,9 +48,7 @@ class _BackgroundPlaybackBannerState extends State<BackgroundPlaybackBanner> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: const Color(0xFF10B981).withOpacity(0.4),
-            ),
+            border: Border.all(color: const Color(0xFF10B981).withOpacity(0.4)),
             boxShadow: [
               BoxShadow(
                 color: const Color(0xFF10B981).withOpacity(0.12),
@@ -105,8 +103,10 @@ class _BackgroundPlaybackBannerState extends State<BackgroundPlaybackBanner> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF10B981),
                   foregroundColor: Colors.white,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -117,10 +117,7 @@ class _BackgroundPlaybackBannerState extends State<BackgroundPlaybackBanner> {
                 },
                 child: const Text(
                   'Allow',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
               ),
               IconButton(

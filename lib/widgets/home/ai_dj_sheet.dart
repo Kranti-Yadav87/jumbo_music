@@ -26,14 +26,46 @@ class _AiDjSheetState extends State<AiDjSheet> {
   String _statusText = '';
 
   static const List<Map<String, String>> _quickVibes = [
-    {'emoji': '🌧️', 'label': 'Monsoon Chai', 'prompt': 'Rainy monsoon acoustic emotional bollywood vibes'},
-    {'emoji': '🔥', 'label': 'Gym Beast Mode', 'prompt': 'High energy gym workout motivational pump trap rap'},
-    {'emoji': '🌙', 'label': 'Late Night Drive', 'prompt': 'Late night cruising lo-fi chill hindi melodies'},
-    {'emoji': '💔', 'label': 'Heartbreak Pain', 'prompt': 'Deep sad heartbreak acoustic soulful hindi songs'},
-    {'emoji': '✨', 'label': '90s Golden Era', 'prompt': 'Best nostalgic 90s and 2000s bollywood evergreen hits'},
-    {'emoji': '⚡', 'label': 'Party Anthem', 'prompt': 'High octane club party dance bangers upbeat'},
-    {'emoji': '☕', 'label': 'Study & Focus', 'prompt': 'Relaxing calm acoustic instrumental focus study music'},
-    {'emoji': '🎸', 'label': 'Indie Gems', 'prompt': 'Underrated modern indian indie acoustic folk pop'},
+    {
+      'emoji': '🌧️',
+      'label': 'Monsoon Chai',
+      'prompt': 'Rainy monsoon acoustic emotional bollywood vibes',
+    },
+    {
+      'emoji': '🔥',
+      'label': 'Gym Beast Mode',
+      'prompt': 'High energy gym workout motivational pump trap rap',
+    },
+    {
+      'emoji': '🌙',
+      'label': 'Late Night Drive',
+      'prompt': 'Late night cruising lo-fi chill hindi melodies',
+    },
+    {
+      'emoji': '💔',
+      'label': 'Heartbreak Pain',
+      'prompt': 'Deep sad heartbreak acoustic soulful hindi songs',
+    },
+    {
+      'emoji': '✨',
+      'label': '90s Golden Era',
+      'prompt': 'Best nostalgic 90s and 2000s bollywood evergreen hits',
+    },
+    {
+      'emoji': '⚡',
+      'label': 'Party Anthem',
+      'prompt': 'High octane club party dance bangers upbeat',
+    },
+    {
+      'emoji': '☕',
+      'label': 'Study & Focus',
+      'prompt': 'Relaxing calm acoustic instrumental focus study music',
+    },
+    {
+      'emoji': '🎸',
+      'label': 'Indie Gems',
+      'prompt': 'Underrated modern indian indie acoustic folk pop',
+    },
   ];
 
   @override
@@ -80,12 +112,19 @@ class _AiDjSheetState extends State<AiDjSheet> {
               backgroundColor: const Color(0xFF1E1B4B),
               content: Row(
                 children: [
-                  const Icon(Icons.auto_awesome, color: Color(0xFFA855F7), size: 20),
+                  const Icon(
+                    Icons.auto_awesome,
+                    color: Color(0xFFA855F7),
+                    size: 20,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'AI Mix launched: "$cleanPrompt" (${songs.length} tracks)',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -125,9 +164,7 @@ class _AiDjSheetState extends State<AiDjSheet> {
       decoration: const BoxDecoration(
         color: Color(0xFF13131A),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(color: Color(0xFF312E81), width: 1.5),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFF312E81), width: 1.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -157,7 +194,11 @@ class _AiDjSheetState extends State<AiDjSheet> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -197,7 +238,11 @@ class _AiDjSheetState extends State<AiDjSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome_rounded, color: Color(0xFFA855F7), size: 18),
+                const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Color(0xFFA855F7),
+                  size: 18,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
@@ -205,7 +250,8 @@ class _AiDjSheetState extends State<AiDjSheet> {
                     enabled: !_isLoading,
                     style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: const InputDecoration(
-                      hintText: 'Type any vibe (e.g. Arijit rain acoustic, Gym pump...)',
+                      hintText:
+                          'Type any vibe (e.g. Arijit rain acoustic, Gym pump...)',
                       hintStyle: TextStyle(color: Colors.white38, fontSize: 13),
                       border: InputBorder.none,
                     ),
@@ -218,7 +264,11 @@ class _AiDjSheetState extends State<AiDjSheet> {
                 ),
                 if (_controller.text.isNotEmpty && !_isLoading)
                   IconButton(
-                    icon: const Icon(Icons.clear, color: Colors.white38, size: 18),
+                    icon: const Icon(
+                      Icons.clear,
+                      color: Colors.white38,
+                      size: 18,
+                    ),
                     onPressed: () => setState(() => _controller.clear()),
                   ),
               ],
@@ -250,7 +300,10 @@ class _AiDjSheetState extends State<AiDjSheet> {
                         _generateAndPlay(item['prompt']!);
                       },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 7,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF1E1E28),
                     borderRadius: BorderRadius.circular(20),
@@ -259,7 +312,10 @@ class _AiDjSheetState extends State<AiDjSheet> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(item['emoji']!, style: const TextStyle(fontSize: 13)),
+                      Text(
+                        item['emoji']!,
+                        style: const TextStyle(fontSize: 13),
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         item['label']!,
@@ -284,7 +340,9 @@ class _AiDjSheetState extends State<AiDjSheet> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1E1B4B).withOpacity(0.4),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3)),
+                border: Border.all(
+                  color: const Color(0xFF6366F1).withOpacity(0.3),
+                ),
               ),
               child: Row(
                 children: [
@@ -299,8 +357,13 @@ class _AiDjSheetState extends State<AiDjSheet> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      _statusText.isNotEmpty ? _statusText : 'Crafting your personalized mix...',
-                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                      _statusText.isNotEmpty
+                          ? _statusText
+                          : 'Crafting your personalized mix...',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -334,9 +397,15 @@ class _AiDjSheetState extends State<AiDjSheet> {
                   ),
                   onPressed: () {
                     final p = _controller.text.trim();
-                    _generateAndPlay(p.isNotEmpty ? p : 'Top trending romantic & upbeat hits');
+                    _generateAndPlay(
+                      p.isNotEmpty ? p : 'Top trending romantic & upbeat hits',
+                    );
                   },
-                  icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 24),
+                  icon: const Icon(
+                    Icons.play_arrow_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
                   label: const Text(
                     'Generate & Play AI Mix',
                     style: TextStyle(

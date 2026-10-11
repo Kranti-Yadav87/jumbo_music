@@ -788,19 +788,6 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
-      final mediaItem = MediaItem(
-        id: song.id,
-        album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
-        title: song.title,
-        artist: song.artist,
-        artUri: song.coverUrl.isNotEmpty ? Uri.tryParse(song.coverUrl) : null,
-        duration: song.duration.inSeconds > 0 ? song.duration : null,
-        playable: true,
-        displayTitle: song.title,
-        displaySubtitle: song.artist,
-        displayDescription: song.album.isNotEmpty ? song.album : 'Jumbo Music',
-      );
-
       final isDl = DownloadService().isDownloaded(song.id);
       final offlineUri = await DownloadService().playableUriFor(
         song.id,
@@ -836,12 +823,16 @@ class MusicPlayerManager extends ChangeNotifier {
           album: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
           title: qSong.title,
           artist: qSong.artist,
-          artUri: qSong.coverUrl.isNotEmpty ? Uri.tryParse(qSong.coverUrl) : null,
+          artUri: qSong.coverUrl.isNotEmpty
+              ? Uri.tryParse(qSong.coverUrl)
+              : null,
           duration: qSong.duration.inSeconds > 0 ? qSong.duration : null,
           playable: true,
           displayTitle: qSong.title,
           displaySubtitle: qSong.artist,
-          displayDescription: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
+          displayDescription: qSong.album.isNotEmpty
+              ? qSong.album
+              : 'Jumbo Music',
         );
 
         final Uri qUri;
@@ -850,9 +841,14 @@ class MusicPlayerManager extends ChangeNotifier {
         } else {
           final isQdl = DownloadService().isDownloaded(qSong.id);
           final offlineQUri = isQdl
-              ? await DownloadService().playableUriFor(qSong.id, title: qSong.title)
+              ? await DownloadService().playableUriFor(
+                  qSong.id,
+                  title: qSong.title,
+                )
               : null;
-          qUri = offlineQUri ?? (Uri.tryParse(qSong.audioUrl) ?? Uri.parse('about:blank'));
+          qUri =
+              offlineQUri ??
+              (Uri.tryParse(qSong.audioUrl) ?? Uri.parse('about:blank'));
         }
 
         audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));

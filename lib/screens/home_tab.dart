@@ -326,9 +326,7 @@ class _HomeTabState extends State<HomeTab> {
                 ),
 
               // Background Playback Unrestricted Whitelist Notice (Android)
-              const SliverToBoxAdapter(
-                child: BackgroundPlaybackBanner(),
-              ),
+              const SliverToBoxAdapter(child: BackgroundPlaybackBanner()),
 
               // 2. Greeting & Quick Filter / Autoplay Pill Bar
               SliverToBoxAdapter(
@@ -484,14 +482,20 @@ class _HomeTabState extends State<HomeTab> {
                       borderRadius: BorderRadius.circular(20),
                       onTap: () => AiDjSheet.show(context),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: const BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFF6366F1), Color(0xFFA855F7)],
+                                  colors: [
+                                    Color(0xFF6366F1),
+                                    Color(0xFFA855F7),
+                                  ],
                                 ),
                                 shape: BoxShape.circle,
                               ),
@@ -518,12 +522,21 @@ class _HomeTabState extends State<HomeTab> {
                                       ),
                                       const SizedBox(width: 6),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 5,
+                                          vertical: 2,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFEC4899).withOpacity(0.25),
-                                          borderRadius: BorderRadius.circular(6),
+                                          color: const Color(
+                                            0xFFEC4899,
+                                          ).withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                           border: Border.all(
-                                            color: const Color(0xFFEC4899).withOpacity(0.6),
+                                            color: const Color(
+                                              0xFFEC4899,
+                                            ).withOpacity(0.6),
                                           ),
                                         ),
                                         child: const Text(

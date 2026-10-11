@@ -8,8 +8,9 @@ class BatteryOptimizationService extends ChangeNotifier {
   factory BatteryOptimizationService() => instance;
   BatteryOptimizationService._internal();
 
-  static const MethodChannel _channel =
-      MethodChannel('com.jumbomusic.app/battery_optimization');
+  static const MethodChannel _channel = MethodChannel(
+    'com.jumbomusic.app/battery_optimization',
+  );
 
   bool _isOptimizationIgnored = true;
   bool get isOptimizationIgnored => _isOptimizationIgnored;
@@ -36,7 +37,9 @@ class BatteryOptimizationService extends ChangeNotifier {
     }
 
     try {
-      final res = await _channel.invokeMethod<bool>('isBatteryOptimizationIgnored');
+      final res = await _channel.invokeMethod<bool>(
+        'isBatteryOptimizationIgnored',
+      );
       _isOptimizationIgnored = res ?? false;
     } catch (_) {
       try {
@@ -76,8 +79,7 @@ class BatteryOptimizationService extends ChangeNotifier {
       }
     } catch (_) {
       try {
-        final status =
-            await Permission.ignoreBatteryOptimizations.request();
+        final status = await Permission.ignoreBatteryOptimizations.request();
         _isOptimizationIgnored = status.isGranted;
         notifyListeners();
         return _isOptimizationIgnored;

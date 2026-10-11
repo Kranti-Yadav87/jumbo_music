@@ -260,55 +260,58 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                // Share Pill Button
-                                NowPlayingActionPill(
-                                  icon: Icons.reply_rounded,
-                                  label: 'SHARE',
-                                  onTap: () => _shareSong(context, song),
-                                ),
-                                const SizedBox(width: 10),
-
-                                // Download Pill Button (Saves offline in app)
-                                NowPlayingActionPill(
-                                  icon: isDl
-                                      ? Icons.check_circle_rounded
-                                      : (isDling
-                                            ? Icons.hourglass_top_rounded
-                                            : Icons.download_rounded),
-                                  label: isDl
-                                      ? 'DOWNLOADED'
-                                      : (isDling ? 'SAVING...' : 'DOWNLOAD'),
-                                  iconColor: isDl
-                                      ? const Color(0xFF10B981)
-                                      : Colors.white,
-                                  onTap: () => downloadService.downloadSong(
-                                    song,
-                                    context: context,
+                                  // Share Pill Button
+                                  NowPlayingActionPill(
+                                    icon: Icons.reply_rounded,
+                                    label: 'SHARE',
+                                    onTap: () => _shareSong(context, song),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
+                                  const SizedBox(width: 10),
 
-                                // Lyrics Pill Button
-                                NowPlayingActionPill(
-                                  icon: Icons.article_outlined,
-                                  label: 'LYRICS',
-                                  onTap: () =>
-                                      _showLyricsSheet(context, manager, song),
-                                ),
-                                const SizedBox(width: 10),
+                                  // Download Pill Button (Saves offline in app)
+                                  NowPlayingActionPill(
+                                    icon: isDl
+                                        ? Icons.check_circle_rounded
+                                        : (isDling
+                                              ? Icons.hourglass_top_rounded
+                                              : Icons.download_rounded),
+                                    label: isDl
+                                        ? 'DOWNLOADED'
+                                        : (isDling ? 'SAVING...' : 'DOWNLOAD'),
+                                    iconColor: isDl
+                                        ? const Color(0xFF10B981)
+                                        : Colors.white,
+                                    onTap: () => downloadService.downloadSong(
+                                      song,
+                                      context: context,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
 
-                                // AI Story & Insights Pill Button
-                                NowPlayingActionPill(
-                                  icon: Icons.auto_awesome_rounded,
-                                  label: 'AI STORY',
-                                  iconColor: const Color(0xFFA855F7),
-                                  onTap: () =>
-                                      _showAiInsightsSheet(context, song),
-                                ),
-                              ],
+                                  // Lyrics Pill Button
+                                  NowPlayingActionPill(
+                                    icon: Icons.article_outlined,
+                                    label: 'LYRICS',
+                                    onTap: () => _showLyricsSheet(
+                                      context,
+                                      manager,
+                                      song,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+
+                                  // AI Story & Insights Pill Button
+                                  NowPlayingActionPill(
+                                    icon: Icons.auto_awesome_rounded,
+                                    label: 'AI STORY',
+                                    iconColor: const Color(0xFFA855F7),
+                                    onTap: () =>
+                                        _showAiInsightsSheet(context, song),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
                           const Spacer(flex: 1),
 

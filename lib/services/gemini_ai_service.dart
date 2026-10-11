@@ -146,7 +146,8 @@ class GeminiAiService {
       final startBracket = raw.indexOf('[');
       final startBrace = raw.indexOf('{');
 
-      if (startBracket != -1 && (startBrace == -1 || startBracket < startBrace)) {
+      if (startBracket != -1 &&
+          (startBrace == -1 || startBracket < startBrace)) {
         final endBracket = raw.lastIndexOf(']');
         if (endBracket != -1 && endBracket > startBracket) {
           return jsonDecode(raw.substring(startBracket, endBracket + 1));
@@ -169,7 +170,8 @@ class GeminiAiService {
     required String prompt,
     int count = 8,
   }) async {
-    final systemPrompt = '''
+    final systemPrompt =
+        '''
 You are the AI Music Curator for "Jumbo Music", an Indian and international high-fidelity streaming app.
 Based on the user's music vibe/request: "$prompt", generate a list of $count distinct, popular, and high-vibe songs.
 Blend well-known popular hits with beloved gems that match the vibe accurately (Bollywood, Punjabi, Indie, English Pop, Hip-Hop, etc. as appropriate).
@@ -238,7 +240,10 @@ Example format:
     // If some tracks weren't found, fall back to searching the prompt directly
     if (playableSongs.length < 3) {
       try {
-        final generic = await MusicApiService.searchLiveSongs(prompt, limit: 10);
+        final generic = await MusicApiService.searchLiveSongs(
+          prompt,
+          limit: 10,
+        );
         for (final s in generic) {
           if (seenIds.add(s.id)) {
             playableSongs.add(s);
@@ -257,7 +262,8 @@ Example format:
       return _insightCache[cacheKey]!;
     }
 
-    final prompt = '''
+    final prompt =
+        '''
 Analyze the song "${song.title}" by "${song.artist}".
 Provide rich musical and emotional insights in JSON format:
 {
@@ -278,11 +284,14 @@ Provide rich musical and emotional insights in JSON format:
           artist: song.artist,
           mood: parsed['mood']?.toString() ?? 'Soulful & Melodic',
           energyLevel: parsed['energyLevel']?.toString() ?? 'Uplifting',
-          story: parsed['story']?.toString() ??
+          story:
+              parsed['story']?.toString() ??
               '"${song.title}" delivers an emotional narrative wrapped in memorable rhythms.',
-          listeningContext: parsed['listeningContext']?.toString() ??
+          listeningContext:
+              parsed['listeningContext']?.toString() ??
               'Late night relaxing or travel playlist.',
-          similarArtists: (parsed['similarArtists'] as List?)
+          similarArtists:
+              (parsed['similarArtists'] as List?)
                   ?.map((e) => e.toString())
                   .toList() ??
               [song.artist],
@@ -302,47 +311,155 @@ Provide rich musical and emotional insights in JSON format:
     final p = prompt.toLowerCase();
     if (p.contains('gym') || p.contains('workout') || p.contains('energy')) {
       return const [
-        AiSongRecommendation(title: 'Believer', artist: 'Imagine Dragons', vibe: 'High Energy'),
-        AiSongRecommendation(title: 'Zinda', artist: 'Shankar Mahadevan', vibe: 'Power Boost'),
-        AiSongRecommendation(title: 'Kar Har Maidaan Fateh', artist: 'Sukhwinder Singh', vibe: 'Motivation'),
-        AiSongRecommendation(title: 'Sultan', artist: 'Sukhwinder Singh', vibe: 'Adrenaline'),
-        AiSongRecommendation(title: 'Get Up', artist: '50 Cent', vibe: 'Workout Drill'),
+        AiSongRecommendation(
+          title: 'Believer',
+          artist: 'Imagine Dragons',
+          vibe: 'High Energy',
+        ),
+        AiSongRecommendation(
+          title: 'Zinda',
+          artist: 'Shankar Mahadevan',
+          vibe: 'Power Boost',
+        ),
+        AiSongRecommendation(
+          title: 'Kar Har Maidaan Fateh',
+          artist: 'Sukhwinder Singh',
+          vibe: 'Motivation',
+        ),
+        AiSongRecommendation(
+          title: 'Sultan',
+          artist: 'Sukhwinder Singh',
+          vibe: 'Adrenaline',
+        ),
+        AiSongRecommendation(
+          title: 'Get Up',
+          artist: '50 Cent',
+          vibe: 'Workout Drill',
+        ),
       ];
-    } else if (p.contains('rain') || p.contains('monsoon') || p.contains('chai')) {
+    } else if (p.contains('rain') ||
+        p.contains('monsoon') ||
+        p.contains('chai')) {
       return const [
-        AiSongRecommendation(title: 'Baarishein', artist: 'Anuv Jain', vibe: 'Acoustic Rain'),
-        AiSongRecommendation(title: 'Rimjhim Gire Sawan', artist: 'Kishore Kumar', vibe: 'Classic Monsoon'),
-        AiSongRecommendation(title: 'Kabhi Jo Baadal Barse', artist: 'Arijit Singh', vibe: 'Soulful Monsoon'),
-        AiSongRecommendation(title: 'Ghar', artist: 'Mohit Chauhan', vibe: 'Warm Cozy'),
+        AiSongRecommendation(
+          title: 'Baarishein',
+          artist: 'Anuv Jain',
+          vibe: 'Acoustic Rain',
+        ),
+        AiSongRecommendation(
+          title: 'Rimjhim Gire Sawan',
+          artist: 'Kishore Kumar',
+          vibe: 'Classic Monsoon',
+        ),
+        AiSongRecommendation(
+          title: 'Kabhi Jo Baadal Barse',
+          artist: 'Arijit Singh',
+          vibe: 'Soulful Monsoon',
+        ),
+        AiSongRecommendation(
+          title: 'Ghar',
+          artist: 'Mohit Chauhan',
+          vibe: 'Warm Cozy',
+        ),
       ];
-    } else if (p.contains('night') || p.contains('chill') || p.contains('drive')) {
+    } else if (p.contains('night') ||
+        p.contains('chill') ||
+        p.contains('drive')) {
       return const [
-        AiSongRecommendation(title: 'Kun Faya Kun', artist: 'A.R. Rahman', vibe: 'Spiritual Peace'),
-        AiSongRecommendation(title: 'Ilahi', artist: 'Arijit Singh', vibe: 'Night Wanderer'),
-        AiSongRecommendation(title: 'Iktara', artist: 'Kavita Seth', vibe: 'Nocturnal Calm'),
-        AiSongRecommendation(title: 'Safarnama', artist: 'Lucky Ali', vibe: 'Highway Cruise'),
+        AiSongRecommendation(
+          title: 'Kun Faya Kun',
+          artist: 'A.R. Rahman',
+          vibe: 'Spiritual Peace',
+        ),
+        AiSongRecommendation(
+          title: 'Ilahi',
+          artist: 'Arijit Singh',
+          vibe: 'Night Wanderer',
+        ),
+        AiSongRecommendation(
+          title: 'Iktara',
+          artist: 'Kavita Seth',
+          vibe: 'Nocturnal Calm',
+        ),
+        AiSongRecommendation(
+          title: 'Safarnama',
+          artist: 'Lucky Ali',
+          vibe: 'Highway Cruise',
+        ),
       ];
-    } else if (p.contains('sad') || p.contains('heartbreak') || p.contains('dard')) {
+    } else if (p.contains('sad') ||
+        p.contains('heartbreak') ||
+        p.contains('dard')) {
       return const [
-        AiSongRecommendation(title: 'Channa Mereya', artist: 'Arijit Singh', vibe: 'Heartbreak Classic'),
-        AiSongRecommendation(title: 'Agar Tum Saath Ho', artist: 'Alka Yagnik', vibe: 'Deep Melancholy'),
-        AiSongRecommendation(title: 'Tujhe Bhula Diya', artist: 'Mohit Chauhan', vibe: 'Aching Love'),
-        AiSongRecommendation(title: 'Kabira (Encore)', artist: 'Arijit Singh', vibe: 'Soulful Goodbye'),
+        AiSongRecommendation(
+          title: 'Channa Mereya',
+          artist: 'Arijit Singh',
+          vibe: 'Heartbreak Classic',
+        ),
+        AiSongRecommendation(
+          title: 'Agar Tum Saath Ho',
+          artist: 'Alka Yagnik',
+          vibe: 'Deep Melancholy',
+        ),
+        AiSongRecommendation(
+          title: 'Tujhe Bhula Diya',
+          artist: 'Mohit Chauhan',
+          vibe: 'Aching Love',
+        ),
+        AiSongRecommendation(
+          title: 'Kabira (Encore)',
+          artist: 'Arijit Singh',
+          vibe: 'Soulful Goodbye',
+        ),
       ];
-    } else if (p.contains('party') || p.contains('dance') || p.contains('bhangra')) {
+    } else if (p.contains('party') ||
+        p.contains('dance') ||
+        p.contains('bhangra')) {
       return const [
-        AiSongRecommendation(title: 'Tauba Tauba', artist: 'Karan Aujla', vibe: 'Club Banger'),
-        AiSongRecommendation(title: 'Kala Chashma', artist: 'Amar Arshi', vibe: 'Dance Anthem'),
-        AiSongRecommendation(title: 'Proper Patola', artist: 'Diljit Dosanjh', vibe: 'Bhangra Swag'),
-        AiSongRecommendation(title: 'Gallan Goodiyaan', artist: 'Farhan Akhtar', vibe: 'Celebration'),
+        AiSongRecommendation(
+          title: 'Tauba Tauba',
+          artist: 'Karan Aujla',
+          vibe: 'Club Banger',
+        ),
+        AiSongRecommendation(
+          title: 'Kala Chashma',
+          artist: 'Amar Arshi',
+          vibe: 'Dance Anthem',
+        ),
+        AiSongRecommendation(
+          title: 'Proper Patola',
+          artist: 'Diljit Dosanjh',
+          vibe: 'Bhangra Swag',
+        ),
+        AiSongRecommendation(
+          title: 'Gallan Goodiyaan',
+          artist: 'Farhan Akhtar',
+          vibe: 'Celebration',
+        ),
       ];
     }
 
     return const [
-      AiSongRecommendation(title: 'Apna Bana Le', artist: 'Arijit Singh', vibe: 'Romantic Melody'),
-      AiSongRecommendation(title: 'Heeriye', artist: 'Jasleen Royal', vibe: 'Modern Acoustic'),
-      AiSongRecommendation(title: 'Tum Se Hi', artist: 'Mohit Chauhan', vibe: 'Timeless Love'),
-      AiSongRecommendation(title: 'Pee Loon', artist: 'Mohit Chauhan', vibe: 'Soulful Melody'),
+      AiSongRecommendation(
+        title: 'Apna Bana Le',
+        artist: 'Arijit Singh',
+        vibe: 'Romantic Melody',
+      ),
+      AiSongRecommendation(
+        title: 'Heeriye',
+        artist: 'Jasleen Royal',
+        vibe: 'Modern Acoustic',
+      ),
+      AiSongRecommendation(
+        title: 'Tum Se Hi',
+        artist: 'Mohit Chauhan',
+        vibe: 'Timeless Love',
+      ),
+      AiSongRecommendation(
+        title: 'Pee Loon',
+        artist: 'Mohit Chauhan',
+        vibe: 'Soulful Melody',
+      ),
     ];
   }
 }

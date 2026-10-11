@@ -69,9 +69,7 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
       decoration: const BoxDecoration(
         color: Color(0xFF13131A),
         borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        border: Border(
-          top: BorderSide(color: Color(0xFF4338CA), width: 1.5),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFF4338CA), width: 1.5)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -101,7 +99,11 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.auto_awesome_rounded, color: Colors.white, size: 22),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -118,7 +120,10 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                     ),
                     Text(
                       '${widget.song.title} • ${widget.song.artist}',
-                      style: const TextStyle(color: Colors.white54, fontSize: 12),
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -160,16 +165,25 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                     runSpacing: 8,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF312E81).withOpacity(0.5),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.4)),
+                          border: Border.all(
+                            color: const Color(0xFF6366F1).withOpacity(0.4),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.mood, color: Color(0xFFA5B4FC), size: 16),
+                            const Icon(
+                              Icons.mood,
+                              color: Color(0xFFA5B4FC),
+                              size: 16,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               _insight!.mood,
@@ -183,16 +197,25 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF701A75).withOpacity(0.4),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFD946EF).withOpacity(0.4)),
+                          border: Border.all(
+                            color: const Color(0xFFD946EF).withOpacity(0.4),
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.bolt_rounded, color: Color(0xFFF5D0FE), size: 16),
+                            const Icon(
+                              Icons.bolt_rounded,
+                              color: Color(0xFFF5D0FE),
+                              size: 16,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               _insight!.energyLevel,
@@ -222,7 +245,11 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.format_quote_rounded, color: Color(0xFFA855F7), size: 20),
+                            Icon(
+                              Icons.format_quote_rounded,
+                              color: Color(0xFFA855F7),
+                              size: 20,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               'Story & Meaning',
@@ -261,7 +288,11 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.headset_rounded, color: Color(0xFF38BDF8), size: 18),
+                            Icon(
+                              Icons.headset_rounded,
+                              color: Color(0xFF38BDF8),
+                              size: 18,
+                            ),
                             SizedBox(width: 8),
                             Text(
                               'Best Listening Atmosphere',
@@ -305,10 +336,17 @@ class _AiSongInsightsSheetState extends State<AiSongInsightsSheet> {
                         return ActionChip(
                           backgroundColor: const Color(0xFF1E1E28),
                           side: const BorderSide(color: Colors.white12),
-                          avatar: const Icon(Icons.music_note, color: Color(0xFFA855F7), size: 15),
+                          avatar: const Icon(
+                            Icons.music_note,
+                            color: Color(0xFFA855F7),
+                            size: 15,
+                          ),
                           label: Text(
                             artist,
-                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                            ),
                           ),
                           onPressed: () => _playSimilarArtist(artist),
                         );

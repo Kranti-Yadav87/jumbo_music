@@ -45,22 +45,31 @@ void main() {
       expect(insight.similarArtists, isNotEmpty);
     });
 
-    test('GeminiAiService returns curated recommendations for mood categories', () async {
-      final service = GeminiAiService.instance;
+    test(
+      'GeminiAiService returns curated recommendations for mood categories',
+      () async {
+        final service = GeminiAiService.instance;
 
-      // When API call fails or runs in unit test environment, fallback handles gracefully
-      final gymRecs = await service.generateRecommendations(prompt: 'Gym beast workout energy');
-      expect(gymRecs, isNotEmpty);
-      expect(gymRecs.any((r) => r.title.isNotEmpty), isTrue);
+        // When API call fails or runs in unit test environment, fallback handles gracefully
+        final gymRecs = await service.generateRecommendations(
+          prompt: 'Gym beast workout energy',
+        );
+        expect(gymRecs, isNotEmpty);
+        expect(gymRecs.any((r) => r.title.isNotEmpty), isTrue);
 
-      final rainRecs = await service.generateRecommendations(prompt: 'Rainy chai romantic vibes');
-      expect(rainRecs, isNotEmpty);
-      expect(rainRecs.any((r) => r.title.isNotEmpty), isTrue);
+        final rainRecs = await service.generateRecommendations(
+          prompt: 'Rainy chai romantic vibes',
+        );
+        expect(rainRecs, isNotEmpty);
+        expect(rainRecs.any((r) => r.title.isNotEmpty), isTrue);
 
-      final nightRecs = await service.generateRecommendations(prompt: 'Late night highway drive');
-      expect(nightRecs, isNotEmpty);
-      expect(nightRecs.any((r) => r.title.isNotEmpty), isTrue);
-    });
+        final nightRecs = await service.generateRecommendations(
+          prompt: 'Late night highway drive',
+        );
+        expect(nightRecs, isNotEmpty);
+        expect(nightRecs.any((r) => r.title.isNotEmpty), isTrue);
+      },
+    );
 
     test('getSongInsights returns insights for song model', () async {
       const song = Song(

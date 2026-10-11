@@ -17,30 +17,36 @@ void main() {
       expect(identical(s1, s2), isTrue);
     });
 
-    test('checkOptimizationStatus honors mock override when not ignored', () async {
-      final service = BatteryOptimizationService.instance;
-      BatteryOptimizationService.mockIsIgnored = false;
+    test(
+      'checkOptimizationStatus honors mock override when not ignored',
+      () async {
+        final service = BatteryOptimizationService.instance;
+        BatteryOptimizationService.mockIsIgnored = false;
 
-      final isIgnored = await service.checkOptimizationStatus();
-      expect(isIgnored, isFalse);
-      expect(service.isOptimizationIgnored, isFalse);
-      expect(service.hasChecked, isTrue);
-    });
+        final isIgnored = await service.checkOptimizationStatus();
+        expect(isIgnored, isFalse);
+        expect(service.isOptimizationIgnored, isFalse);
+        expect(service.hasChecked, isTrue);
+      },
+    );
 
-    test('requestIgnoreBatteryOptimization updates state and notifies', () async {
-      final service = BatteryOptimizationService.instance;
-      BatteryOptimizationService.mockIsIgnored = false;
-      await service.checkOptimizationStatus();
-      expect(service.isOptimizationIgnored, isFalse);
+    test(
+      'requestIgnoreBatteryOptimization updates state and notifies',
+      () async {
+        final service = BatteryOptimizationService.instance;
+        BatteryOptimizationService.mockIsIgnored = false;
+        await service.checkOptimizationStatus();
+        expect(service.isOptimizationIgnored, isFalse);
 
-      bool notified = false;
-      service.addListener(() => notified = true);
+        bool notified = false;
+        service.addListener(() => notified = true);
 
-      final success = await service.requestIgnoreBatteryOptimization();
-      expect(success, isTrue);
-      expect(service.isOptimizationIgnored, isTrue);
-      expect(notified, isTrue);
-    });
+        final success = await service.requestIgnoreBatteryOptimization();
+        expect(success, isTrue);
+        expect(service.isOptimizationIgnored, isTrue);
+        expect(notified, isTrue);
+      },
+    );
   });
 
   group('BackgroundPlaybackBanner Widget Tests', () {
@@ -48,16 +54,14 @@ void main() {
       BatteryOptimizationService.mockIsIgnored = null;
     });
 
-    testWidgets('Renders banner when battery optimization is restricted', (tester) async {
+    testWidgets('Renders banner when battery optimization is restricted', (
+      tester,
+    ) async {
       BatteryOptimizationService.mockIsIgnored = false;
       await BatteryOptimizationService.instance.checkOptimizationStatus();
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: BackgroundPlaybackBanner(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: BackgroundPlaybackBanner())),
       );
       await tester.pumpAndSettle();
 
@@ -65,16 +69,14 @@ void main() {
       expect(find.text('Allow'), findsOneWidget);
     });
 
-    testWidgets('Hides banner when battery optimization is already ignored', (tester) async {
+    testWidgets('Hides banner when battery optimization is already ignored', (
+      tester,
+    ) async {
       BatteryOptimizationService.mockIsIgnored = true;
       await BatteryOptimizationService.instance.checkOptimizationStatus();
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: BackgroundPlaybackBanner(),
-          ),
-        ),
+        const MaterialApp(home: Scaffold(body: BackgroundPlaybackBanner())),
       );
       await tester.pumpAndSettle();
 
