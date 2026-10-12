@@ -25,7 +25,8 @@ jobs:
       - name: Build Web App
         env:
           JAMENDO_CLIENT_ID: ${{ secrets.JAMENDO_CLIENT_ID }}
-        run: flutter build web --release --base-href / --dart-define=JAMENDO_CLIENT_ID=$JAMENDO_CLIENT_ID
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: flutter build web --release --base-href / --dart-define=JAMENDO_CLIENT_ID=$JAMENDO_CLIENT_ID --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4

@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Application configuration and environment secrets manager.
 /// Allows injecting values via `--dart-define` at compile-time or using secure defaults.
 class AppConfig {
@@ -38,6 +36,7 @@ class AppConfig {
   /// Test overrides to allow testing both catalog states without rebuilding
   static bool? mockUseUnofficialCatalog;
   static String? mockJamendoClientId;
+  static String? mockGeminiApiKey;
 
   /// Effective catalog flag (respects mock override in tests)
   static bool get isUnofficialCatalogEnabled =>
@@ -76,19 +75,11 @@ class AppConfig {
         '375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com',
   );
 
-  static const String _defaultGeminiKeyEncoded =
-      'QVEuQWI4Uk42TFVrU1JHWFpNcWRacWduamdUckxOeHE1eTZ1OFNjcHY1UFc3SVpVYkl0Y3c=';
-
   /// Google Gemini AI API key for AI DJ, playlist generation & song insights.
-  /// Overridable at compile-time via --dart-define=GEMINI_API_KEY=xxx
+  /// Securely injected at compile-time via --dart-define=GEMINI_API_KEY=xxx
   static String get geminiApiKey {
-    const envKey = String.fromEnvironment('GEMINI_API_KEY');
-    if (envKey.isNotEmpty) return envKey;
-    try {
-      return utf8.decode(base64.decode(_defaultGeminiKeyEncoded));
-    } catch (_) {
-      return '';
-    }
+    if (mockGeminiApiKey != null) return mockGeminiApiKey!;
+    return const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
   }
 
   /// Headers map for Supabase API calls

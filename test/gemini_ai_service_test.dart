@@ -7,9 +7,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('GeminiAiService & AppConfig AI Tests', () {
-    test('AppConfig exposes configured geminiApiKey', () {
-      expect(AppConfig.geminiApiKey, isNotEmpty);
-      expect(AppConfig.geminiApiKey.startsWith('AQ.'), isTrue);
+    test('AppConfig exposes configured geminiApiKey or mock override', () {
+      AppConfig.mockGeminiApiKey = 'test_gemini_key_123';
+      expect(AppConfig.geminiApiKey, equals('test_gemini_key_123'));
+      AppConfig.mockGeminiApiKey = null;
     });
 
     test('AiSongRecommendation serializes and deserializes correctly', () {
