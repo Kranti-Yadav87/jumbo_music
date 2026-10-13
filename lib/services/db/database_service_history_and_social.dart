@@ -75,8 +75,6 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
   }
 
   // 5. Search History
-  List<String> get searchHistory => List.unmodifiable(_searchHistory);
-
   Future<void> _loadSearchHistory() async {
     try {
       final raw = await StorageEngine.getItem(_scopedKey('search_history'));

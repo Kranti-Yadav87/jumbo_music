@@ -12,6 +12,26 @@ class BatteryOptimizationService extends ChangeNotifier {
     'com.jumbomusic.app/battery_optimization',
   );
 
+  static const MethodChannel _wakeLockChannel = MethodChannel(
+    'com.jumbomusic.app/wake_lock',
+  );
+
+  /// Acquires native Android PARTIAL_WAKE_LOCK to prevent CPU sleep when phone is locked
+  static Future<void> acquireWakeLock() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _wakeLockChannel.invokeMethod('acquireWakeLock');
+    } catch (_) {}
+  }
+
+  /// Releases native Android PARTIAL_WAKE_LOCK
+  static Future<void> releaseWakeLock() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) return;
+    try {
+      await _wakeLockChannel.invokeMethod('releaseWakeLock');
+    } catch (_) {}
+  }
+
   bool _isOptimizationIgnored = true;
   bool get isOptimizationIgnored => _isOptimizationIgnored;
 
@@ -87,5 +107,17 @@ class BatteryOptimizationService extends ChangeNotifier {
     }
 
     return false;
+  }
+
+  bool _hasPrompted = false;
+
+  /// Prompts for unrestricted battery optimization once if not already granted
+  Future<void> promptOptimizationIfNeeded() async {
+    if (_hasPrompted) return;
+    _hasPrompted = true;
+    final isIgnored = await checkOptimizationStatus();
+    if (!isIgnored) {
+      await requestIgnoreBatteryOptimization();
+    }
   }
 }

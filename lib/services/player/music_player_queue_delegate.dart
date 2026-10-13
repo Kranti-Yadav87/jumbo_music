@@ -71,8 +71,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
 
     for (final track in tracks) {
       if (track.audioUrl.trim().isEmpty) continue;
-      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 60)
+      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 60) {
         continue;
+      }
       if (currentQueueIds.contains(track.id)) continue;
       final key = SongParserUtils.songDeduplicationKey(track);
       if (currentQueueKeys.contains(key)) continue;
@@ -130,125 +131,20 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     notify();
 
     try {
-      final songLang = MusicApiService.detectSongLanguage(seedSong);
-      final is70s =
-          songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(seedSong);
-      final is80s =
-          songLang == 'Hindi' && !is70s && MusicApiService.is80sEra(seedSong);
-      final is90s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          MusicApiService.is90sMelodyEra(seedSong);
-      final is2000s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          MusicApiService.is2000sSong(seedSong);
-      final is2010s =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          !is2000s &&
-          MusicApiService.is2010sSong(seedSong);
-      final isIndie =
-          songLang == 'Hindi' &&
-          !is70s &&
-          !is80s &&
-          !is90s &&
-          !is2000s &&
-          !is2010s &&
-          MusicApiService.isIndieOrSukoonSong(seedSong);
-
-      // 1. First immediately seed from local _allSongs strictly matching language & era
-      if (_queue.length < targetQueueSize && _allSongs.isNotEmpty) {
-        final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-        final Set<String> currentQueueKeys = _queue
-            .map(SongParserUtils.songDeduplicationKey)
-            .toSet();
-
-        final localCandidates = _allSongs.where((s) {
-          if (s.audioUrl.trim().isEmpty &&
-              !DownloadService().isDownloaded(s.id)) {
-            return false;
-          }
-          if (currentQueueIds.contains(s.id)) return false;
-          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
-            return false;
-          }
-          final key = SongParserUtils.songDeduplicationKey(s);
-          if (currentQueueKeys.contains(key)) return false;
-
-          final candLang = MusicApiService.detectSongLanguage(s);
-          if (candLang != songLang) return false;
-
-          if (songLang == 'Hindi') {
-            if (is70s) {
-              return MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is80s) {
-              return MusicApiService.is80sEra(s) &&
-                  !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is90s) {
-              return MusicApiService.is90sMelodyEra(s) &&
-                  !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s);
-            }
-            if (is2000s) {
-              return MusicApiService.is2000sSong(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            if (is2010s) return MusicApiService.is2010sSong(s);
-            if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-            return !MusicApiService.isVintageGoldenEra(s) &&
-                !MusicApiService.is80sEra(s) &&
-                !MusicApiService.is90sMelodyEra(s);
-          }
-          return true;
-        }).toList();
-
-        localCandidates.sort((a, b) {
-          int scoreA =
-              (a.artist == seedSong.artist ? 3 : 0) +
-              (a.genre == seedSong.genre ? 1 : 0);
-          int scoreB =
-              (b.artist == seedSong.artist ? 3 : 0) +
-              (b.genre == seedSong.genre ? 1 : 0);
-          return scoreB.compareTo(scoreA);
-        });
-
-        final needed = targetQueueSize - _queue.length;
-        if (needed > 0 && localCandidates.isNotEmpty) {
-          final dedupedLocal = SongParserUtils.deduplicateSongs(
-            localCandidates,
-          );
-          _appendTracksToQueueAndPlaylistSource(
-            dedupedLocal.take(needed).toList(),
-          );
-        }
-      }
-
-      // 2. Fetch fresh smart recommendations concurrently matching exact era and language
-      final freshTracks = await MusicApiService.fetchSmartRecommendations(
-        seedSong,
-        limit: 55,
+      final smartTracks = await AiRecommendationEngine.instance.buildSmartQueue(
+        seedSong: seedSong,
+        existingQueue: _queue,
+        targetSize: targetQueueSize,
       );
-      if (freshTracks.isNotEmpty) {
+
+      if (smartTracks.isNotEmpty) {
         final currentQueueIds = _queue.map((s) => s.id).toSet();
         final currentQueueKeys = _queue
             .map(SongParserUtils.songDeduplicationKey)
             .toSet();
 
-        final List<Song> dedupedFresh = SongParserUtils.deduplicateSongs(
-          freshTracks,
-        );
-        final List<Song> newTracks = dedupedFresh.where((s) {
+        final List<Song> newTracks = smartTracks.where((s) {
+          if (s.id == seedSong.id) return false;
           if (s.audioUrl.trim().isEmpty) return false;
           if (currentQueueIds.contains(s.id)) return false;
           if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {

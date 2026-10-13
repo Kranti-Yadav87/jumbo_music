@@ -5,7 +5,6 @@ part of '../database_service.dart';
 // -------------------------------------------------------------
 extension DatabaseServiceFavorites on DatabaseService {
   Set<String> get favoriteIds => Set.unmodifiable(_favoriteIds);
-  List<Song> get favoriteSongs => _favoriteSongsMap.values.toList();
 
   bool isFavorite(String songId) => _favoriteIds.contains(songId);
 

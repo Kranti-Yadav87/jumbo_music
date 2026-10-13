@@ -17,6 +17,7 @@ import 'crash_reporting_service.dart';
 import 'battery_optimization_service.dart';
 import 'notification_permission_service.dart';
 import 'player/web_dsp_bridge.dart';
+import 'recommendation/ai_recommendation_engine.dart';
 
 part 'player/music_player_sleep_timer.dart';
 part 'player/music_player_equalizer_delegate.dart';
@@ -296,6 +297,12 @@ class MusicPlayerManager extends ChangeNotifier {
                 state.processingState == ProcessingState.loading) &&
             !state.playing;
 
+        if (state.playing) {
+          unawaited(BatteryOptimizationService.acquireWakeLock());
+        } else {
+          unawaited(BatteryOptimizationService.releaseWakeLock());
+        }
+
         MediaSessionService.updatePlaybackState(isPlaying: state.playing);
 
         // Synchronize live presence to Firestore
@@ -372,8 +379,18 @@ class MusicPlayerManager extends ChangeNotifier {
           index >= 0 &&
           index < _queue.length &&
           index != _currentIndex) {
+        final prevSong = _currentSong;
         _currentIndex = index;
         _currentSong = _queue[index];
+
+        if (prevSong != null &&
+            _currentSong != null &&
+            prevSong.id != _currentSong!.id) {
+          AiRecommendationEngine.instance.recordTransition(
+            prevSong.id,
+            _currentSong!.id,
+          );
+        }
 
         _recentlyPlayed.removeWhere((item) => item.id == _currentSong!.id);
         _recentlyPlayed.insert(0, _currentSong!);
@@ -652,9 +669,46 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   /// Plays a song selected from Search and automatically builds a focused,
-  /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre.
+  /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre,
+  /// incorporating user's favorites, playlists, feed, and search history via AI recommendation engine.
   Future<void> playSongFromSearch(Song song) async {
-    await playSong(song, newQueue: [song]);
+    final immediateCandidates = <Song>[];
+    final seen = <String>{song.id};
+    final db = DatabaseService.instance;
+
+    for (final fav in db.favoriteSongs) {
+      if (fav.audioUrl.trim().isNotEmpty && seen.add(fav.id)) {
+        immediateCandidates.add(fav);
+      }
+    }
+    for (final pl in db.playlists) {
+      for (final s in pl.songs) {
+        if (s.audioUrl.trim().isNotEmpty && seen.add(s.id)) {
+          immediateCandidates.add(s);
+        }
+      }
+    }
+    for (final h in db.historySongs) {
+      if (h.audioUrl.trim().isNotEmpty && seen.add(h.id)) {
+        immediateCandidates.add(h);
+      }
+    }
+    for (final a in _allSongs) {
+      if (a.audioUrl.trim().isNotEmpty && seen.add(a.id)) {
+        immediateCandidates.add(a);
+      }
+    }
+
+    immediateCandidates.sort((a, b) {
+      final scoreA = AiRecommendationEngine.instance.scoreCandidate(song, a);
+      final scoreB = AiRecommendationEngine.instance.scoreCandidate(song, b);
+      return scoreB.compareTo(scoreA);
+    });
+
+    final initialQueue = [song, ...immediateCandidates.take(30)];
+    await playSong(song, newQueue: initialQueue);
+
+    unawaited(BatteryOptimizationService.instance.promptOptimizationIfNeeded());
     _infillSmartQueue(song, targetQueueSize: 60);
   }
 
@@ -696,7 +750,15 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
+    final prevSong = _currentSong;
     _currentSong = resolvedSong;
+
+    if (prevSong != null && resolvedSong.id != prevSong.id) {
+      AiRecommendationEngine.instance.recordTransition(
+        prevSong.id,
+        resolvedSong.id,
+      );
+    }
 
     if (!_allSongs.any((s) => s.id == resolvedSong.id)) {
       _allSongs.insert(0, resolvedSong);
@@ -972,6 +1034,7 @@ class MusicPlayerManager extends ChangeNotifier {
     if (index < 0 || index >= _queue.length) return;
     if (index == _currentIndex && _isPlaying) return;
 
+    final prevSong = _currentSong;
     final targetSong = _queue[index];
 
     // If _playlistSource is in sync and contains this index, seek natively!
@@ -981,6 +1044,13 @@ class MusicPlayerManager extends ChangeNotifier {
       _isTransitioning = true;
       _errorMessage = null;
       notifyListeners();
+
+      if (prevSong != null && targetSong.id != prevSong.id) {
+        AiRecommendationEngine.instance.recordTransition(
+          prevSong.id,
+          targetSong.id,
+        );
+      }
 
       try {
         await _audioPlayer.seek(Duration.zero, index: index);
@@ -1008,11 +1078,13 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   void _startPlayback() {
+    unawaited(BatteryOptimizationService.acquireWakeLock());
     unawaited(
       _audioPlayer.play().catchError((Object e) {
         _errorMessage = 'Playback error: $e';
         _isPlaying = false;
         _isBuffering = false;
+        unawaited(BatteryOptimizationService.releaseWakeLock());
         notifyListeners();
       }),
     );
@@ -1022,6 +1094,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _isPlaying = false;
     notifyListeners();
     MediaSessionService.updatePlaybackState(isPlaying: false);
+    unawaited(BatteryOptimizationService.releaseWakeLock());
     await _audioPlayer.pause();
   }
 
@@ -1033,6 +1106,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _isPlaying = true;
     notifyListeners();
     MediaSessionService.updatePlaybackState(isPlaying: true);
+    unawaited(BatteryOptimizationService.acquireWakeLock());
     await _audioPlayer.play();
   }
 
@@ -1105,6 +1179,11 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> next() async {
+    final prevSong = currentSong;
+    if (prevSong != null && _position.inSeconds < 25) {
+      AiRecommendationEngine.instance.recordSkip(prevSong.id);
+    }
+
     if (_queue.isEmpty) {
       final fallback = _findDistinctNextTrack();
       if (fallback != null) {
@@ -1317,6 +1396,7 @@ class MusicPlayerManager extends ChangeNotifier {
       _position = Duration.zero;
       _currentIndex = -1;
       _queue.clear();
+      unawaited(BatteryOptimizationService.releaseWakeLock());
       await _audioPlayer.stop();
       MediaSessionService.updatePlaybackState(isPlaying: false);
       PresenceService.instance.updateListeningStatus(

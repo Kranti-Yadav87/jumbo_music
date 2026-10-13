@@ -70,10 +70,10 @@ void main() async {
           androidNotificationChannelId: AppConfig.audioNotificationChannelId,
           androidNotificationChannelName:
               AppConfig.audioNotificationChannelName,
-          androidNotificationOngoing: true,
+          androidNotificationOngoing: false,
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'drawable/ic_notification',
-          androidStopForegroundOnPause: true,
+          androidStopForegroundOnPause: false,
           preloadArtwork: true,
         );
       } catch (e) {

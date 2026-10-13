@@ -54,6 +54,14 @@ class DatabaseService extends ChangeNotifier {
   final List<Friend> _friends = [];
   final List<Map<String, dynamic>> _notifications = [];
 
+  List<Playlist> get playlists => List.unmodifiable(_customPlaylists);
+  List<Song> get favoriteSongs => _favoriteSongsMap.values.toList();
+  List<Song> get historySongs => _historyList
+      .where((i) => i['song'] is Map<String, dynamic>)
+      .map((i) => Song.fromJson(i['song'] as Map<String, dynamic>))
+      .toList();
+  List<String> get searchHistory => List.unmodifiable(_searchHistory);
+
   // User Profile & Authentication
   bool _isLoggedIn = false;
   bool _isGuest = false;

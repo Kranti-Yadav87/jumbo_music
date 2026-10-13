@@ -15,6 +15,36 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : AudioServiceActivity() {
     private val BATTERY_CHANNEL = "com.jumbomusic.app/battery_optimization"
+    private val WAKE_LOCK_CHANNEL = "com.jumbomusic.app/wake_lock"
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    private fun acquireWakeLock() {
+        try {
+            if (wakeLock == null) {
+                val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager
+                wakeLock = powerManager?.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK,
+                    "JumboMusic:BackgroundAudioWakeLock"
+                )?.apply {
+                    setReferenceCounted(false)
+                }
+            }
+            wakeLock?.acquire(12 * 60 * 60 * 1000L)
+        } catch (_: Exception) {}
+    }
+
+    private fun releaseWakeLock() {
+        try {
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+            }
+        } catch (_: Exception) {}
+    }
+
+    override fun onDestroy() {
+        releaseWakeLock()
+        super.onDestroy()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +113,20 @@ class MainActivity : AudioServiceActivity() {
                     } else {
                         result.success(true)
                     }
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, WAKE_LOCK_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "acquireWakeLock" -> {
+                    acquireWakeLock()
+                    result.success(true)
+                }
+                "releaseWakeLock" -> {
+                    releaseWakeLock()
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }
