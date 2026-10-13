@@ -665,102 +665,89 @@ class MusicPlayerManager extends ChangeNotifier {
   }) async {
     _isTransitioning = true;
     _errorMessage = null;
-    _currentSong = song;
 
-    if (!_allSongs.any((s) => s.id == song.id)) {
-      _allSongs.insert(0, song);
+    // 1. Pre-resolve live streaming URL if empty (e.g. catalog/essential fallback tracks)
+    Song resolvedSong = song;
+    final isDl = DownloadService().isDownloaded(resolvedSong.id);
+    final offlineUri = await DownloadService().playableUriFor(
+      resolvedSong.id,
+      title: resolvedSong.title,
+    );
+
+    if (offlineUri == null &&
+        !isDl &&
+        resolvedSong.audioUrl.trim().isEmpty &&
+        resolvedSong.title.isNotEmpty) {
+      try {
+        debugPrint(
+          '[Playback] Pre-resolving live audioUrl for "${resolvedSong.title}"...',
+        );
+        final freshMatches = await MusicApiService.searchLiveSongs(
+          '${resolvedSong.title} ${resolvedSong.artist}',
+          limit: 3,
+        );
+        if (freshMatches.isNotEmpty && freshMatches.first.audioUrl.isNotEmpty) {
+          resolvedSong = resolvedSong.copyWith(
+            audioUrl: freshMatches.first.audioUrl,
+          );
+        }
+      } catch (e) {
+        debugPrint('[Playback] Pre-resolve error: $e');
+      }
+    }
+
+    _currentSong = resolvedSong;
+
+    if (!_allSongs.any((s) => s.id == resolvedSong.id)) {
+      _allSongs.insert(0, resolvedSong);
     }
 
     final queueToUse = newQueue ?? playlistContext;
     if (queueToUse != null && queueToUse.isNotEmpty) {
       _queue = List.from(queueToUse);
-    } else if (_queue.isEmpty || !_queue.any((s) => s.id == song.id)) {
-      _queue = [song];
-    }
-
-    // Ensure song is firmly inside _queue
-    final index = _queue.indexWhere((s) => s.id == song.id);
-    if (index != -1) {
-      _currentIndex = index;
-    } else {
-      _queue.insert(0, song);
-      _currentIndex = 0;
-    }
-
-    final songLang = MusicApiService.detectSongLanguage(song);
-    final isVintage =
-        songLang == 'Hindi' && MusicApiService.isVintageGoldenEra(song);
-    final is90s =
-        songLang == 'Hindi' &&
-        !isVintage &&
-        MusicApiService.is90sMelodyEra(song);
-    final is2000s =
-        songLang == 'Hindi' &&
-        !isVintage &&
-        !is90s &&
-        MusicApiService.is2000sSong(song);
-    final isIndie =
-        songLang == 'Hindi' &&
-        !isVintage &&
-        !is90s &&
-        !is2000s &&
-        MusicApiService.isIndieOrSukoonSong(song);
-
-    if (_autoplay && _queue.length < 50 && _allSongs.isNotEmpty) {
-      final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
-      final localCandidates = _allSongs.where((s) {
-        if (currentQueueIds.contains(s.id)) return false;
-        if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) return false;
-        final candLang = MusicApiService.detectSongLanguage(s);
-        if (candLang != songLang) return false;
-
-        if (songLang == 'Hindi') {
-          if (isVintage) return MusicApiService.isVintageGoldenEra(s);
-          if (is90s) return MusicApiService.is90sMelodyEra(s);
-          if (is2000s) return MusicApiService.is2000sSong(s);
-          if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-          return !MusicApiService.isVintageGoldenEra(s) &&
-              !MusicApiService.is90sMelodyEra(s);
-        }
-        return true;
-      }).toList();
-
-      localCandidates.sort((a, b) {
-        int scoreA =
-            (a.artist == song.artist ? 3 : 0) + (a.genre == song.genre ? 1 : 0);
-        int scoreB =
-            (b.artist == song.artist ? 3 : 0) + (b.genre == song.genre ? 1 : 0);
-        return scoreB.compareTo(scoreA);
-      });
-      _queue.addAll(localCandidates.take(60 - _queue.length));
-    }
-
-    if (_queue.length > 60) {
-      final currentIdxInQueue = _queue.indexWhere((s) => s.id == song.id);
-      if (currentIdxInQueue != -1) {
-        final start = (currentIdxInQueue - 5).clamp(0, _queue.length);
-        final end = (start + 60).clamp(0, _queue.length);
-        _queue = _queue.sublist(start, end);
+      final idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      if (idx != -1) {
+        _queue[idx] = resolvedSong;
+        _currentIndex = idx;
       } else {
-        _queue = _queue.take(60).toList();
+        _queue.insert(0, resolvedSong);
+        _currentIndex = 0;
       }
+    } else {
+      final existingIdx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      if (existingIdx != -1) {
+        _queue[existingIdx] = resolvedSong;
+        _currentIndex = existingIdx;
+      } else {
+        _queue = [resolvedSong];
+        _currentIndex = 0;
+      }
+    }
+
+    // Filter out invalid/empty audio tracks from queue to avoid ExoPlayer corruptions
+    _queue = _queue.where((s) {
+      if (s.id == resolvedSong.id) return true;
+      return s.audioUrl.trim().isNotEmpty ||
+          DownloadService().isDownloaded(s.id);
+    }).toList();
+    _currentIndex = _queue.indexWhere((s) => s.id == resolvedSong.id);
+    if (_currentIndex == -1) {
+      _queue.insert(0, resolvedSong);
+      _currentIndex = 0;
     }
 
     _syncCurrentSongAndIndex();
 
-    _recentlyPlayed.removeWhere((item) => item.id == song.id);
-    _recentlyPlayed.insert(0, song);
-    DatabaseService.instance.addHistory(song);
+    _recentlyPlayed.removeWhere((item) => item.id == resolvedSong.id);
+    _recentlyPlayed.insert(0, resolvedSong);
+    DatabaseService.instance.addHistory(resolvedSong);
 
-    _updateDynamicLibrary(song);
-    if (_autoplay) {
-      _infillSmartQueue(song, targetQueueSize: 60);
-    }
+    _updateDynamicLibrary(resolvedSong);
 
     _isPlaying = true;
     _isBuffering = true;
     _position = Duration.zero;
-    _duration = song.duration;
+    _duration = resolvedSong.duration;
     notifyListeners();
 
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
@@ -773,27 +760,24 @@ class MusicPlayerManager extends ChangeNotifier {
 
     try {
       MediaSessionService.updateMetadata(
-        title: song.title,
-        artist: song.artist,
-        album: song.album.isNotEmpty ? song.album : 'Jumbo Music',
-        coverUrl: song.coverUrl,
+        title: resolvedSong.title.isNotEmpty
+            ? resolvedSong.title
+            : 'Unknown Title',
+        artist: resolvedSong.artist.isNotEmpty
+            ? resolvedSong.artist
+            : 'Unknown Artist',
+        album: resolvedSong.album.isNotEmpty
+            ? resolvedSong.album
+            : 'Jumbo Music',
+        coverUrl: resolvedSong.coverUrl,
       );
       MediaSessionService.updatePlaybackState(isPlaying: true);
       MediaSessionService.updatePositionState(
-        durationSeconds: song.duration.inSeconds > 0
-            ? song.duration.inSeconds.toDouble()
+        durationSeconds: resolvedSong.duration.inSeconds > 0
+            ? resolvedSong.duration.inSeconds.toDouble()
             : 240.0,
         positionSeconds: 0.0,
         playbackRate: _playbackSpeed,
-      );
-
-      final isDl = DownloadService().isDownloaded(song.id);
-      final offlineUri = await DownloadService().playableUriFor(
-        song.id,
-        title: song.title,
-      );
-      debugPrint(
-        '[Playback] START: "${song.title}" (${song.id}) - isDownloaded: $isDl, offlineUri: $offlineUri',
       );
 
       final Uri sourceUri;
@@ -805,10 +789,10 @@ class MusicPlayerManager extends ChangeNotifier {
       } else {
         if (isDl) {
           debugPrint(
-            '[Playback] NOTICE: "${song.title}" is in downloaded list but local file not found. Falling back to stream URI.',
+            '[Playback] NOTICE: "${resolvedSong.title}" is in downloaded list but local file not found. Falling back to stream URI.',
           );
         }
-        sourceUri = Uri.parse(song.audioUrl);
+        sourceUri = Uri.parse(resolvedSong.audioUrl);
         debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
       }
 
@@ -820,15 +804,17 @@ class MusicPlayerManager extends ChangeNotifier {
         final qMediaItem = MediaItem(
           id: qSong.id,
           album: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
-          title: qSong.title,
-          artist: qSong.artist,
+          title: qSong.title.isNotEmpty ? qSong.title : 'Unknown Title',
+          artist: qSong.artist.isNotEmpty ? qSong.artist : 'Unknown Artist',
           artUri: qSong.coverUrl.isNotEmpty
               ? Uri.tryParse(qSong.coverUrl)
               : null,
           duration: qSong.duration.inSeconds > 0 ? qSong.duration : null,
           playable: true,
-          displayTitle: qSong.title,
-          displaySubtitle: qSong.artist,
+          displayTitle: qSong.title.isNotEmpty ? qSong.title : 'Unknown Title',
+          displaySubtitle: qSong.artist.isNotEmpty
+              ? qSong.artist
+              : 'Unknown Artist',
           displayDescription: qSong.album.isNotEmpty
               ? qSong.album
               : 'Jumbo Music',
@@ -847,7 +833,9 @@ class MusicPlayerManager extends ChangeNotifier {
               : null;
           qUri =
               offlineQUri ??
-              (Uri.tryParse(qSong.audioUrl) ?? Uri.parse('about:blank'));
+              Uri.parse(
+                qSong.audioUrl.isNotEmpty ? qSong.audioUrl : 'about:blank',
+              );
         }
 
         audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));
@@ -874,50 +862,70 @@ class MusicPlayerManager extends ChangeNotifier {
       _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
+
+      if (_autoplay && _queue.length < 30) {
+        unawaited(_infillSmartQueue(resolvedSong, targetQueueSize: 50));
+      }
     } catch (e) {
       // 10/10 Resilience: Attempt automatic stream auto-heal if online URL was expired or broken
-      final isDl = DownloadService().isDownloaded(song.id);
-      if (!isDl && song.title.isNotEmpty) {
+      final isDl = DownloadService().isDownloaded(resolvedSong.id);
+      if (!isDl && resolvedSong.title.isNotEmpty) {
         try {
           debugPrint(
-            '[Playback] Attempting stream auto-heal for "${song.title}"...',
+            '[Playback] Attempting stream auto-heal for "${resolvedSong.title}"...',
           );
           final healedSongs = await MusicApiService.searchLiveSongs(
-            '${song.title} ${song.artist}',
+            '${resolvedSong.title} ${resolvedSong.artist}',
             limit: 3,
           );
           if (healedSongs.isNotEmpty &&
               healedSongs.first.audioUrl.isNotEmpty &&
-              healedSongs.first.audioUrl != song.audioUrl) {
-            final freshTrack = song.copyWith(
+              healedSongs.first.audioUrl != resolvedSong.audioUrl) {
+            final freshTrack = resolvedSong.copyWith(
               audioUrl: healedSongs.first.audioUrl,
             );
-            final idx = _queue.indexWhere((s) => s.id == song.id);
+            final idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
             if (idx != -1) _queue[idx] = freshTrack;
 
-            final mediaItem = MediaItem(
-              id: freshTrack.id,
-              album: freshTrack.album.isNotEmpty
-                  ? freshTrack.album
-                  : 'Jumbo Music',
-              title: freshTrack.title,
-              artist: freshTrack.artist,
-              artUri: freshTrack.coverUrl.isNotEmpty
-                  ? Uri.tryParse(freshTrack.coverUrl)
-                  : null,
-              duration: freshTrack.duration.inSeconds > 0
-                  ? freshTrack.duration
-                  : null,
-              playable: true,
-              displayTitle: freshTrack.title,
-              displaySubtitle: freshTrack.artist,
-              displayDescription: freshTrack.album.isNotEmpty
-                  ? freshTrack.album
-                  : 'Jumbo Music',
+            // Rebuild ConcatenatingAudioSource preserving the full queue for lockscreen next/prev
+            final List<AudioSource> healedSources = [];
+            for (int i = 0; i < _queue.length; i++) {
+              final s = _queue[i];
+              final mItem = MediaItem(
+                id: s.id,
+                album: s.album.isNotEmpty ? s.album : 'Jumbo Music',
+                title: s.title.isNotEmpty ? s.title : 'Unknown Title',
+                artist: s.artist.isNotEmpty ? s.artist : 'Unknown Artist',
+                artUri: s.coverUrl.isNotEmpty ? Uri.tryParse(s.coverUrl) : null,
+                duration: s.duration.inSeconds > 0 ? s.duration : null,
+                playable: true,
+                displayTitle: s.title.isNotEmpty ? s.title : 'Unknown Title',
+                displaySubtitle: s.artist.isNotEmpty
+                    ? s.artist
+                    : 'Unknown Artist',
+                displayDescription: s.album.isNotEmpty
+                    ? s.album
+                    : 'Jumbo Music',
+              );
+              healedSources.add(
+                AudioSource.uri(
+                  Uri.parse(
+                    s.audioUrl.isNotEmpty ? s.audioUrl : freshTrack.audioUrl,
+                  ),
+                  tag: mItem,
+                ),
+              );
+            }
+
+            _playlistSource = ConcatenatingAudioSource(
+              children: healedSources,
+              useLazyPreparation: true,
             );
 
             await _audioPlayer.setAudioSource(
-              AudioSource.uri(Uri.parse(freshTrack.audioUrl), tag: mediaItem),
+              _playlistSource!,
+              initialIndex: _currentIndex,
+              initialPosition: Duration.zero,
               preload: true,
             );
             unawaited(_applyEqualizerPreset());
@@ -938,10 +946,13 @@ class MusicPlayerManager extends ChangeNotifier {
       }
 
       if (isDl &&
-          await DownloadService().playableUriFor(song.id, title: song.title) ==
+          await DownloadService().playableUriFor(
+                resolvedSong.id,
+                title: resolvedSong.title,
+              ) ==
               null) {
         _errorMessage =
-            "Offline audio file for '${song.title}' was not found in local storage. Connect to internet to stream.";
+            "Offline audio file for '${resolvedSong.title}' was not found in local storage. Connect to internet to stream.";
       } else {
         _errorMessage = "Unable to play audio: $e";
       }
@@ -955,13 +966,45 @@ class MusicPlayerManager extends ChangeNotifier {
     }
   }
 
+  /// Skips directly to a specific song in the Up Next queue.
+  /// Preserves the existing queue and prevents recommendations from re-shuffling.
+  Future<void> skipToQueueIndex(int index) async {
+    if (index < 0 || index >= _queue.length) return;
+    if (index == _currentIndex && _isPlaying) return;
+
+    final targetSong = _queue[index];
+
+    // If _playlistSource is in sync and contains this index, seek natively!
+    if (_playlistSource != null && index < _playlistSource!.length) {
+      _currentIndex = index;
+      _currentSong = targetSong;
+      _isTransitioning = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      try {
+        await _audioPlayer.seek(Duration.zero, index: index);
+        _startPlayback();
+        _isPlaying = true;
+        _isBuffering = false;
+        _isTransitioning = false;
+        notifyListeners();
+        return;
+      } catch (e) {
+        debugPrint('[skipToQueueIndex] Native seek failed, falling back: $e');
+      }
+    }
+
+    // Fallback if _playlistSource was not initialized: reload with preserved queue
+    await playSong(targetSong, newQueue: List.from(_queue));
+  }
+
   Future<void> playPlaylist(List<Song> songs, {int initialIndex = 0}) async {
     if (songs.isEmpty) return;
-    _queue = List.from(songs);
     final targetIndex = (initialIndex >= 0 && initialIndex < songs.length)
         ? initialIndex
         : 0;
-    await playSong(_queue[targetIndex]);
+    await playSong(songs[targetIndex], newQueue: List.from(songs));
   }
 
   void _startPlayback() {
@@ -1086,7 +1129,7 @@ class MusicPlayerManager extends ChangeNotifier {
       }
       if (candidates.isNotEmpty) {
         candidates.shuffle();
-        await playSong(_queue[candidates.first]);
+        await skipToQueueIndex(candidates.first);
         return;
       }
     }
@@ -1101,7 +1144,7 @@ class MusicPlayerManager extends ChangeNotifier {
       if (_autoplay && currentSong != null) {
         await _infillSmartQueue(currentSong!);
         if (_queue.length > nextIndex) {
-          await playSong(_queue[nextIndex]);
+          await skipToQueueIndex(nextIndex);
           return;
         }
       }
@@ -1113,13 +1156,13 @@ class MusicPlayerManager extends ChangeNotifier {
     if (target.id == currentSong?.id && _loopMode != LoopMode.one) {
       final fallback = _findDistinctNextTrack();
       if (fallback != null) {
-        _queue.add(fallback);
-        await playSong(fallback);
+        _appendTracksToQueueAndPlaylistSource([fallback]);
+        await skipToQueueIndex(_queue.length - 1);
         return;
       }
     }
 
-    await playSong(target);
+    await skipToQueueIndex(nextIndex);
   }
 
   Future<void> previous() async {
@@ -1140,7 +1183,7 @@ class MusicPlayerManager extends ChangeNotifier {
       prevIndex = _queue.length - 1;
     }
 
-    await playSong(_queue[prevIndex]);
+    await skipToQueueIndex(prevIndex);
   }
 
   Future<void> seek(Duration newPosition) async {

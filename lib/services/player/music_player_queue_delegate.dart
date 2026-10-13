@@ -7,6 +7,15 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       next();
     }
     _queue.removeAt(index);
+    if (_playlistSource != null && index < _playlistSource!.length) {
+      try {
+        _playlistSource!.removeAt(index);
+      } catch (e) {
+        debugPrint(
+          '[QueueSync] Error removing index $index from _playlistSource: $e',
+        );
+      }
+    }
     _syncCurrentSongAndIndex();
     notify();
   }
@@ -17,6 +26,15 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     }
     final item = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, item);
+    if (_playlistSource != null &&
+        oldIndex < _playlistSource!.length &&
+        newIndex < _playlistSource!.length) {
+      try {
+        _playlistSource!.move(oldIndex, newIndex);
+      } catch (e) {
+        debugPrint('[QueueSync] Error moving index in _playlistSource: $e');
+      }
+    }
     _syncCurrentSongAndIndex();
     notify();
   }
@@ -28,10 +46,72 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       _queue.add(current);
       _currentSong = current;
       _currentIndex = 0;
+      if (_playlistSource != null && _playlistSource!.length > 1) {
+        try {
+          while (_playlistSource!.length > 1) {
+            _playlistSource!.removeAt(_playlistSource!.length - 1);
+          }
+        } catch (_) {}
+      }
     } else {
       _currentSong = null;
       _currentIndex = -1;
+      _playlistSource?.clear();
     }
+    notify();
+  }
+
+  /// Appends tracks to the queue while keeping native ConcatenatingAudioSource 100% in sync.
+  /// Prevents desynchronization between what is displayed in the queue and what actually plays.
+  void _appendTracksToQueueAndPlaylistSource(List<Song> tracks) {
+    final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
+    final Set<String> currentQueueKeys = _queue
+        .map(SongParserUtils.songDeduplicationKey)
+        .toSet();
+
+    for (final track in tracks) {
+      if (track.audioUrl.trim().isEmpty) continue;
+      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 60)
+        continue;
+      if (currentQueueIds.contains(track.id)) continue;
+      final key = SongParserUtils.songDeduplicationKey(track);
+      if (currentQueueKeys.contains(key)) continue;
+
+      currentQueueIds.add(track.id);
+      currentQueueKeys.add(key);
+      _queue.add(track);
+
+      if (_playlistSource != null) {
+        try {
+          final mediaItem = MediaItem(
+            id: track.id,
+            album: track.album.isNotEmpty ? track.album : 'Jumbo Music',
+            title: track.title.isNotEmpty ? track.title : 'Unknown Title',
+            artist: track.artist.isNotEmpty ? track.artist : 'Unknown Artist',
+            artUri: track.coverUrl.isNotEmpty
+                ? Uri.tryParse(track.coverUrl)
+                : null,
+            duration: track.duration.inSeconds > 0 ? track.duration : null,
+            playable: true,
+            displayTitle: track.title.isNotEmpty
+                ? track.title
+                : 'Unknown Title',
+            displaySubtitle: track.artist.isNotEmpty
+                ? track.artist
+                : 'Unknown Artist',
+            displayDescription: track.album.isNotEmpty
+                ? track.album
+                : 'Jumbo Music',
+          );
+          _playlistSource!.add(
+            AudioSource.uri(Uri.parse(track.audioUrl), tag: mediaItem),
+          );
+        } catch (e) {
+          debugPrint('[QueueSync] Error adding source to _playlistSource: $e');
+        }
+      }
+    }
+    _syncCurrentSongAndIndex();
     notify();
   }
 
@@ -90,6 +170,10 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
             .toSet();
 
         final localCandidates = _allSongs.where((s) {
+          if (s.audioUrl.trim().isEmpty &&
+              !DownloadService().isDownloaded(s.id)) {
+            return false;
+          }
           if (currentQueueIds.contains(s.id)) return false;
           if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
             return false;
@@ -144,10 +228,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           final dedupedLocal = SongParserUtils.deduplicateSongs(
             localCandidates,
           );
-          _queue.addAll(dedupedLocal.take(needed));
-          _queue = SongParserUtils.deduplicateSongs(_queue);
-          _syncCurrentSongAndIndex();
-          notify();
+          _appendTracksToQueueAndPlaylistSource(
+            dedupedLocal.take(needed).toList(),
+          );
         }
       }
 
@@ -166,6 +249,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           freshTracks,
         );
         final List<Song> newTracks = dedupedFresh.where((s) {
+          if (s.audioUrl.trim().isEmpty) return false;
           if (currentQueueIds.contains(s.id)) return false;
           if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
             return false;
@@ -176,53 +260,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         }).toList();
 
         if (newTracks.isNotEmpty) {
-          final playedPart = _queue.sublist(0, _currentIndex + 1);
-          final upcomingPart = _queue.sublist(_currentIndex + 1);
-
-          final Set<String> freshKeys = newTracks
-              .map(SongParserUtils.songDeduplicationKey)
-              .toSet();
-          final remainingUpcoming = upcomingPart.where((s) {
-            final key = SongParserUtils.songDeduplicationKey(s);
-            if (freshKeys.contains(key)) return false;
-
-            final candLang = MusicApiService.detectSongLanguage(s);
-            if (candLang != songLang) return false;
-            if (songLang == 'Hindi') {
-              if (is70s) {
-                return MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is80sEra(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is80s) {
-                return MusicApiService.is80sEra(s) &&
-                    !MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is90s) {
-                return MusicApiService.is90sMelodyEra(s) &&
-                    !MusicApiService.isVintageGoldenEra(s) &&
-                    !MusicApiService.is80sEra(s);
-              }
-              if (is2000s) {
-                return MusicApiService.is2000sSong(s) &&
-                    !MusicApiService.is90sMelodyEra(s);
-              }
-              if (is2010s) return MusicApiService.is2010sSong(s);
-              if (isIndie) return MusicApiService.isIndieOrSukoonSong(s);
-              return !MusicApiService.isVintageGoldenEra(s) &&
-                  !MusicApiService.is80sEra(s) &&
-                  !MusicApiService.is90sMelodyEra(s);
-            }
-            return true;
-          }).toList();
-
-          _queue = SongParserUtils.deduplicateSongs([
-            ...playedPart,
-            ...newTracks,
-            ...remainingUpcoming,
-          ]).take(targetQueueSize).toList();
-          _syncCurrentSongAndIndex();
+          _appendTracksToQueueAndPlaylistSource(newTracks);
 
           // Add to allSongs as well
           final Set<String> allKeys = _allSongs

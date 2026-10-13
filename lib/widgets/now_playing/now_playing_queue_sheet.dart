@@ -234,7 +234,7 @@ class NowPlayingQueueSheet {
                               onPressed: () =>
                                   TrackOptionsSheet.show(context, item),
                             ),
-                            onTap: () => manager.playSong(item),
+                            onTap: () => manager.skipToQueueIndex(index),
                           ),
                         );
                       }, childCount: queue.length),

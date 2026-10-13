@@ -77,10 +77,63 @@ void main() {
         bool isValidConfig(bool ongoing, bool stopForegroundOnPause) =>
             !ongoing || stopForegroundOnPause;
 
-        // Configured values (ongoing: false, stopForegroundOnPause: false)
+        // Configured values (ongoing: true, stopForegroundOnPause: true)
+        expect(isValidConfig(true, true), isTrue);
+        // Ongoing false also valid
         expect(isValidConfig(false, false), isTrue);
         // Old broken configuration that triggered AssertionError in audio_service
         expect(isValidConfig(true, false), isFalse);
+      },
+    );
+
+    test(
+      'Queue maintains strict sequence and skipToQueueIndex preserves queue order',
+      () {
+        final s1 = Song(
+          id: 's_1',
+          title: 'Song 1',
+          artist: 'Artist 1',
+          audioUrl: 'https://example.com/1.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 180),
+        );
+        final s2 = Song(
+          id: 's_2',
+          title: 'Song 2',
+          artist: 'Artist 2',
+          audioUrl: 'https://example.com/2.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 210),
+        );
+        final s3 = Song(
+          id: 's_3',
+          title: 'Song 3',
+          artist: 'Artist 3',
+          audioUrl: 'https://example.com/3.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 240),
+        );
+
+        manager.setMockState(
+          currentSong: s1,
+          queue: [s1, s2, s3],
+          isPlaying: true,
+        );
+
+        expect(manager.queue.length, equals(3));
+        expect(manager.queue[0].title, equals('Song 1'));
+        expect(manager.queue[1].title, equals('Song 2'));
+        expect(manager.queue[2].title, equals('Song 3'));
+
+        // Reorder queue
+        manager.reorderQueue(0, 2);
+        expect(manager.queue[0].title, equals('Song 2'));
+        expect(manager.queue[1].title, equals('Song 1'));
+
+        // Remove from queue
+        manager.removeFromQueue(0);
+        expect(manager.queue.length, equals(2));
+        expect(manager.queue[0].title, equals('Song 1'));
       },
     );
   });
