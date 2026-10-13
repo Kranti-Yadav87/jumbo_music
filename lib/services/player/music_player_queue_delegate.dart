@@ -64,6 +64,9 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
   /// Appends tracks to the queue while keeping native ConcatenatingAudioSource 100% in sync.
   /// Prevents desynchronization between what is displayed in the queue and what actually plays.
   void _appendTracksToQueueAndPlaylistSource(List<Song> tracks) {
+    final seedLang = currentSong != null
+        ? MusicApiService.detectSongLanguage(currentSong!)
+        : null;
     final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
     final Set<String> currentQueueKeys = _queue
         .map(SongParserUtils.songDeduplicationKey)
@@ -71,7 +74,16 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
 
     for (final track in tracks) {
       if (track.audioUrl.trim().isEmpty) continue;
-      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 60) {
+      if (track.audioUrl.contains('apple.com') ||
+          track.audioUrl.contains('mzstatic.com') ||
+          track.audioUrl.contains('preview')) {
+        continue;
+      }
+      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 75) {
+        continue;
+      }
+      if (seedLang != null &&
+          MusicApiService.detectSongLanguage(track) != seedLang) {
         continue;
       }
       if (currentQueueIds.contains(track.id)) continue;
@@ -131,6 +143,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     notify();
 
     try {
+      final seedLang = MusicApiService.detectSongLanguage(seedSong);
       final smartTracks = await AiRecommendationEngine.instance.buildSmartQueue(
         seedSong: seedSong,
         existingQueue: _queue,
@@ -146,10 +159,18 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         final List<Song> newTracks = smartTracks.where((s) {
           if (s.id == seedSong.id) return false;
           if (s.audioUrl.trim().isEmpty) return false;
-          if (currentQueueIds.contains(s.id)) return false;
-          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 60) {
+          if (s.audioUrl.contains('apple.com') ||
+              s.audioUrl.contains('mzstatic.com') ||
+              s.audioUrl.contains('preview')) {
             return false;
           }
+          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
+            return false;
+          }
+          if (MusicApiService.detectSongLanguage(s) != seedLang) {
+            return false;
+          }
+          if (currentQueueIds.contains(s.id)) return false;
           final key = SongParserUtils.songDeduplicationKey(s);
           if (currentQueueKeys.contains(key)) return false;
           return true;

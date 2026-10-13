@@ -136,8 +136,8 @@ class SongParserUtils {
 
       final durationSec =
           int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
-      // Filter out tracks shorter than 60s (unless duration wasn't supplied by API)
-      if (durationSec > 0 && durationSec < 60) {
+      // Filter out tracks shorter than 75s (ringtones, promos, teasers, 30s snippets)
+      if (durationSec > 0 && durationSec < 75) {
         return null;
       }
 
@@ -207,7 +207,7 @@ class SongParserUtils {
     // Remove common trailing prefixes like "- From ...", "- Remastered", etc.
     clean = clean.replaceAll(
       RegExp(
-        r'\s*-\s*(from|remastered|lofi|original|reprise|acoustic|bonus|extended).*$',
+        r'\s*-\s*(from|remastered|lofi|original|reprise|acoustic|bonus|extended|audio|video|full|lyric|lyrics|official).*$',
       ),
       '',
     );
@@ -229,11 +229,10 @@ class SongParserUtils {
   /// Returns a canonical identity string for a song to prevent duplicate suggestions
   static String songDeduplicationKey(Song song) {
     final t = normalizeSongTitle(song.title);
-    final a = normalizeArtist(song.artist);
     if (t.isNotEmpty) {
-      return '$t|$a';
+      return t;
     }
-    return song.id;
+    return song.id.toLowerCase().trim();
   }
 
   /// Deduplicates a list of songs by ID and by canonical title+artist identity

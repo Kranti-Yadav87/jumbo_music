@@ -187,5 +187,79 @@ void main() {
         expect(queue.any((s) => s.id == songB.id), isTrue);
       },
     );
+
+    test(
+      'Strict Language Filtering: Disqualifies candidates from other languages',
+      () {
+        final songEnglish = Song(
+          id: 'song_eng_1',
+          title: 'Shape of You English Pop',
+          artist: 'Ed Sheeran',
+          album: 'Divide',
+          language: 'English',
+          genre: 'Pop',
+          audioUrl: 'https://example.com/eng.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 230),
+        );
+
+        final score = engine.scoreCandidate(songA, songEnglish);
+        expect(score, equals(-100.0));
+      },
+    );
+
+    test(
+      'Preview and Short Track Exclusion: Disqualifies Apple 30s previews and tracks < 75s',
+      () {
+        final songPreview = Song(
+          id: 'itunes_preview',
+          title: 'Kesariya Preview',
+          artist: 'Arijit Singh',
+          audioUrl:
+              'https://audio-ssl.itunes.apple.com/apple-assets-us-std-000001/mzaf_123.m4a',
+          coverUrl: '',
+          duration: const Duration(seconds: 240),
+        );
+
+        final songShort = Song(
+          id: 'short_track',
+          title: 'Kesariya Teaser Promo',
+          artist: 'Arijit Singh',
+          audioUrl: 'https://example.com/teaser.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 45),
+        );
+
+        expect(engine.scoreCandidate(songA, songPreview), equals(-100.0));
+        expect(engine.scoreCandidate(songA, songShort), equals(-100.0));
+      },
+    );
+
+    test(
+      'Queue Deduplication: Eliminates duplicate versions of same title in queue',
+      () async {
+        final songBRemaster = Song(
+          id: 'song_b_remaster',
+          title: 'Apna Bana Le [Remastered]',
+          artist: 'Sachin-Jigar, Arijit Singh',
+          album: 'Bhediya Special',
+          audioUrl: 'https://example.com/b_remaster.mp3',
+          coverUrl: '',
+          duration: const Duration(seconds: 210),
+        );
+
+        final queue = await engine.buildSmartQueue(
+          seedSong: songA,
+          existingQueue: [songB, songBRemaster],
+          targetSize: 10,
+        );
+
+        // Only one version of Apna Bana Le should exist in the queue
+        final apnaBanaLeCount = queue
+            .where((s) => s.title.toLowerCase().contains('apna bana le'))
+            .length;
+        expect(apnaBanaLeCount, equals(1));
+      },
+    );
   });
 }

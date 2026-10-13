@@ -672,31 +672,47 @@ class MusicPlayerManager extends ChangeNotifier {
   /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre,
   /// incorporating user's favorites, playlists, feed, and search history via AI recommendation engine.
   Future<void> playSongFromSearch(Song song) async {
+    final seedLang = MusicApiService.detectSongLanguage(song);
     final immediateCandidates = <Song>[];
-    final seen = <String>{song.id};
+    final seenIds = <String>{song.id};
+    final seenKeys = <String>{SongParserUtils.songDeduplicationKey(song)};
     final db = DatabaseService.instance;
 
-    for (final fav in db.favoriteSongs) {
-      if (fav.audioUrl.trim().isNotEmpty && seen.add(fav.id)) {
-        immediateCandidates.add(fav);
+    void tryAddCandidate(Song candidate) {
+      if (candidate.audioUrl.trim().isEmpty) return;
+      if (candidate.audioUrl.contains('apple.com') ||
+          candidate.audioUrl.contains('mzstatic.com') ||
+          candidate.audioUrl.contains('preview')) {
+        return;
       }
+      if (candidate.duration.inSeconds > 0 &&
+          candidate.duration.inSeconds < 75) {
+        return;
+      }
+      // Strict language match
+      if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
+        return;
+      }
+
+      final key = SongParserUtils.songDeduplicationKey(candidate);
+      if (seenIds.add(candidate.id) && seenKeys.add(key)) {
+        immediateCandidates.add(candidate);
+      }
+    }
+
+    for (final fav in db.favoriteSongs) {
+      tryAddCandidate(fav);
     }
     for (final pl in db.playlists) {
       for (final s in pl.songs) {
-        if (s.audioUrl.trim().isNotEmpty && seen.add(s.id)) {
-          immediateCandidates.add(s);
-        }
+        tryAddCandidate(s);
       }
     }
     for (final h in db.historySongs) {
-      if (h.audioUrl.trim().isNotEmpty && seen.add(h.id)) {
-        immediateCandidates.add(h);
-      }
+      tryAddCandidate(h);
     }
     for (final a in _allSongs) {
-      if (a.audioUrl.trim().isNotEmpty && seen.add(a.id)) {
-        immediateCandidates.add(a);
-      }
+      tryAddCandidate(a);
     }
 
     immediateCandidates.sort((a, b) {
@@ -720,7 +736,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _isTransitioning = true;
     _errorMessage = null;
 
-    // 1. Pre-resolve live streaming URL if empty (e.g. catalog/essential fallback tracks)
+    // 1. Pre-resolve full live streaming URL if empty or if 30-second Apple preview
     Song resolvedSong = song;
     final isDl = DownloadService().isDownloaded(resolvedSong.id);
     final offlineUri = await DownloadService().playableUriFor(
@@ -728,21 +744,47 @@ class MusicPlayerManager extends ChangeNotifier {
       title: resolvedSong.title,
     );
 
+    final bool isApplePreview =
+        resolvedSong.audioUrl.contains('apple.com') ||
+        resolvedSong.audioUrl.contains('mzstatic.com') ||
+        resolvedSong.audioUrl.contains('preview');
+    final bool isShortClip =
+        resolvedSong.duration.inSeconds > 0 &&
+        resolvedSong.duration.inSeconds < 75;
+
     if (offlineUri == null &&
         !isDl &&
-        resolvedSong.audioUrl.trim().isEmpty &&
+        (resolvedSong.audioUrl.trim().isEmpty ||
+            isApplePreview ||
+            isShortClip) &&
         resolvedSong.title.isNotEmpty) {
       try {
         debugPrint(
-          '[Playback] Pre-resolving live audioUrl for "${resolvedSong.title}"...',
+          '[Playback] Pre-resolving full live audioUrl for "${resolvedSong.title}"...',
         );
         final freshMatches = await MusicApiService.searchLiveSongs(
           '${resolvedSong.title} ${resolvedSong.artist}',
-          limit: 3,
+          limit: 5,
         );
-        if (freshMatches.isNotEmpty && freshMatches.first.audioUrl.isNotEmpty) {
+        final genuineMatch = freshMatches.firstWhere(
+          (m) =>
+              m.audioUrl.isNotEmpty &&
+              !m.audioUrl.contains('apple.com') &&
+              !m.audioUrl.contains('mzstatic.com') &&
+              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 75),
+          orElse: () =>
+              freshMatches.isNotEmpty ? freshMatches.first : resolvedSong,
+        );
+        if (genuineMatch.audioUrl.isNotEmpty &&
+            !genuineMatch.audioUrl.contains('apple.com') &&
+            !genuineMatch.audioUrl.contains('mzstatic.com')) {
           resolvedSong = resolvedSong.copyWith(
-            audioUrl: freshMatches.first.audioUrl,
+            audioUrl: genuineMatch.audioUrl,
+            duration: genuineMatch.duration.inSeconds >= 75
+                ? genuineMatch.duration
+                : (resolvedSong.duration.inSeconds >= 75
+                      ? resolvedSong.duration
+                      : genuineMatch.duration),
           );
         }
       } catch (e) {
@@ -766,7 +808,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
     final queueToUse = newQueue ?? playlistContext;
     if (queueToUse != null && queueToUse.isNotEmpty) {
-      _queue = List.from(queueToUse);
+      _queue = SongParserUtils.deduplicateSongs(queueToUse);
       final idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
       if (idx != -1) {
         _queue[idx] = resolvedSong;
@@ -776,6 +818,7 @@ class MusicPlayerManager extends ChangeNotifier {
         _currentIndex = 0;
       }
     } else {
+      _queue = SongParserUtils.deduplicateSongs(_queue);
       final existingIdx = _queue.indexWhere((s) => s.id == resolvedSong.id);
       if (existingIdx != -1) {
         _queue[existingIdx] = resolvedSong;
@@ -786,9 +829,18 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    // Filter out invalid/empty audio tracks from queue to avoid ExoPlayer corruptions
+    // Filter out invalid/empty/preview audio tracks from queue to avoid ExoPlayer cutoffs
     _queue = _queue.where((s) {
       if (s.id == resolvedSong.id) return true;
+      if (s.audioUrl.trim().isEmpty) return false;
+      if (s.audioUrl.contains('apple.com') ||
+          s.audioUrl.contains('mzstatic.com') ||
+          s.audioUrl.contains('preview')) {
+        return false;
+      }
+      if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
+        return false;
+      }
       return s.audioUrl.trim().isNotEmpty ||
           DownloadService().isDownloaded(s.id);
     }).toList();

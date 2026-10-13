@@ -318,6 +318,23 @@ class AiRecommendationEngine {
     if (candidate.audioUrl.trim().isEmpty) return -100.0;
     if (candidate.id == seedSong.id) return -100.0;
 
+    // Disqualify 30-second previews and short promo/ringtone snippets
+    if (candidate.audioUrl.contains('apple.com') ||
+        candidate.audioUrl.contains('mzstatic.com') ||
+        candidate.audioUrl.contains('preview')) {
+      return -100.0;
+    }
+    if (candidate.duration.inSeconds > 0 && candidate.duration.inSeconds < 75) {
+      return -100.0;
+    }
+
+    // Strict Language Consistency: Queue must strictly match seed song language!
+    final seedLang = MusicApiService.detectSongLanguage(seedSong);
+    final candLang = MusicApiService.detectSongLanguage(candidate);
+    if (seedLang != candLang) {
+      return -100.0;
+    }
+
     final collabScore = calculateCollaborativeScore(seedSong, candidate);
     final contentScore = calculateContentScore(seedSong, candidate);
     final contextBehavior = calculateContextualAndBehavioralScore(candidate);
@@ -354,44 +371,62 @@ class AiRecommendationEngine {
 
   /// Builds a high-accuracy, personalized queue starting from seedSong.
   /// Combines:
-  /// - User's search history inspirations
-  /// - User's playlists and favorites
+  /// - User's search history inspirations strictly matching language
+  /// - User's playlists and favorites matching language
   /// - Live recommendations matching seedSong
-  /// - User's listening feed
+  /// - 100% duplicate-free canonical ranking
   Future<List<Song>> buildSmartQueue({
     required Song seedSong,
     List<Song> existingQueue = const [],
     int targetSize = 50,
   }) async {
+    final seedLang = MusicApiService.detectSongLanguage(seedSong);
     final List<Song> pool = [];
     final Set<String> seenIds = {seedSong.id};
+    final Set<String> seenKeys = {
+      SongParserUtils.songDeduplicationKey(seedSong),
+    };
+
+    void tryAddCandidate(Song candidate) {
+      if (candidate.id == seedSong.id) return;
+      if (candidate.audioUrl.trim().isEmpty) return;
+      if (candidate.audioUrl.contains('apple.com') ||
+          candidate.audioUrl.contains('mzstatic.com') ||
+          candidate.audioUrl.contains('preview')) {
+        return;
+      }
+      if (candidate.duration.inSeconds > 0 &&
+          candidate.duration.inSeconds < 75) {
+        return;
+      }
+      if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
+        return;
+      }
+
+      final key = SongParserUtils.songDeduplicationKey(candidate);
+      if (seenIds.add(candidate.id) && seenKeys.add(key)) {
+        pool.add(candidate);
+      }
+    }
 
     for (final eq in existingQueue) {
-      if (eq.id != seedSong.id &&
-          eq.audioUrl.trim().isNotEmpty &&
-          seenIds.add(eq.id)) {
-        pool.add(eq);
-      }
+      tryAddCandidate(eq);
     }
 
     final db = DatabaseService.instance;
 
-    // 1. Gather candidates from user's favorites & playlists matching genre/mood
+    // 1. Gather candidates from user's favorites & playlists strictly matching seed language
     for (final fav in db.favoriteSongs) {
-      if (fav.audioUrl.trim().isNotEmpty && seenIds.add(fav.id)) {
-        pool.add(fav);
-      }
+      tryAddCandidate(fav);
     }
     for (final pl in db.playlists) {
       for (final s in pl.songs) {
-        if (s.audioUrl.trim().isNotEmpty && seenIds.add(s.id)) {
-          pool.add(s);
-        }
+        tryAddCandidate(s);
       }
     }
 
     // 2. Gather candidates from user's recent search queries
-    final recentSearches = db.searchHistory.take(3);
+    final recentSearches = db.searchHistory.take(5);
     for (final query in recentSearches) {
       try {
         final searchMatches = await MusicApiService.searchLiveSongs(
@@ -399,9 +434,7 @@ class AiRecommendationEngine {
           limit: 10,
         );
         for (final sm in searchMatches) {
-          if (sm.audioUrl.trim().isNotEmpty && seenIds.add(sm.id)) {
-            pool.add(sm);
-          }
+          tryAddCandidate(sm);
         }
       } catch (_) {}
     }
@@ -410,12 +443,10 @@ class AiRecommendationEngine {
     try {
       final recs = await MusicApiService.fetchSmartRecommendations(
         seedSong,
-        limit: 45,
+        limit: 50,
       );
       for (final r in recs) {
-        if (r.audioUrl.trim().isNotEmpty && seenIds.add(r.id)) {
-          pool.add(r);
-        }
+        tryAddCandidate(r);
       }
     } catch (_) {}
 
@@ -431,15 +462,16 @@ class AiRecommendationEngine {
     // Sort descending by score
     scored.sort((a, b) => b.value.compareTo(a.value));
 
-    // Deduplicate songs by title/artist key
+    // Deduplicate songs by canonical title key
     final List<Song> rankedSongs = [seedSong];
-    final Set<String> seenKeys = {
+    final Set<String> rankedKeys = {
       SongParserUtils.songDeduplicationKey(seedSong),
     };
+    final Set<String> rankedIds = {seedSong.id};
 
     for (final entry in scored) {
       final key = SongParserUtils.songDeduplicationKey(entry.key);
-      if (seenKeys.add(key)) {
+      if (rankedIds.add(entry.key.id) && rankedKeys.add(key)) {
         rankedSongs.add(entry.key);
         if (rankedSongs.length >= targetSize) break;
       }
