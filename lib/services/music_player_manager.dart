@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
 import '../data/music_repository.dart';
@@ -16,6 +15,7 @@ import 'presence_service.dart';
 import 'media_session_service.dart';
 import 'crash_reporting_service.dart';
 import 'battery_optimization_service.dart';
+import 'notification_permission_service.dart';
 import 'player/web_dsp_bridge.dart';
 
 part 'player/music_player_sleep_timer.dart';
@@ -764,11 +764,10 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
 
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      Permission.notification.isGranted.then((granted) {
-        if (!granted) {
-          Permission.notification.request();
-        }
-      });
+      unawaited(
+        NotificationPermissionService.instance
+            .requestNotificationPermissionIfNeeded(),
+      );
       BatteryOptimizationService.instance.checkOptimizationStatus();
     }
 

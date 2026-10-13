@@ -70,14 +70,15 @@ void main() async {
           androidNotificationChannelId: AppConfig.audioNotificationChannelId,
           androidNotificationChannelName:
               AppConfig.audioNotificationChannelName,
-          androidNotificationOngoing: true,
+          androidNotificationOngoing: false,
           androidShowNotificationBadge: true,
-          androidNotificationIcon: 'mipmap/ic_launcher',
+          androidNotificationIcon: 'drawable/ic_notification',
           androidStopForegroundOnPause: false,
           preloadArtwork: true,
         );
       } catch (e) {
         debugPrint('JustAudioBackground init note: $e');
+        CrashReportingService.swallow(e, 'main.dart:JustAudioBackground.init');
       }
     }
 
@@ -111,6 +112,11 @@ void main() async {
 class JumboMusicApp extends StatelessWidget {
   const JumboMusicApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+  static final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   @override
   Widget build(BuildContext context) {
     final themeManager = AppThemeManager.instance;
@@ -120,6 +126,8 @@ class JumboMusicApp extends StatelessWidget {
       builder: (context, _) {
         return GlobalKeyboardShortcutsWrapper(
           child: MaterialApp(
+            navigatorKey: navigatorKey,
+            scaffoldMessengerKey: scaffoldMessengerKey,
             debugShowCheckedModeBanner: false,
             title: 'Jumbo Music',
             theme: AppThemeManager.lightTheme,

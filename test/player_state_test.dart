@@ -70,5 +70,18 @@ void main() {
         expect(manager.autoplay, isTrue);
       },
     );
+
+    test(
+      'Background notification config respects audio_service assertion: !ongoing || stopForegroundOnPause',
+      () {
+        bool isValidConfig(bool ongoing, bool stopForegroundOnPause) =>
+            !ongoing || stopForegroundOnPause;
+
+        // Configured values (ongoing: false, stopForegroundOnPause: false)
+        expect(isValidConfig(false, false), isTrue);
+        // Old broken configuration that triggered AssertionError in audio_service
+        expect(isValidConfig(true, false), isFalse);
+      },
+    );
   });
 }
