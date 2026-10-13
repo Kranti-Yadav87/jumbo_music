@@ -7,7 +7,7 @@ import 'package:jumbo_music/services/music_api_service.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
 import 'package:jumbo_music/widgets/home/search_inspired_section.dart';
 import 'package:jumbo_music/widgets/home/featured_playlists_section.dart';
-import 'package:jumbo_music/widgets/home/romance_section.dart';
+import 'package:jumbo_music/widgets/home/bts_section.dart';
 
 import 'package:jumbo_music/services/storage/storage_engine.dart';
 
@@ -71,15 +71,15 @@ void main() {
       );
     });
 
-    testWidgets('RomanceSection renders header and essentials', (tester) async {
+    testWidgets('BtsSection renders header and essentials', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
-          home: Scaffold(body: SingleChildScrollView(child: RomanceSection())),
+          home: Scaffold(body: SingleChildScrollView(child: BtsSection())),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('Soulful Romance ❤️'), findsOneWidget);
+      expect(find.text('BTS Hits 💜'), findsOneWidget);
     });
 
     testWidgets(

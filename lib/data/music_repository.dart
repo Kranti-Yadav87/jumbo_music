@@ -37,6 +37,89 @@ class MusicRepository {
     ),
   ];
 
+  static const List<Song> btsEssentials = [
+    Song(
+      id: 'bts_dynamite',
+      title: 'Dynamite',
+      artist: 'BTS',
+      album: 'Dynamite (DayTime Version)',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 199),
+    ),
+    Song(
+      id: 'bts_butter',
+      title: 'Butter',
+      artist: 'BTS',
+      album: 'Butter',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 164),
+    ),
+    Song(
+      id: 'bts_boy_with_luv',
+      title: 'Boy With Luv (feat. Halsey)',
+      artist: 'BTS, Halsey',
+      album: 'MAP OF THE SOUL : PERSONA',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 229),
+    ),
+    Song(
+      id: 'bts_life_goes_on',
+      title: 'Life Goes On',
+      artist: 'BTS',
+      album: 'BE',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 207),
+    ),
+    Song(
+      id: 'bts_fake_love',
+      title: 'Fake Love',
+      artist: 'BTS',
+      album: 'Love Yourself 轉 Tear',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 242),
+    ),
+    Song(
+      id: 'bts_blood_sweat_tears',
+      title: 'Blood Sweat & Tears',
+      artist: 'BTS',
+      album: 'WINGS',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 217),
+    ),
+    Song(
+      id: 'bts_permission_to_dance',
+      title: 'Permission to Dance',
+      artist: 'BTS',
+      album: 'Butter / Permission to Dance',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 187),
+    ),
+    Song(
+      id: 'bts_dna',
+      title: 'DNA',
+      artist: 'BTS',
+      album: 'Love Yourself 承 Her',
+      coverUrl:
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      audioUrl: '',
+      duration: Duration(seconds: 223),
+    ),
+  ];
+
   static final List<Song> newReleases = [];
 
   static final List<Playlist> samplePlaylists = [
@@ -150,6 +233,17 @@ class MusicRepository {
   ];
 
   static const List<Map<String, String>> popularArtists = [
+    {
+      'id': 'art_bts',
+      'name': 'BTS (방탄소년단)',
+      'role': 'Global 21st Century Pop Icons',
+      'listeners': '95M+ monthly streams',
+      'imageUrl':
+          'https://c.saavncdn.com/editorial/charts_EnglishTopSongs_500x500.jpg',
+      'query': 'BTS Dynamite Butter Boy With Luv hits',
+      'keywords':
+          'bts bangtan boys jungkook jimin v rm suga jin jhope dynamite butter boy with luv kpop army',
+    },
     {
       'id': 'art_darshan',
       'name': 'Darshan Raval',
