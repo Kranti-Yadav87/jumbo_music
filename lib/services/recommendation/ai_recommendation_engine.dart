@@ -137,8 +137,10 @@ class AiRecommendationEngine {
       return SongMoodCategory.devotionalPositive;
     }
 
-    if (MusicApiService.isVintageGoldenEra(song) ||
-        MusicApiService.is80sEra(song)) {
+    final era = MusicTagClassifier.detectSongEra(song);
+    if (era == MusicEra.vintage70s ||
+        era == MusicEra.era80s ||
+        era == MusicEra.era90s) {
       return SongMoodCategory.nostalgicRetro;
     }
 
@@ -156,7 +158,7 @@ class AiRecommendationEngine {
         title.contains('sukoon') ||
         title.contains('acoustic') ||
         title.contains('peace') ||
-        MusicApiService.isIndieOrSukoonSong(song) ||
+        MusicTagClassifier.isIndieOrSukoonSong(song) ||
         artist.contains('prateek kuhad') ||
         artist.contains('anuv jain')) {
       return SongMoodCategory.calmSukoon;
@@ -169,45 +171,56 @@ class AiRecommendationEngine {
   double calculateContentScore(Song seedSong, Song candidate) {
     double score = 0.0;
 
-    // A. Language match (30%)
+    // A. Language match (Strict requirement)
     final seedLang = MusicApiService.detectSongLanguage(seedSong);
     final candLang = MusicApiService.detectSongLanguage(candidate);
-    if (seedLang == candLang) {
-      score += 0.30;
+    if (seedLang != candLang) return 0.0;
+    if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(candidate)) {
+      return 0.0;
     }
+    if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(candidate)) {
+      return 0.0;
+    }
+    score += 0.25;
 
-    // B. Artist affinity (25%)
+    // B. Musical Era match (Strict requirement)
+    final seedEra = MusicTagClassifier.detectSongEra(seedSong);
+    final candEra = MusicTagClassifier.detectSongEra(candidate);
+    if (seedEra != candEra) return 0.0;
+    score += 0.25;
+
+    // C. Artist affinity (20%)
     final seedArtist = seedSong.artist.split(',').first.trim().toLowerCase();
     final candArtist = candidate.artist.split(',').first.trim().toLowerCase();
     if (seedArtist == candArtist) {
-      score += 0.25;
+      score += 0.20;
     } else if (seedSong.artist.toLowerCase().contains(candArtist) ||
         candidate.artist.toLowerCase().contains(seedArtist)) {
-      score += 0.15;
+      score += 0.12;
     }
 
-    // C. Tempo consistency (20%)
+    // D. Tempo consistency (15%)
     final seedTempo = estimateTempo(seedSong);
     final candTempo = estimateTempo(candidate);
     if (seedTempo == candTempo) {
-      score += 0.20;
+      score += 0.15;
     } else if ((seedTempo == SongTempoCategory.midTempo &&
             candTempo == SongTempoCategory.slow) ||
         (seedTempo == SongTempoCategory.midTempo &&
             candTempo == SongTempoCategory.upbeat)) {
-      score += 0.10; // smooth adjacent transition
+      score += 0.08; // smooth adjacent transition
     }
 
-    // D. Mood consistency (25%)
+    // E. Mood consistency (15%)
     final seedMood = classifyMood(seedSong);
     final candMood = classifyMood(candidate);
     if (seedMood == candMood) {
-      score += 0.25;
+      score += 0.15;
     } else if ((seedMood == SongMoodCategory.romantic &&
             candMood == SongMoodCategory.calmSukoon) ||
         (seedMood == SongMoodCategory.energetic &&
             candMood == SongMoodCategory.romantic)) {
-      score += 0.12;
+      score += 0.08;
     }
 
     return score.clamp(0.0, 1.0);
@@ -334,6 +347,20 @@ class AiRecommendationEngine {
     if (seedLang != candLang) {
       return -100.0;
     }
+    if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(candidate)) {
+      return -100.0;
+    }
+    if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(candidate)) {
+      return -100.0;
+    }
+
+    // Strict Musical Era Consistency: Queue must strictly match seed song era!
+    // (Vintage 70s, 80s, 90s, 2000s, 2010s, Gen Z/Modern)
+    final seedEra = MusicTagClassifier.detectSongEra(seedSong);
+    final candEra = MusicTagClassifier.detectSongEra(candidate);
+    if (seedEra != candEra) {
+      return -100.0;
+    }
 
     final collabScore = calculateCollaborativeScore(seedSong, candidate);
     final contentScore = calculateContentScore(seedSong, candidate);
@@ -371,9 +398,9 @@ class AiRecommendationEngine {
 
   /// Builds a high-accuracy, personalized queue starting from seedSong.
   /// Combines:
-  /// - User's search history inspirations strictly matching language
-  /// - User's playlists and favorites matching language
-  /// - Live recommendations matching seedSong
+  /// - User's search history inspirations strictly matching language and era
+  /// - User's playlists and favorites matching language and era
+  /// - Live recommendations matching seedSong era & language
   /// - 100% duplicate-free canonical ranking
   Future<List<Song>> buildSmartQueue({
     required Song seedSong,
@@ -381,6 +408,7 @@ class AiRecommendationEngine {
     int targetSize = 50,
   }) async {
     final seedLang = MusicApiService.detectSongLanguage(seedSong);
+    final seedEra = MusicTagClassifier.detectSongEra(seedSong);
     final List<Song> pool = [];
     final Set<String> seenIds = {seedSong.id};
     final Set<String> seenKeys = {
@@ -402,6 +430,17 @@ class AiRecommendationEngine {
       if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
         return;
       }
+      if (seedLang != 'English' &&
+          MusicTagClassifier.isEnglishSong(candidate)) {
+        return;
+      }
+      if (seedLang == 'English' &&
+          !MusicTagClassifier.isEnglishSong(candidate)) {
+        return;
+      }
+      if (MusicTagClassifier.detectSongEra(candidate) != seedEra) {
+        return;
+      }
 
       final key = SongParserUtils.songDeduplicationKey(candidate);
       if (seenIds.add(candidate.id) && seenKeys.add(key)) {
@@ -415,7 +454,7 @@ class AiRecommendationEngine {
 
     final db = DatabaseService.instance;
 
-    // 1. Gather candidates from user's favorites & playlists strictly matching seed language
+    // 1. Gather candidates from user's favorites & playlists strictly matching seed language and era
     for (final fav in db.favoriteSongs) {
       tryAddCandidate(fav);
     }
@@ -424,22 +463,11 @@ class AiRecommendationEngine {
         tryAddCandidate(s);
       }
     }
-
-    // 2. Gather candidates from user's recent search queries
-    final recentSearches = db.searchHistory.take(5);
-    for (final query in recentSearches) {
-      try {
-        final searchMatches = await MusicApiService.searchLiveSongs(
-          query,
-          limit: 10,
-        );
-        for (final sm in searchMatches) {
-          tryAddCandidate(sm);
-        }
-      } catch (_) {}
+    for (final h in db.historySongs) {
+      tryAddCandidate(h);
     }
 
-    // 3. Live smart recommendations for seedSong
+    // 2. Primary: Live smart recommendations specifically tailored for seedSong
     try {
       final recs = await MusicApiService.fetchSmartRecommendations(
         seedSong,
@@ -449,6 +477,44 @@ class AiRecommendationEngine {
         tryAddCandidate(r);
       }
     } catch (_) {}
+
+    // 3. Proactive era-targeted fetching if pool needs more songs to reach targetSize
+    if (pool.length < targetSize) {
+      final targetedQueries = getEraTargetedQueries(
+        seedLang,
+        seedEra,
+        seedSong,
+      );
+      for (final q in targetedQueries) {
+        if (pool.length >= targetSize) break;
+        try {
+          final liveMatches = await MusicApiService.searchLiveSongs(
+            q,
+            limit: 15,
+          );
+          for (final lm in liveMatches) {
+            tryAddCandidate(lm);
+          }
+        } catch (_) {}
+      }
+    }
+
+    // 4. Secondary: Candidates from user's recent search queries if still under targetSize
+    if (pool.length < targetSize) {
+      final recentSearches = db.searchHistory.take(3);
+      for (final query in recentSearches) {
+        if (pool.length >= targetSize) break;
+        try {
+          final searchMatches = await MusicApiService.searchLiveSongs(
+            query,
+            limit: 10,
+          );
+          for (final sm in searchMatches) {
+            tryAddCandidate(sm);
+          }
+        } catch (_) {}
+      }
+    }
 
     // 4. Score all candidates using the 3 Pillars
     final List<MapEntry<Song, double>> scored = [];
@@ -462,21 +528,255 @@ class AiRecommendationEngine {
     // Sort descending by score
     scored.sort((a, b) => b.value.compareTo(a.value));
 
-    // Deduplicate songs by canonical title key
+    // Deduplicate songs by canonical title key AND enforce artist diversity cap (max 2 songs per artist)
     final List<Song> rankedSongs = [seedSong];
     final Set<String> rankedKeys = {
       SongParserUtils.songDeduplicationKey(seedSong),
     };
     final Set<String> rankedIds = {seedSong.id};
+    final Map<String, int> artistCounts = {};
 
+    String normalizeArtistName(String artist) {
+      return artist
+          .split(',')
+          .first
+          .split('&')
+          .first
+          .split('feat.')
+          .first
+          .trim()
+          .toLowerCase();
+    }
+
+    artistCounts[normalizeArtistName(seedSong.artist)] = 1;
+
+    // Pass 1: Add high-scoring songs with max 2 songs per artist
     for (final entry in scored) {
       final key = SongParserUtils.songDeduplicationKey(entry.key);
+      final artistName = normalizeArtistName(entry.key.artist);
+      final count = artistCounts[artistName] ?? 0;
+
+      if (count >= 2) continue; // Keep queue diverse and balanced
+
       if (rankedIds.add(entry.key.id) && rankedKeys.add(key)) {
         rankedSongs.add(entry.key);
+        artistCounts[artistName] = count + 1;
         if (rankedSongs.length >= targetSize) break;
       }
     }
 
+    // Pass 2: If target queue size not reached, fill in remaining unique songs
+    if (rankedSongs.length < targetSize) {
+      for (final entry in scored) {
+        final key = SongParserUtils.songDeduplicationKey(entry.key);
+        if (rankedIds.add(entry.key.id) && rankedKeys.add(key)) {
+          rankedSongs.add(entry.key);
+          if (rankedSongs.length >= targetSize) break;
+        }
+      }
+    }
+
     return rankedSongs;
+  }
+
+  /// Returns curated, highly targeted queries for a specific language and era.
+  static List<String> getEraTargetedQueries(
+    String lang,
+    MusicEra era,
+    Song seedSong,
+  ) {
+    final queries = <String>[];
+    final artist = seedSong.artist
+        .split(',')
+        .first
+        .split('&')
+        .first
+        .split('feat.')
+        .first
+        .trim();
+    final bool hasArtist =
+        artist.isNotEmpty &&
+        artist.toLowerCase() != 'unknown artist' &&
+        artist.toLowerCase() != 'various artists';
+
+    if (lang == 'English') {
+      switch (era) {
+        case MusicEra.vintage70s:
+          if (hasArtist) queries.add('$artist 70s hits');
+          queries.addAll([
+            '70s classic rock hits',
+            '1970s pop golden classics',
+            'Queen Elton John 70s hits',
+          ]);
+          break;
+        case MusicEra.era80s:
+          if (hasArtist) queries.add('$artist 80s hits');
+          queries.addAll([
+            '80s synth pop rock hits',
+            '1980s pop classics',
+            'Michael Jackson Madonna 80s hits',
+          ]);
+          break;
+        case MusicEra.era90s:
+          if (hasArtist) queries.add('$artist 90s hits');
+          queries.addAll([
+            '90s pop rock classics',
+            '1990s pop hits',
+            'Backstreet Boys Britney Spears 90s',
+          ]);
+          break;
+        case MusicEra.era2000s:
+          if (hasArtist) queries.add('$artist 2000s hits');
+          queries.addAll([
+            '2000s pop rock hits',
+            'Coldplay Linkin Park 2000s',
+            'Green Day Maroon 5 2000s',
+          ]);
+          break;
+        case MusicEra.era2010s:
+          if (artist.toLowerCase().contains('anuv jain')) {
+            queries.addAll([
+              'Anuv Jain Ocean acoustic',
+              '2010s acoustic pop hits',
+              'Taylor Swift Ed Sheeran 2010s',
+              'Passenger James Arthur acoustic 2010s',
+              '2010s indie acoustic english hits',
+              'Coldplay 2010s acoustic',
+            ]);
+          } else {
+            if (hasArtist) queries.add('$artist 2010s hits');
+            queries.addAll([
+              '2010s pop hits',
+              'Taylor Swift Ed Sheeran 2010s',
+              'Coldplay Bruno Mars 2010s',
+              '2010s indie pop acoustic',
+              '2010s english acoustic hits',
+            ]);
+          }
+          break;
+        case MusicEra.genZModern:
+          if (hasArtist) queries.add('$artist hits');
+          queries.addAll([
+            'billboard hot 100 hits',
+            'global pop superhits',
+            'trending acoustic indie',
+          ]);
+          break;
+      }
+    } else if (lang == 'Punjabi') {
+      switch (era) {
+        case MusicEra.vintage70s:
+        case MusicEra.era80s:
+          if (hasArtist) queries.add('$artist punjabi hits');
+          queries.addAll([
+            'Kuldeep Manak hits',
+            'Surinder Shinda hits',
+            'classic folk punjabi hits',
+          ]);
+          break;
+        case MusicEra.era90s:
+          if (hasArtist) queries.add('$artist 90s hits');
+          queries.addAll([
+            '90s punjabi hits',
+            'Gurdas Maan 90s hits',
+            'Daler Mehndi 90s hits',
+          ]);
+          break;
+        case MusicEra.era2000s:
+          if (hasArtist) queries.add('$artist 2000s hits');
+          queries.addAll([
+            '2000s punjabi hits',
+            'Babbu Maan 2000s hits',
+            'Amrinder Gill 2000s hits',
+            'Jazzy B 2000s hits',
+          ]);
+          break;
+        case MusicEra.era2010s:
+          if (hasArtist) queries.add('$artist 2010s hits');
+          queries.addAll([
+            '2010s punjabi hits',
+            'Diljit Dosanjh 2010s hits',
+            'Amrinder Gill 2010s hits',
+            'Bilal Saeed hits',
+          ]);
+          break;
+        case MusicEra.genZModern:
+          if (hasArtist) queries.add('$artist new hits');
+          queries.addAll([
+            'latest punjabi hits',
+            'karan aujla trending hits',
+            'diljit dosanjh new hits',
+          ]);
+          break;
+      }
+    } else {
+      // Default / Hindi
+      switch (era) {
+        case MusicEra.vintage70s:
+          if (hasArtist) queries.add('$artist 70s golden hits');
+          queries.addAll([
+            '70s bollywood golden hits',
+            'Kishore Kumar 70s romantic hits',
+            'R D Burman 70s classics',
+            'Lata Kishore 70s duets',
+            'Mohammed Rafi 70s evergreen',
+            '70s superhit hindi gaane',
+          ]);
+          break;
+        case MusicEra.era80s:
+          if (hasArtist) queries.add('$artist 80s hits');
+          queries.addAll([
+            '80s bollywood romantic hits',
+            'Kishore Kumar 80s hits',
+            'Lata Mangeshkar 80s classics',
+            'RD Burman 80s hits',
+            '80s hindi disco hits',
+          ]);
+          break;
+        case MusicEra.era90s:
+          if (hasArtist) queries.add('$artist 90s superhits');
+          queries.addAll([
+            '90s bollywood romantic hits',
+            'Kumar Sanu 90s hits',
+            'Alka Yagnik Kumar Sanu duets',
+            'Udit Narayan 90s classics',
+            '90s bollywood love songs',
+            'Nadeem Shravan 90s hits',
+          ]);
+          break;
+        case MusicEra.era2000s:
+          if (hasArtist) queries.add('$artist 2000s hits');
+          queries.addAll([
+            '2000s bollywood romantic hits',
+            'KK 2000s hits',
+            'Sonu Nigam 2000s hits',
+            'Mohit Chauhan 2000s hits',
+            '2000s hindi melody hits',
+            'Pritam 2000s soulful hits',
+          ]);
+          break;
+        case MusicEra.era2010s:
+          if (hasArtist) queries.add('$artist 2010s hits');
+          queries.addAll([
+            '2010s bollywood romantic hits',
+            'Arijit Singh 2010s hits',
+            '2010s hindi love songs',
+            'Arijit Singh romantic melodies',
+            '2010s acoustic bollywood melodies',
+            'Atif Aslam 2010s romantic',
+          ]);
+          break;
+        case MusicEra.genZModern:
+          if (hasArtist) queries.add('$artist modern hits');
+          queries.addAll([
+            'latest bollywood hits',
+            'trending hindi songs',
+            'arijit singh new hits',
+            'bollywood love songs 2024',
+          ]);
+          break;
+      }
+    }
+    return queries;
   }
 }

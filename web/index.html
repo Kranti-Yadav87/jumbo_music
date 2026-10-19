@@ -468,6 +468,9 @@
       try {
         var artworkList = [];
         var srcUrl = (coverUrl && coverUrl.trim().length > 0) ? coverUrl.trim() : 'icons/Icon-512.png';
+        if (srcUrl.indexOf('http://') === 0) {
+          srcUrl = srcUrl.replace('http://', 'https://');
+        }
         var sizes = [96, 128, 192, 256, 384, 512];
         for (var i = 0; i < sizes.length; i++) {
           artworkList.push({
@@ -529,10 +532,11 @@
       window.jumboMediaActionHandler = handler;
       if (!('mediaSession' in navigator)) return;
 
-      // Register Previous Track and Next Track explicitly so lock screen controls always show them
+      // Register Previous Track, Next Track, and Stop explicitly so lock screen controls always show them
       var actions = [
         ['play', function() { window.jumboDispatchMediaAction('play', 0); }],
         ['pause', function() { window.jumboDispatchMediaAction('pause', 0); }],
+        ['stop', function() { window.jumboDispatchMediaAction('pause', 0); }],
         ['previoustrack', function() { window.jumboDispatchMediaAction('previous', 0); }],
         ['nexttrack', function() { window.jumboDispatchMediaAction('next', 0); }],
         ['seekto', function(details) { window.jumboDispatchMediaAction('seek', details ? details.seekTime : 0); }]
@@ -554,6 +558,7 @@
       try {
         navigator.mediaSession.setActionHandler('play', function() { window.jumboDispatchMediaAction('play', 0); });
         navigator.mediaSession.setActionHandler('pause', function() { window.jumboDispatchMediaAction('pause', 0); });
+        navigator.mediaSession.setActionHandler('stop', function() { window.jumboDispatchMediaAction('pause', 0); });
         navigator.mediaSession.setActionHandler('previoustrack', function() { window.jumboDispatchMediaAction('previous', 0); });
         navigator.mediaSession.setActionHandler('nexttrack', function() { window.jumboDispatchMediaAction('next', 0); });
         navigator.mediaSession.setActionHandler('seekbackward', null);

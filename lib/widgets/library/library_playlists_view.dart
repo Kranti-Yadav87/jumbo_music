@@ -127,7 +127,7 @@ class LibraryPlaylistsSliverView extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
             child: Text(
-              'MY PLAYLISTS & MIXES',
+              'MY PLAYLISTS (${manager.playlists.length})',
               style: TextStyle(
                 color: isDark ? Colors.white54 : const Color(0xFF64748B),
                 fontSize: 12,
@@ -137,69 +137,116 @@ class LibraryPlaylistsSliverView extends StatelessWidget {
             ),
           ),
         ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            final pl = manager.playlists[index];
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: cardBorder),
-              ),
-              child: ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.network(
-                    pl.coverUrl,
-                    width: 48,
-                    height: 48,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 48,
-                      height: 48,
-                      color: const Color(0xFF1E293B),
-                      child: const Icon(
-                        Icons.queue_music,
-                        color: Colors.white54,
+        if (manager.playlists.isEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.queue_music_rounded,
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      size: 48,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No custom playlists yet',
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white70
+                            : const Color(0xFF334155),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
                       ),
                     ),
-                  ),
-                ),
-                title: Text(
-                  pl.title,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14.5,
-                  ),
-                ),
-                subtitle: Text(
-                  '${pl.songs.length} songs • ${pl.description}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                    fontSize: 12,
-                  ),
-                ),
-                trailing: Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 14,
-                  color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
-                ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => PlaylistDetailScreen(playlist: pl),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Tap the + button above to create a playlist',
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white38
+                            : const Color(0xFF94A3B8),
+                        fontSize: 12,
+                      ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            );
-          }, childCount: manager.playlists.length),
-        ),
+            ),
+          )
+        else
+          SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              final pl = manager.playlists[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
+                child: Material(
+                  color: cardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(color: cardBorder),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    leading: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.network(
+                        pl.coverUrl,
+                        width: 48,
+                        height: 48,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 48,
+                          height: 48,
+                          color: const Color(0xFF1E293B),
+                          child: const Icon(
+                            Icons.queue_music,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      pl.title,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14.5,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${pl.songs.length} songs • ${pl.description}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isDark
+                            ? Colors.white54
+                            : const Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: isDark ? Colors.white38 : const Color(0xFF94A3B8),
+                    ),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PlaylistDetailScreen(playlist: pl),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            }, childCount: manager.playlists.length),
+          ),
       ],
     );
   }

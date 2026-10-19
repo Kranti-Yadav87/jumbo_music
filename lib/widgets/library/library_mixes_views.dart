@@ -22,45 +22,48 @@ class LibraryAlbumsSliverView extends StatelessWidget {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final pl = manager.genreMixes[index];
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Material(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: cardBorder),
-          ),
-          child: ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                pl.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-              ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: cardBorder),
             ),
-            title: Text(
-              pl.title,
-              style: TextStyle(
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            subtitle: Text(
-              pl.description,
-              style: TextStyle(
-                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                fontSize: 12,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PlaylistDetailScreen(playlist: pl),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  pl.coverUrl,
+                  width: 48,
+                  height: 48,
+                  fit: BoxFit.cover,
                 ),
-              );
-            },
+              ),
+              title: Text(
+                pl.title,
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Text(
+                pl.description,
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlaylistDetailScreen(playlist: pl),
+                  ),
+                );
+              },
+            ),
           ),
         );
       }, childCount: manager.genreMixes.length),
@@ -88,41 +91,44 @@ class LibraryArtistsSliverView extends StatelessWidget {
     return SliverList(
       delegate: SliverChildBuilderDelegate((context, index) {
         final artistMix = manager.artistMixes[index];
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Material(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: cardBorder),
-          ),
-          child: ListTile(
-            leading: CircleAvatar(
-              radius: 24,
-              backgroundImage: NetworkImage(artistMix.coverUrl),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: cardBorder),
             ),
-            title: Text(
-              artistMix.title,
-              style: TextStyle(
-                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: CircleAvatar(
+                radius: 24,
+                backgroundImage: NetworkImage(artistMix.coverUrl),
               ),
-            ),
-            subtitle: Text(
-              artistMix.description,
-              style: TextStyle(
-                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                fontSize: 12,
-              ),
-            ),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => PlaylistDetailScreen(playlist: artistMix),
+              title: Text(
+                artistMix.title,
+                style: TextStyle(
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
                 ),
-              );
-            },
+              ),
+              subtitle: Text(
+                artistMix.description,
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  fontSize: 12,
+                ),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlaylistDetailScreen(playlist: artistMix),
+                  ),
+                );
+              },
+            ),
           ),
         );
       }, childCount: manager.artistMixes.length),

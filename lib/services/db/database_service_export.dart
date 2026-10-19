@@ -58,6 +58,8 @@ extension DatabaseServiceExport on DatabaseService {
       StorageEngine.removeItem(_scopedKey('friends')),
       StorageEngine.removeItem(_scopedKey('notifications')),
       StorageEngine.removeItem(_scopedKey('profile')),
+      StorageEngine.removeItem(_scopedKey('last_played_song')),
+      StorageEngine.removeItem(_scopedKey('last_played_queue')),
     ]);
     notify();
   }
@@ -75,6 +77,8 @@ extension DatabaseServiceExport on DatabaseService {
       StorageEngine.removeItem('jumbo_${targetScope}_notifications'),
       StorageEngine.removeItem('jumbo_${targetScope}_profile'),
       StorageEngine.removeItem('jumbo_${targetScope}_settings'),
+      StorageEngine.removeItem('jumbo_${targetScope}_last_played_song'),
+      StorageEngine.removeItem('jumbo_${targetScope}_last_played_queue'),
     ]);
     if (_currentScope == targetScope) {
       _clearMemoryStores();

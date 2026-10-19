@@ -3,6 +3,7 @@ import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/models/playlist.dart';
 import 'package:jumbo_music/services/database_service.dart';
 import 'package:jumbo_music/services/recommendation/ai_recommendation_engine.dart';
+import 'package:jumbo_music/services/api/music_tag_classifier.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -259,6 +260,404 @@ void main() {
             .where((s) => s.title.toLowerCase().contains('apna bana le'))
             .length;
         expect(apnaBanaLeCount, equals(1));
+      },
+    );
+
+    test(
+      'Strict Era Filtering: Disqualifies cross-era candidates with -100.0 score',
+      () {
+        const vintageSeed = Song(
+          id: 'v_seed',
+          title: 'Pal Pal Dil Ke Paas',
+          artist: 'Kishore Kumar',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/vintage.mp3',
+          coverUrl: '',
+          releaseYear: '1973',
+        );
+
+        const ninetiesTrack = Song(
+          id: 'n_cand',
+          title: 'Tujhe Dekha To',
+          artist: 'Kumar Sanu, Alka Yagnik',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/90s.mp3',
+          coverUrl: '',
+          releaseYear: '1995',
+        );
+
+        const twoThousandsTrack = Song(
+          id: '2k_cand',
+          title: 'Zara Sa',
+          artist: 'KK',
+          duration: Duration(seconds: 280),
+          audioUrl: 'https://example.com/2000s.mp3',
+          coverUrl: '',
+          releaseYear: '2008',
+        );
+
+        const genZTrack = Song(
+          id: 'gz_cand',
+          title: 'Winning Speech',
+          artist: 'Karan Aujla',
+          duration: Duration(seconds: 190),
+          audioUrl: 'https://example.com/genz.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        const vintageCandidate = Song(
+          id: 'v_cand',
+          title: 'Gulabi Aankhen',
+          artist: 'Mohammed Rafi',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://example.com/rafi.mp3',
+          coverUrl: '',
+          releaseYear: '1970',
+        );
+
+        // Cross-era candidates must be strictly disqualified (-100.0)
+        expect(
+          engine.scoreCandidate(vintageSeed, ninetiesTrack),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(vintageSeed, twoThousandsTrack),
+          equals(-100.0),
+        );
+        expect(engine.scoreCandidate(vintageSeed, genZTrack), equals(-100.0));
+
+        // Same-era candidate must be admitted with positive score
+        expect(
+          engine.scoreCandidate(vintageSeed, vintageCandidate),
+          greaterThan(0.0),
+        );
+      },
+    );
+
+    test(
+      'buildSmartQueue Era Consistency: 70s seed queue contains strictly 70s vintage tracks',
+      () async {
+        const vintageSeed = Song(
+          id: 'v_seed',
+          title: 'Pal Pal Dil Ke Paas',
+          artist: 'Kishore Kumar',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/vintage.mp3',
+          coverUrl: '',
+          releaseYear: '1973',
+        );
+
+        const vintageCandidate = Song(
+          id: 'v_cand',
+          title: 'Gulabi Aankhen',
+          artist: 'Mohammed Rafi',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://example.com/rafi.mp3',
+          coverUrl: '',
+          releaseYear: '1970',
+        );
+
+        const ninetiesTrack = Song(
+          id: 'n_cand',
+          title: 'Tujhe Dekha To',
+          artist: 'Kumar Sanu, Alka Yagnik',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/90s.mp3',
+          coverUrl: '',
+          releaseYear: '1995',
+        );
+
+        const genZTrack = Song(
+          id: 'gz_cand',
+          title: 'Winning Speech',
+          artist: 'Karan Aujla',
+          duration: Duration(seconds: 190),
+          audioUrl: 'https://example.com/genz.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        final queue = await engine.buildSmartQueue(
+          seedSong: vintageSeed,
+          existingQueue: [vintageCandidate, ninetiesTrack, genZTrack],
+          targetSize: 10,
+        );
+
+        expect(queue.any((s) => s.id == vintageSeed.id), isTrue);
+        expect(queue.any((s) => s.id == vintageCandidate.id), isTrue);
+        expect(queue.any((s) => s.id == ninetiesTrack.id), isFalse);
+        expect(queue.any((s) => s.id == genZTrack.id), isFalse);
+      },
+    );
+
+    test('Delimited Title Duplicate Prevention in buildSmartQueue', () async {
+      const vintageSeed = Song(
+        id: 'v_seed',
+        title: 'Pal Pal Dil Ke Paas',
+        artist: 'Kishore Kumar',
+        duration: Duration(seconds: 300),
+        audioUrl: 'https://example.com/vintage.mp3',
+        coverUrl: '',
+        releaseYear: '1973',
+      );
+
+      const upload1 = Song(
+        id: 's_upload1',
+        title: 'Pal Pal Dil Ke Paas - Kishore Kumar',
+        artist: 'Kishore Kumar',
+        duration: Duration(seconds: 300),
+        audioUrl: 'https://example.com/u1.mp3',
+        coverUrl: '',
+        releaseYear: '1973',
+      );
+
+      const upload2 = Song(
+        id: 's_upload2',
+        title: 'Pal Pal Dil Ke Paas (From "Blackmail")',
+        artist: 'Kalyanji Anandji',
+        duration: Duration(seconds: 300),
+        audioUrl: 'https://example.com/u2.mp3',
+        coverUrl: '',
+        releaseYear: '1973',
+      );
+
+      const upload3 = Song(
+        id: 's_upload3',
+        title: 'Pal Pal Dil Ke Paas | Remastered',
+        artist: 'Kishore Kumar',
+        duration: Duration(seconds: 300),
+        audioUrl: 'https://example.com/u3.mp3',
+        coverUrl: '',
+        releaseYear: '1973',
+      );
+
+      final queue = await engine.buildSmartQueue(
+        seedSong: vintageSeed,
+        existingQueue: [upload1, upload2, upload3],
+        targetSize: 10,
+      );
+
+      // Queue must contain only the seed song, 0 duplicate uploads
+      expect(queue.length, equals(1));
+      expect(queue.first.id, equals(vintageSeed.id));
+    });
+
+    test(
+      'Compilation Album Era Invariance: Kishore Kumar/Rafi with 2021 releaseYear stay strictly Vintage 70s',
+      () async {
+        const kishoreCompilation = Song(
+          id: 'kishore_2021',
+          title: 'Mere Sapno Ki Rani',
+          artist: 'Kishore Kumar',
+          duration: Duration(seconds: 290),
+          audioUrl: 'https://example.com/kishore.mp3',
+          coverUrl: '',
+          releaseYear: '2021', // Modern compilation date from streaming API
+        );
+
+        const rafiCompilation = Song(
+          id: 'rafi_2023',
+          title: 'Gulabi Aankhen',
+          artist: 'Mohammed Rafi',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://example.com/rafi.mp3',
+          coverUrl: '',
+          releaseYear: '2023', // Modern compilation date
+        );
+
+        const sanuCompilation = Song(
+          id: 'sanu_2022',
+          title: 'Chura Ke Dil Mera',
+          artist: 'Kumar Sanu, Alka Yagnik',
+          duration: Duration(seconds: 280),
+          audioUrl: 'https://example.com/sanu.mp3',
+          coverUrl: '',
+          releaseYear: '2022',
+        );
+
+        const kkCompilation = Song(
+          id: 'kk_2024',
+          title: 'Zara Sa',
+          artist: 'KK',
+          duration: Duration(seconds: 270),
+          audioUrl: 'https://example.com/kk.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        const genZTrack = Song(
+          id: 'genz_2024',
+          title: 'Tauba Tauba',
+          artist: 'Karan Aujla',
+          duration: Duration(seconds: 190),
+          audioUrl: 'https://example.com/genz.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        expect(
+          MusicTagClassifier.detectSongEra(kishoreCompilation),
+          equals(MusicEra.vintage70s),
+        );
+        expect(
+          MusicTagClassifier.detectSongEra(rafiCompilation),
+          equals(MusicEra.vintage70s),
+        );
+        expect(
+          MusicTagClassifier.detectSongEra(sanuCompilation),
+          equals(MusicEra.era90s),
+        );
+        expect(
+          MusicTagClassifier.detectSongEra(kkCompilation),
+          equals(MusicEra.era2000s),
+        );
+        expect(
+          MusicTagClassifier.detectSongEra(genZTrack),
+          equals(MusicEra.genZModern),
+        );
+
+        // Kishore seed must admit Rafi compilation, and reject Sanu (90s), KK (2000s), and Gen Z
+        expect(
+          engine.scoreCandidate(kishoreCompilation, rafiCompilation),
+          greaterThan(0.0),
+        );
+        expect(
+          engine.scoreCandidate(kishoreCompilation, sanuCompilation),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(kishoreCompilation, kkCompilation),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(kishoreCompilation, genZTrack),
+          equals(-100.0),
+        );
+      },
+    );
+
+    test(
+      'Strict English vs Hindi Isolation: English songs never leak into Hindi queue and vice versa',
+      () async {
+        const hindiSeed = Song(
+          id: 'h_seed',
+          title: 'Tum Hi Ho',
+          artist: 'Arijit Singh',
+          album: 'Aashiqui 2',
+          duration: Duration(seconds: 260),
+          audioUrl: 'https://example.com/tumhiho.mp3',
+          coverUrl: '',
+          releaseYear: '2013',
+        );
+
+        const englishTrackStay = Song(
+          id: 'e_stay',
+          title: 'Stay',
+          artist: 'The Kid LAROI, Justin Bieber',
+          duration: Duration(seconds: 140),
+          audioUrl: 'https://example.com/stay.mp3',
+          coverUrl: '',
+          releaseYear: '2021',
+        );
+
+        const englishTrackStarboy = Song(
+          id: 'e_starboy',
+          title: 'Starboy',
+          artist: 'The Weeknd',
+          duration: Duration(seconds: 230),
+          audioUrl: 'https://example.com/starboy.mp3',
+          coverUrl: '',
+          releaseYear: '2016',
+        );
+
+        const jamendoEnglish = Song(
+          id: 'jamendo_99182',
+          title: 'Acoustic Morning Breeze',
+          artist: 'Western Indie Band',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://prod-1.storage.jamendo.com/track.mp3',
+          coverUrl: '',
+          releaseYear: '2023',
+        );
+
+        const hindiCompatible = Song(
+          id: 'h_comp',
+          title: 'Sunn Raha Hai Na Tu',
+          artist: 'Ankit Tiwari',
+          album: 'Aashiqui 2',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/sunnraha.mp3',
+          coverUrl: '',
+          releaseYear: '2013',
+        );
+
+        // Language detection verification
+        expect(
+          MusicTagClassifier.detectSongLanguage(hindiSeed),
+          equals('Hindi'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(englishTrackStay),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(englishTrackStarboy),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(jamendoEnglish),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(hindiCompatible),
+          equals('Hindi'),
+        );
+
+        // All English songs must be strictly rejected (-100.0) from Hindi seed
+        expect(
+          engine.scoreCandidate(hindiSeed, englishTrackStay),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(hindiSeed, englishTrackStarboy),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(hindiSeed, jamendoEnglish),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(hindiSeed, hindiCompatible),
+          greaterThan(0.0),
+        );
+
+        // In smart queue, none of the English tracks can enter the Hindi queue
+        final queue = await engine.buildSmartQueue(
+          seedSong: hindiSeed,
+          existingQueue: [
+            englishTrackStay,
+            englishTrackStarboy,
+            jamendoEnglish,
+            hindiCompatible,
+          ],
+          targetSize: 10,
+        );
+
+        expect(queue.any((s) => s.id == englishTrackStay.id), isFalse);
+        expect(queue.any((s) => s.id == englishTrackStarboy.id), isFalse);
+        expect(queue.any((s) => s.id == jamendoEnglish.id), isFalse);
+        expect(queue.any((s) => s.id == hindiCompatible.id), isTrue);
+
+        // Reverse check: In English seed queue, Hindi songs must be rejected
+        expect(
+          engine.scoreCandidate(englishTrackStarboy, hindiSeed),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(englishTrackStarboy, hindiCompatible),
+          equals(-100.0),
+        );
       },
     );
   });

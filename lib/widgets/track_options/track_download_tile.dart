@@ -19,14 +19,15 @@ class TrackDownloadTile extends StatelessWidget {
     final isDownloading = downloadService.isDownloading(song.id);
     final fileSize = downloadService.getFileSize(song.id) ?? '10.2 MB';
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDownloaded ? const Color(0xFF0F2E22) : const Color(0xFF1C1C1E),
+    return Material(
+      color: isDownloaded ? const Color(0xFF0F2E22) : const Color(0xFF1C1C1E),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        border: isDownloaded
-            ? Border.all(color: const Color(0xFF10B981).withOpacity(0.5))
-            : null,
+        side: isDownloaded
+            ? const BorderSide(color: Color(0xFF10B981))
+            : BorderSide.none,
       ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         leading: isDownloading
             ? const SizedBox(

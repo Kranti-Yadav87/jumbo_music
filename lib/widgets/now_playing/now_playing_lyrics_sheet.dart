@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
 import '../../services/lyrics_service.dart';
@@ -63,6 +64,8 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
   List<LrcLine> _lines = [];
   bool _isLoading = true;
   bool _userInteracting = false;
+  bool _isSynced = false;
+  String? _rawLyrics;
   int _activeIndex = -1;
   Timer? _resumeAutoScrollTimer;
   final Map<int, GlobalKey> _lineKeys = {};
@@ -88,12 +91,15 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
       _lines = [];
       _lineKeys.clear();
       _activeIndex = -1;
+      _isSynced = false;
+      _rawLyrics = null;
     });
 
     try {
       final rawLyrics = await LyricsService.instance.fetch(song);
       if (!mounted) return;
 
+      final isSynced = LyricsService.instance.isSynced(rawLyrics);
       final totalDur = widget.manager.duration.inSeconds > 0
           ? widget.manager.duration
           : song.duration;
@@ -104,19 +110,20 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
         _lineKeys[i] = GlobalKey();
       }
 
-      final initialActive = LrcParser.findActiveIndex(
-        parsed,
-        widget.manager.position,
-      );
+      final initialActive = isSynced
+          ? LrcParser.findActiveIndex(parsed, widget.manager.position)
+          : -1;
 
       setState(() {
+        _rawLyrics = rawLyrics;
+        _isSynced = isSynced;
         _isLoading = false;
         _lines = parsed;
         _activeIndex = initialActive;
       });
 
-      // Initial auto-scroll to current position
-      if (initialActive >= 0 && parsed.isNotEmpty) {
+      // Initial auto-scroll to current position if synchronized
+      if (isSynced && initialActive >= 0 && parsed.isNotEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _scrollToIndex(initialActive, animated: false);
         });
@@ -126,6 +133,8 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
         setState(() {
           _isLoading = false;
           _lines = [];
+          _isSynced = false;
+          _rawLyrics = null;
         });
       }
     }
@@ -139,7 +148,7 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
       return;
     }
 
-    if (_lines.isEmpty) return;
+    if (_lines.isEmpty || !_isSynced) return;
 
     final newIndex = LrcParser.findActiveIndex(_lines, widget.manager.position);
 
@@ -225,15 +234,25 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _currentSong.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            _currentSong.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        if (!_isLoading && _lines.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          _buildSyncBadge(),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -248,6 +267,27 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                   ],
                 ),
               ),
+              if (!_isLoading && _lines.isNotEmpty && _rawLyrics != null)
+                IconButton(
+                  tooltip: 'Copy lyrics',
+                  icon: const Icon(
+                    Icons.copy_rounded,
+                    color: Colors.white60,
+                    size: 18,
+                  ),
+                  onPressed: () {
+                    Clipboard.setData(
+                      ClipboardData(text: _cleanLyricsForCopy(_rawLyrics!)),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Lyrics copied to clipboard'),
+                        duration: Duration(seconds: 2),
+                        backgroundColor: Color(0xFF1E293B),
+                      ),
+                    );
+                  },
+                ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, color: Colors.white60),
                 onPressed: widget.onClose,
@@ -334,8 +374,8 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                     itemCount: _lines.length,
                     itemBuilder: (context, index) {
                       final line = _lines[index];
-                      final isCurrent = index == _activeIndex;
-                      final isPast = index < _activeIndex;
+                      final isCurrent = _isSynced && index == _activeIndex;
+                      final isPast = _isSynced && index < _activeIndex;
 
                       final timeStr =
                           '${line.timestamp.inMinutes}:${(line.timestamp.inSeconds % 60).toString().padLeft(2, '0')}';
@@ -344,15 +384,17 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                         key: _lineKeys[index],
                         borderRadius: BorderRadius.circular(16),
                         onTap: () {
-                          widget.manager.seek(line.timestamp);
-                          _resumeAutoScrollNow();
+                          if (_isSynced) {
+                            widget.manager.seek(line.timestamp);
+                            _resumeAutoScrollNow();
+                          }
                         },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 250),
                           margin: const EdgeInsets.symmetric(vertical: 4),
-                          padding: const EdgeInsets.symmetric(
+                          padding: EdgeInsets.symmetric(
                             horizontal: 16,
-                            vertical: 12,
+                            vertical: _isSynced ? 12 : 8,
                           ),
                           decoration: BoxDecoration(
                             color: isCurrent
@@ -382,28 +424,30 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              if (isCurrent) ...[
-                                EqualizerBars(
-                                  isPlaying: widget.manager.isPlaying,
-                                  color: const Color(0xFF38BDF8),
-                                  height: 16,
-                                ),
-                                const SizedBox(width: 12),
-                              ] else ...[
-                                SizedBox(
-                                  width: 32,
-                                  child: Text(
-                                    timeStr,
-                                    style: TextStyle(
-                                      color: isPast
-                                          ? Colors.white24
-                                          : Colors.white38,
-                                      fontSize: 11,
-                                      fontFamily: 'monospace',
+                              if (_isSynced) ...[
+                                if (isCurrent) ...[
+                                  EqualizerBars(
+                                    isPlaying: widget.manager.isPlaying,
+                                    color: const Color(0xFF38BDF8),
+                                    height: 16,
+                                  ),
+                                  const SizedBox(width: 12),
+                                ] else ...[
+                                  SizedBox(
+                                    width: 32,
+                                    child: Text(
+                                      timeStr,
+                                      style: TextStyle(
+                                        color: isPast
+                                            ? Colors.white24
+                                            : Colors.white38,
+                                        fontSize: 11,
+                                        fontFamily: 'monospace',
+                                      ),
                                     ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
+                                  const SizedBox(width: 10),
+                                ],
                               ],
                               Expanded(
                                 child: Text(
@@ -412,16 +456,15 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                                     color: isCurrent
                                         ? const Color(0xFF38BDF8)
                                         : isPast
-                                        ? Colors
-                                              .white38 // Passed lines are softly dimmed
-                                        : Colors.white.withOpacity(
-                                            0.92,
-                                          ), // Upcoming (niche wali) lines are crisp & bright
-                                    fontSize: isCurrent ? 18 : 15,
+                                        ? Colors.white38
+                                        : Colors.white.withOpacity(0.92),
+                                    fontSize: _isSynced
+                                        ? (isCurrent ? 18 : 15)
+                                        : 16,
                                     fontWeight: isCurrent
                                         ? FontWeight.w700
                                         : FontWeight.w500,
-                                    height: 1.45,
+                                    height: 1.5,
                                   ),
                                 ),
                               ),
@@ -434,7 +477,10 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
                 ),
 
               // Floating Auto-scroll sync pill when user scrolled away
-              if (_userInteracting && _lines.isNotEmpty && _activeIndex >= 0)
+              if (_isSynced &&
+                  _userInteracting &&
+                  _lines.isNotEmpty &&
+                  _activeIndex >= 0)
                 Positioned(
                   bottom: 16,
                   left: 0,
@@ -490,5 +536,56 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
         ),
       ],
     );
+  }
+
+  Widget _buildSyncBadge() {
+    if (_isSynced) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+        decoration: BoxDecoration(
+          color: const Color(0xFF38BDF8).withOpacity(0.18),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFF38BDF8).withOpacity(0.4),
+            width: 0.8,
+          ),
+        ),
+        child: const Text(
+          'LIVE SYNC 🎵',
+          style: TextStyle(
+            color: Color(0xFF38BDF8),
+            fontSize: 9.5,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.3,
+          ),
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white24, width: 0.8),
+      ),
+      child: const Text(
+        'FULL LYRICS 📄',
+        style: TextStyle(
+          color: Colors.white70,
+          fontSize: 9.5,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+
+  String _cleanLyricsForCopy(String raw) {
+    return raw
+        .replaceAll(RegExp(r'\[\d{1,2}:\d{2}(?:\.\d{1,3})?\]'), '')
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty && !l.startsWith('['))
+        .join('\n');
   }
 }

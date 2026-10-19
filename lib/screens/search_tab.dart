@@ -672,7 +672,10 @@ class _SearchTabState extends State<SearchTab> {
                                       ? _searchQuery
                                       : song.title,
                                 );
-                                manager.playSongFromSearch(song);
+                                manager.playSongFromSearch(
+                                  song,
+                                  searchResults: _searchResults,
+                                );
 
                                 Navigator.of(context).push(
                                   PageRouteBuilder(

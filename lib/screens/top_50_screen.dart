@@ -249,161 +249,164 @@ class Top50Screen extends StatelessWidget {
                     rankColor = const Color(0xFFB45309); // Bronze #3
                   }
 
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 14,
                       vertical: 3,
                     ),
-                    decoration: BoxDecoration(
+                    child: Material(
                       color: isCurrent
                           ? const Color(0xFF1E1C24)
                           : const Color(0xFF141416),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isCurrent
-                            ? const Color(0xFFE5A5A5).withOpacity(0.5)
-                            : Colors.white.withOpacity(0.04),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isCurrent
+                              ? const Color(0xFFE5A5A5).withOpacity(0.5)
+                              : Colors.white.withOpacity(0.04),
+                        ),
                       ),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 3,
-                      ),
-                      leading: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Rank Number
-                          SizedBox(
-                            width: 24,
-                            child: Text(
-                              '${index + 1}',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: rankColor,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 3,
+                        ),
+                        leading: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Rank Number
+                            SizedBox(
+                              width: 24,
+                              child: Text(
+                                '${index + 1}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: rankColor,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Artwork with live equalizer when playing
-                          Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  song.coverUrl,
-                                  width: 48,
-                                  height: 48,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(
+                            const SizedBox(width: 8),
+                            // Artwork with live equalizer when playing
+                            Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    song.coverUrl,
                                     width: 48,
                                     height: 48,
-                                    color: const Color(0xFF2C2C2E),
-                                    child: const Icon(
-                                      Icons.music_note,
-                                      color: Colors.white30,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      width: 48,
+                                      height: 48,
+                                      color: const Color(0xFF2C2C2E),
+                                      child: const Icon(
+                                        Icons.music_note,
+                                        color: Colors.white30,
+                                      ),
                                     ),
                                   ),
                                 ),
+                                if (isPlaying)
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Center(
+                                      child: EqualizerBars(
+                                        isPlaying: true,
+                                        color: Color(0xFFE5A5A5),
+                                        height: 14,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        title: Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: isCurrent
+                                ? const Color(0xFFE5A5A5)
+                                : Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${song.artist} • ${song.formattedDuration}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF8E8E93),
+                            fontSize: 12,
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Heart favorite
+                            IconButton(
+                              icon: Icon(
+                                isFav
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: isFav
+                                    ? const Color(0xFFE5A5A5)
+                                    : Colors.white54,
+                                size: 20,
                               ),
-                              if (isPlaying)
-                                Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: const Center(
-                                    child: EqualizerBars(
-                                      isPlaying: true,
-                                      color: Color(0xFFE5A5A5),
-                                      height: 14,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      title: Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isCurrent
-                              ? const Color(0xFFE5A5A5)
-                              : Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                              onPressed: () => manager.toggleFavorite(song.id),
+                            ),
+                            // Play/Pause icon
+                            IconButton(
+                              icon: Icon(
+                                isPlaying
+                                    ? Icons.pause_circle_filled_rounded
+                                    : Icons.play_circle_fill_rounded,
+                                color: isCurrent
+                                    ? const Color(0xFFE5A5A5)
+                                    : Colors.white70,
+                                size: 28,
+                              ),
+                              onPressed: () {
+                                if (isCurrent) {
+                                  manager.togglePlay();
+                                } else {
+                                  manager.playSong(song, newQueue: top50);
+                                }
+                              },
+                            ),
+                            // 3-dots menu for download & options
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
+                              onPressed: () =>
+                                  TrackOptionsSheet.show(context, song),
+                            ),
+                          ],
                         ),
+                        onTap: () {
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: top50);
+                          }
+                        },
                       ),
-                      subtitle: Text(
-                        '${song.artist} • ${song.formattedDuration}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF8E8E93),
-                          fontSize: 12,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Heart favorite
-                          IconButton(
-                            icon: Icon(
-                              isFav
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: isFav
-                                  ? const Color(0xFFE5A5A5)
-                                  : Colors.white54,
-                              size: 20,
-                            ),
-                            onPressed: () => manager.toggleFavorite(song.id),
-                          ),
-                          // Play/Pause icon
-                          IconButton(
-                            icon: Icon(
-                              isPlaying
-                                  ? Icons.pause_circle_filled_rounded
-                                  : Icons.play_circle_fill_rounded,
-                              color: isCurrent
-                                  ? const Color(0xFFE5A5A5)
-                                  : Colors.white70,
-                              size: 28,
-                            ),
-                            onPressed: () {
-                              if (isCurrent) {
-                                manager.togglePlay();
-                              } else {
-                                manager.playSong(song, newQueue: top50);
-                              }
-                            },
-                          ),
-                          // 3-dots menu for download & options
-                          IconButton(
-                            icon: const Icon(
-                              Icons.more_vert_rounded,
-                              color: Colors.white54,
-                              size: 20,
-                            ),
-                            onPressed: () =>
-                                TrackOptionsSheet.show(context, song),
-                          ),
-                        ],
-                      ),
-                      onTap: () {
-                        if (isCurrent) {
-                          manager.togglePlay();
-                        } else {
-                          manager.playSong(song, newQueue: top50);
-                        }
-                      },
                     ),
                   );
                 }, childCount: top50.length),

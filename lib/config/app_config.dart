@@ -10,11 +10,10 @@ class AppConfig {
         'https://uwvsyladvvvjqlgnqppq.supabase.co/functions/v1/spotify',
   );
 
-  /// Supabase anon public key (can be overridden during build)
+  /// Supabase anon public key (can be injected via --dart-define=SPOTIFY_ANON_KEY=xxx if required)
   static const String supabaseAnonKey = String.fromEnvironment(
     'SPOTIFY_ANON_KEY',
-    defaultValue:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3dnN5bGFkdnZ2anFsZ25xcHBxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyNDY3NDEsImV4cCI6MjA4NzgyMjc0MX0.ibwH6IntJjky3uZKxFplDkVGW9bSH0RrwT0cVrd94hI',
+    defaultValue: '',
   );
 
   /// Jamendo client id (free at https://devportal.jamendo.com). When set,
@@ -37,6 +36,7 @@ class AppConfig {
   static bool? mockUseUnofficialCatalog;
   static String? mockJamendoClientId;
   static String? mockGeminiApiKey;
+  static String? mockSupabaseAnonKey;
 
   /// Effective catalog flag (respects mock override in tests)
   static bool get isUnofficialCatalogEnabled =>
@@ -45,6 +45,10 @@ class AppConfig {
   /// Effective Jamendo client ID (respects mock override in tests)
   static String get activeJamendoClientId =>
       mockJamendoClientId ?? jamendoClientId;
+
+  /// Effective Supabase anon key (respects mock override in tests)
+  static String get activeSupabaseAnonKey =>
+      mockSupabaseAnonKey ?? supabaseAnonKey;
 
   /// App name & version metadata
   static const String appName = 'Jumbo Music';
@@ -65,7 +69,7 @@ class AppConfig {
 
   /// Default notification channel ID for background audio
   static const String audioNotificationChannelId =
-      'com.jumbomusic.app.channel.audio';
+      'com.jumbomusic.app.channel.audio.v2';
   static const String audioNotificationChannelName = 'Jumbo Music Playback';
 
   /// Web Client ID / Server Client ID for Google Sign-In backend authentication
@@ -82,10 +86,14 @@ class AppConfig {
     return const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
   }
 
-  /// Headers map for Supabase API calls
-  static Map<String, String> get apiHeaders => {
-    'apikey': supabaseAnonKey,
-    'Authorization': 'Bearer $supabaseAnonKey',
-    'Content-Type': 'application/json',
-  };
+  /// Headers map for music API calls. Only adds auth headers if a key is provided.
+  static Map<String, String> get apiHeaders {
+    final key = activeSupabaseAnonKey;
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (key.isNotEmpty) {
+      headers['apikey'] = key;
+      headers['Authorization'] = 'Bearer $key';
+    }
+    return headers;
+  }
 }

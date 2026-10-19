@@ -49,6 +49,7 @@ class LrcParser {
         // Text is everything after the last timestamp tag
         final lastMatch = matches.last;
         final lyricText = trimmed.substring(lastMatch.end).trim();
+        if (lyricText.isEmpty) continue;
 
         for (final match in matches) {
           final minutes = int.tryParse(match.group(1) ?? '0') ?? 0;
@@ -121,5 +122,11 @@ class LrcParser {
     }
 
     return result;
+  }
+
+  /// Checks if a given raw lyrics string contains valid LRC timestamp synchronization tags
+  static bool isSynchronized(String? rawLrc) {
+    if (rawLrc == null || rawLrc.trim().isEmpty) return false;
+    return _lrcRegex.hasMatch(rawLrc);
   }
 }

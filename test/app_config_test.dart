@@ -3,20 +3,35 @@ import 'package:jumbo_music/config/app_config.dart';
 
 void main() {
   group('AppConfig Tests', () {
-    test('Has valid default endpoint and anon key', () {
+    test('Has valid default endpoint and secure empty default anon key', () {
       expect(AppConfig.supabaseEndpoint, isNotEmpty);
-      expect(AppConfig.supabaseAnonKey, isNotEmpty);
       expect(AppConfig.supabaseEndpoint.startsWith('https://'), isTrue);
+      // Verify no hardcoded secrets or JWTs exist in code
+      expect(AppConfig.supabaseAnonKey, isEmpty);
+      expect(AppConfig.activeSupabaseAnonKey, isEmpty);
     });
 
-    test('Generates complete API headers map', () {
+    test(
+      'Generates clean API headers without leaking keys when unconfigured',
+      () {
+        final headers = AppConfig.apiHeaders;
+        expect(headers['Content-Type'], equals('application/json'));
+        expect(headers.containsKey('apikey'), isFalse);
+        expect(headers.containsKey('Authorization'), isFalse);
+      },
+    );
+
+    test('Attaches auth headers when mockSupabaseAnonKey is supplied', () {
+      AppConfig.mockSupabaseAnonKey = 'test_secret_anon_token';
+      expect(AppConfig.activeSupabaseAnonKey, equals('test_secret_anon_token'));
+
       final headers = AppConfig.apiHeaders;
-      expect(headers['apikey'], equals(AppConfig.supabaseAnonKey));
-      expect(
-        headers['Authorization'],
-        equals('Bearer ${AppConfig.supabaseAnonKey}'),
-      );
       expect(headers['Content-Type'], equals('application/json'));
+      expect(headers['apikey'], equals('test_secret_anon_token'));
+      expect(headers['Authorization'], equals('Bearer test_secret_anon_token'));
+
+      AppConfig.mockSupabaseAnonKey = null;
+      expect(AppConfig.activeSupabaseAnonKey, isEmpty);
     });
 
     test('USE_UNOFFICIAL_CATALOG defaults to true', () {

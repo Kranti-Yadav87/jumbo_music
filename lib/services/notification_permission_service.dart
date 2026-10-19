@@ -29,7 +29,11 @@ class NotificationPermissionService {
     if (mockStatusCheck != null) {
       return await mockStatusCheck!();
     }
-    return await Permission.notification.status;
+    try {
+      return await Permission.notification.status;
+    } catch (_) {
+      return PermissionStatus.granted;
+    }
   }
 
   /// Checks notification permission before playback and presents a rationale dialog if not yet granted.

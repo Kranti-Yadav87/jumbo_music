@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/song.dart';
 import '../../services/music_player_manager.dart';
+import '../../services/api/song_parser_utils.dart';
 import '../app_cached_image.dart';
 import '../equalizer_bars.dart';
 import '../track_options_sheet.dart';
@@ -43,6 +44,29 @@ class NowPlayingQueueSheet {
                 final song = manager.currentSong;
                 final queue = manager.queue;
                 final isFav = song != null && manager.isFavorite(song.id);
+
+                final curKey = song != null
+                    ? SongParserUtils.songDeduplicationKey(song)
+                    : '';
+                final curId = song?.id ?? '';
+
+                final seenKeys = <String>{};
+                if (curKey.isNotEmpty) seenKeys.add(curKey);
+                final seenIds = <String>{};
+                if (curId.isNotEmpty) seenIds.add(curId);
+
+                final upcomingSongs = <Song>[];
+                for (final item in queue) {
+                  if (item.id == curId) continue;
+                  final key = SongParserUtils.songDeduplicationKey(item);
+                  if (key == curKey) continue;
+                  if (seenIds.contains(item.id) || seenKeys.contains(key)) {
+                    continue;
+                  }
+                  seenIds.add(item.id);
+                  seenKeys.add(key);
+                  upcomingSongs.add(item);
+                }
 
                 return CustomScrollView(
                   controller: scrollController,
@@ -89,7 +113,7 @@ class NowPlayingQueueSheet {
                               ],
                             ),
                             Text(
-                              '${queue.length} songs • ${formatQueueDuration(queue)}',
+                              '${upcomingSongs.length + (song != null ? 1 : 0)} songs • ${formatQueueDuration([?song, ...upcomingSongs])}',
                               style: const TextStyle(
                                 color: Colors.white54,
                                 fontSize: 12,
@@ -102,76 +126,80 @@ class NowPlayingQueueSheet {
 
                     if (song != null)
                       SliverToBoxAdapter(
-                        child: Container(
-                          margin: const EdgeInsets.symmetric(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 4,
                           ),
-                          decoration: BoxDecoration(
+                          child: Material(
                             color: const Color(0xFF131F38),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: const Color(0xFF38BDF8).withOpacity(0.4),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: const Color(0xFF38BDF8).withOpacity(0.4),
+                              ),
                             ),
-                          ),
-                          child: ListTile(
-                            leading: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
-                                  child: AppCachedImage(
-                                    imageUrl: song.coverUrl,
+                            clipBehavior: Clip.antiAlias,
+                            child: ListTile(
+                              leading: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: AppCachedImage(
+                                      imageUrl: song.coverUrl,
+                                      width: 44,
+                                      height: 44,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  Container(
                                     width: 44,
                                     height: 44,
-                                    fit: BoxFit.cover,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black54,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: EqualizerBars(
+                                      isPlaying: manager.isPlaying,
+                                      color: const Color(0xFF38BDF8),
+                                      height: 14,
+                                    ),
                                   ),
+                                ],
+                              ),
+                              title: Text(
+                                song.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: EqualizerBars(
-                                    isPlaying: manager.isPlaying,
-                                    color: const Color(0xFF38BDF8),
-                                    height: 14,
-                                  ),
+                              ),
+                              subtitle: Text(
+                                'Now Playing • ${song.artist}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Color(0xFF38BDF8),
+                                  fontSize: 12,
                                 ),
-                              ],
-                            ),
-                            title: Text(
-                              song.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                            subtitle: Text(
-                              'Now Playing • ${song.artist}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Color(0xFF38BDF8),
-                                fontSize: 12,
+                              trailing: IconButton(
+                                icon: Icon(
+                                  isFav
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFav
+                                      ? const Color(0xFFFF5E7E)
+                                      : Colors.white70,
+                                  size: 22,
+                                ),
+                                onPressed: () =>
+                                    manager.toggleFavorite(song.id),
                               ),
-                            ),
-                            trailing: IconButton(
-                              icon: Icon(
-                                isFav
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFav
-                                    ? const Color(0xFFFF5E7E)
-                                    : Colors.white70,
-                                size: 22,
-                              ),
-                              onPressed: () => manager.toggleFavorite(song.id),
                             ),
                           ),
                         ),
@@ -184,9 +212,7 @@ class NowPlayingQueueSheet {
                     // Queue List
                     SliverList(
                       delegate: SliverChildBuilderDelegate((context, index) {
-                        final item = queue[index];
-                        final isCurrent = song != null && item.id == song.id;
-                        if (isCurrent) return const SizedBox.shrink();
+                        final item = upcomingSongs[index];
 
                         return Container(
                           margin: const EdgeInsets.symmetric(
@@ -234,10 +260,19 @@ class NowPlayingQueueSheet {
                               onPressed: () =>
                                   TrackOptionsSheet.show(context, item),
                             ),
-                            onTap: () => manager.skipToQueueIndex(index),
+                            onTap: () {
+                              final realIndex = queue.indexWhere(
+                                (s) => s.id == item.id,
+                              );
+                              if (realIndex != -1) {
+                                manager.skipToQueueIndex(realIndex);
+                              } else {
+                                manager.playSong(item);
+                              }
+                            },
                           ),
                         );
-                      }, childCount: queue.length),
+                      }, childCount: upcomingSongs.length),
                     ),
 
                     const SliverToBoxAdapter(child: SizedBox(height: 40)),

@@ -162,127 +162,134 @@ class CachedOfflineScreen extends StatelessWidget {
                             final isCurrent =
                                 manager.currentSong?.id == song.id;
 
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Material(
                                 color: isDark
                                     ? const Color(0xFF131D31)
                                     : Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isCurrent
-                                      ? const Color(0xFF0EA5E9).withOpacity(0.5)
-                                      : (isDark
-                                            ? Colors.white.withOpacity(0.04)
-                                            : const Color(0xFFE2E8F0)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                  side: BorderSide(
+                                    color: isCurrent
+                                        ? const Color(
+                                            0xFF0EA5E9,
+                                          ).withOpacity(0.5)
+                                        : (isDark
+                                              ? Colors.white.withOpacity(0.04)
+                                              : const Color(0xFFE2E8F0)),
+                                  ),
                                 ),
-                              ),
-                              child: ListTile(
-                                leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    song.coverUrl,
-                                    width: 46,
-                                    height: 46,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => Container(
+                                clipBehavior: Clip.antiAlias,
+                                child: ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Image.network(
+                                      song.coverUrl,
                                       width: 46,
                                       height: 46,
-                                      color: const Color(0xFF1E293B),
-                                      child: const Icon(
-                                        Icons.music_note,
-                                        color: Colors.white54,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                title: Text(
-                                  song.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: isCurrent
-                                        ? const Color(0xFF0EA5E9)
-                                        : (isDark
-                                              ? Colors.white
-                                              : const Color(0xFF0F172A)),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                subtitle: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.check_circle_rounded,
-                                      size: 12,
-                                      color: Color(0xFF10B981),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${song.artist} • Offline Ready',
-                                      style: TextStyle(
-                                        color: isDark
-                                            ? Colors.white54
-                                            : const Color(0xFF64748B),
-                                        fontSize: 11.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: Icon(
-                                        Icons.more_vert_rounded,
-                                        color: isDark
-                                            ? Colors.white54
-                                            : const Color(0xFF64748B),
-                                        size: 20,
-                                      ),
-                                      onPressed: () =>
-                                          TrackOptionsSheet.show(context, song),
-                                    ),
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        customBorder: const CircleBorder(),
-                                        onTap: () {
-                                          if (isCurrent) {
-                                            manager.togglePlay();
-                                          } else {
-                                            manager.playSong(
-                                              song,
-                                              newQueue: offlineSongs,
-                                            );
-                                          }
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(4),
-                                          child: Icon(
-                                            isCurrent && manager.isPlaying
-                                                ? Icons.pause_circle_filled
-                                                : Icons.play_circle_fill,
-                                            color: isCurrent
-                                                ? const Color(0xFF0EA5E9)
-                                                : Colors.grey.shade400,
-                                            size: 28,
-                                          ),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        width: 46,
+                                        height: 46,
+                                        color: const Color(0xFF1E293B),
+                                        child: const Icon(
+                                          Icons.music_note,
+                                          color: Colors.white54,
                                         ),
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  title: Text(
+                                    song.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: isCurrent
+                                          ? const Color(0xFF0EA5E9)
+                                          : (isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A)),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  subtitle: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.check_circle_rounded,
+                                        size: 12,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '${song.artist} • Offline Ready',
+                                        style: TextStyle(
+                                          color: isDark
+                                              ? Colors.white54
+                                              : const Color(0xFF64748B),
+                                          fontSize: 11.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.more_vert_rounded,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : const Color(0xFF64748B),
+                                          size: 20,
+                                        ),
+                                        onPressed: () => TrackOptionsSheet.show(
+                                          context,
+                                          song,
+                                        ),
+                                      ),
+                                      Material(
+                                        color: Colors.transparent,
+                                        child: InkWell(
+                                          customBorder: const CircleBorder(),
+                                          onTap: () {
+                                            if (isCurrent) {
+                                              manager.togglePlay();
+                                            } else {
+                                              manager.playSong(
+                                                song,
+                                                newQueue: offlineSongs,
+                                              );
+                                            }
+                                          },
+                                          child: Padding(
+                                            padding: const EdgeInsets.all(4),
+                                            child: Icon(
+                                              isCurrent && manager.isPlaying
+                                                  ? Icons.pause_circle_filled
+                                                  : Icons.play_circle_fill,
+                                              color: isCurrent
+                                                  ? const Color(0xFF0EA5E9)
+                                                  : Colors.grey.shade400,
+                                              size: 28,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () {
+                                    if (isCurrent) {
+                                      manager.togglePlay();
+                                    } else {
+                                      manager.playSong(
+                                        song,
+                                        newQueue: offlineSongs,
+                                      );
+                                    }
+                                  },
                                 ),
-                                onTap: () {
-                                  if (isCurrent) {
-                                    manager.togglePlay();
-                                  } else {
-                                    manager.playSong(
-                                      song,
-                                      newQueue: offlineSongs,
-                                    );
-                                  }
-                                },
                               ),
                             );
                           },

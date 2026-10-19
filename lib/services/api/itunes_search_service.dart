@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../models/song.dart';
 import '../crash_reporting_service.dart';
+import 'music_tag_classifier.dart';
 
 /// Service for fallback song searches via iTunes Public API.
 class ITunesSearchService {
@@ -60,7 +61,14 @@ class ITunesSearchService {
                   ? hdCover
                   : 'https://c.saavncdn.com/editorial/charts_HindiTopSongs_500x500.jpg',
               genre: genre,
-              language: 'Hindi',
+              language: MusicTagClassifier.detectTextLanguage(
+                title: trackName,
+                artist: artistName,
+                album: albumName,
+                genre: genre,
+                audioUrl: previewUrl,
+                id: 'itunes_$trackId',
+              ),
               releaseYear: year,
               quality: '256 kbps AAC HD',
               isLiveStream: true,

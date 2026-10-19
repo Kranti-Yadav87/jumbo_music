@@ -24,68 +24,71 @@ class LibrarySongsSliverView extends StatelessWidget {
         final song = manager.allSongs[index];
         final isCurrent = manager.currentSong?.id == song.id;
 
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Material(
             color: cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isCurrent
-                  ? const Color(0xFF38BDF8).withOpacity(0.5)
-                  : cardBorder,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(
+                color: isCurrent
+                    ? const Color(0xFF38BDF8).withOpacity(0.5)
+                    : cardBorder,
+              ),
             ),
-          ),
-          child: ListTile(
-            leading: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Image.network(
-                song.coverUrl,
-                width: 48,
-                height: 48,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.network(
+                  song.coverUrl,
                   width: 48,
                   height: 48,
-                  color: const Color(0xFF1E293B),
-                  child: const Icon(Icons.music_note, color: Colors.white54),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 48,
+                    height: 48,
+                    color: const Color(0xFF1E293B),
+                    child: const Icon(Icons.music_note, color: Colors.white54),
+                  ),
                 ),
               ),
-            ),
-            title: Text(
-              song.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: isCurrent
-                    ? const Color(0xFF38BDF8)
-                    : (isDark ? Colors.white : const Color(0xFF0F172A)),
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
+              title: Text(
+                song.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isCurrent
+                      ? const Color(0xFF38BDF8)
+                      : (isDark ? Colors.white : const Color(0xFF0F172A)),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
               ),
-            ),
-            subtitle: Text(
-              '${song.artist} • ${song.formattedDuration}',
-              style: TextStyle(
-                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                fontSize: 12,
+              subtitle: Text(
+                '${song.artist} • ${song.formattedDuration}',
+                style: TextStyle(
+                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  fontSize: 12,
+                ),
               ),
-            ),
-            trailing: IconButton(
-              icon: Icon(
-                Icons.more_vert_rounded,
-                color: isDark ? Colors.white54 : const Color(0xFF64748B),
-                size: 20,
+              trailing: IconButton(
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                  size: 20,
+                ),
+                onPressed: () => TrackOptionsSheet.show(context, song),
               ),
-              onPressed: () => TrackOptionsSheet.show(context, song),
+              onTap: () {
+                final isCurrent = manager.currentSong?.id == song.id;
+                if (isCurrent) {
+                  manager.togglePlay();
+                } else {
+                  manager.playSong(song, newQueue: manager.allSongs);
+                }
+              },
             ),
-            onTap: () {
-              final isCurrent = manager.currentSong?.id == song.id;
-              if (isCurrent) {
-                manager.togglePlay();
-              } else {
-                manager.playSong(song, newQueue: manager.allSongs);
-              }
-            },
           ),
         );
       }, childCount: manager.allSongs.length),

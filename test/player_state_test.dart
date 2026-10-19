@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:jumbo_music/config/app_config.dart';
 import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
 
@@ -83,6 +84,16 @@ void main() {
         expect(isValidConfig(false, false), isTrue);
         // Old broken configuration that triggered AssertionError in audio_service
         expect(isValidConfig(true, false), isFalse);
+      },
+    );
+
+    test(
+      'Audio notification channel is upgraded to v2 for lock screen support',
+      () {
+        expect(
+          AppConfig.audioNotificationChannelId,
+          'com.jumbomusic.app.channel.audio.v2',
+        );
       },
     );
 

@@ -237,100 +237,103 @@ class StatsTab extends StatelessWidget {
                     final song = allSongs[index];
                     final isCurrent = manager.currentSong?.id == song.id;
 
-                    return Container(
-                      margin: const EdgeInsets.symmetric(
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 4,
                       ),
-                      decoration: BoxDecoration(
+                      child: Material(
                         color: const Color(0xFF141416),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: isCurrent
-                              ? const Color(0xFFE5A5A5).withOpacity(0.5)
-                              : Colors.white.withOpacity(0.04),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(
+                            color: isCurrent
+                                ? const Color(0xFFE5A5A5).withOpacity(0.5)
+                                : Colors.white.withOpacity(0.04),
+                          ),
                         ),
-                      ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 2,
-                        ),
-                        leading: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 22,
-                              child: Text(
-                                '#${index + 1}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: index < 3
-                                      ? const Color(0xFFE5A5A5)
-                                      : Colors.white38,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
-                              child: Image.network(
-                                song.coverUrl,
-                                width: 44,
-                                height: 44,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  width: 44,
-                                  height: 44,
-                                  color: const Color(0xFF2C2C2E),
-                                  child: const Icon(
-                                    Icons.music_note,
-                                    color: Colors.white54,
+                        clipBehavior: Clip.antiAlias,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 2,
+                          ),
+                          leading: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SizedBox(
+                                width: 22,
+                                child: Text(
+                                  '#${index + 1}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: index < 3
+                                        ? const Color(0xFFE5A5A5)
+                                        : Colors.white38,
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                        title: Text(
-                          song.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: isCurrent
-                                ? const Color(0xFFE5A5A5)
-                                : Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                          ),
-                        ),
-                        subtitle: Text(
-                          song.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontSize: 11,
-                          ),
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(
-                                Icons.more_vert_rounded,
-                                color: Colors.white54,
-                                size: 20,
+                              const SizedBox(width: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: Image.network(
+                                  song.coverUrl,
+                                  width: 44,
+                                  height: 44,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 44,
+                                    height: 44,
+                                    color: const Color(0xFF2C2C2E),
+                                    child: const Icon(
+                                      Icons.music_note,
+                                      color: Colors.white54,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              onPressed: () =>
-                                  TrackOptionsSheet.show(context, song),
+                            ],
+                          ),
+                          title: Text(
+                            song.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: isCurrent
+                                  ? const Color(0xFFE5A5A5)
+                                  : Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
                             ),
-                          ],
+                          ),
+                          subtitle: Text(
+                            song.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.more_vert_rounded,
+                                  color: Colors.white54,
+                                  size: 20,
+                                ),
+                                onPressed: () =>
+                                    TrackOptionsSheet.show(context, song),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            manager.playSong(song, newQueue: allSongs);
+                          },
                         ),
-                        onTap: () {
-                          manager.playSong(song, newQueue: allSongs);
-                        },
                       ),
                     );
                   }, childCount: allSongs.take(25).length),

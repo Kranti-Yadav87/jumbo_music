@@ -102,5 +102,76 @@ void main() {
         expect(find.text('Taylor Swift'), findsOneWidget);
       },
     );
+
+    testWidgets(
+      'SearchInspiredSection falls back to listening history when search history is empty',
+      (tester) async {
+        await db.clearSearchHistory();
+        await db.addHistory(mockSong);
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(child: SearchInspiredSection()),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Inspired by your listening'), findsOneWidget);
+        expect(find.text('Arijit Singh'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'SearchInspiredSection shows Trending for you when both search and history are empty',
+      (tester) async {
+        await db.clearSearchHistory();
+        await db.clearHistory();
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(child: SearchInspiredSection()),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(find.text('Trending for you'), findsOneWidget);
+        expect(find.text('Trending Hits'), findsWidgets);
+      },
+    );
+
+    test(
+      'DatabaseService saves and restores last played song and queue',
+      () async {
+        await db.saveLastPlayedTrack(mockSong, [mockSong]);
+        expect(db.lastPlayedSong?.id, equals(mockSong.id));
+        expect(db.lastPlayedQueue.length, equals(1));
+
+        // Re-load stores to simulate cold app launch
+        await db.switchUserScope(null);
+        expect(db.lastPlayedSong?.id, equals(mockSong.id));
+      },
+    );
+
+    test(
+      'fetchOnlineTrending preserves user currentSong and does not overwrite with trending top song',
+      () async {
+        await db.saveLastPlayedTrack(mockSong, [mockSong]);
+        playerManager.resetStateForTesting();
+
+        // Simulate app opening and hydrating from storage
+        db.notify();
+        expect(playerManager.currentSong?.id, equals(mockSong.id));
+
+        // Simulate online trending playlist loading
+        await playerManager.fetchOnlineTrending();
+
+        // currentSong must still be mockSong (the user's last played song)
+        expect(playerManager.currentSong?.id, equals(mockSong.id));
+      },
+    );
   });
 }

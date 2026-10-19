@@ -306,6 +306,41 @@ Provide rich musical and emotional insights in JSON format:
     return fallback;
   }
 
+  /// Generates or fetches accurate lyrics for a song using Gemini AI
+  Future<String?> generateLyrics({
+    required String title,
+    required String artist,
+  }) async {
+    final cleanTitle = title.trim();
+    final cleanArtist = artist.trim();
+    if (cleanTitle.isEmpty) return null;
+
+    final prompt =
+        '''
+You are an expert music archivist for "Jumbo Music".
+Provide the complete, authentic, and accurate song lyrics for the song:
+Title: "$cleanTitle"
+Artist: "$cleanArtist"
+
+Instructions:
+1. Provide the complete lyrics from beginning to end.
+2. If it is an Indian (Hindi/Bollywood/Punjabi/Tamil/Telugu/etc.) song, write the lyrics in clear Romanized (Hinglish/English alphabet) script so that listeners can easily sing along.
+3. Do NOT include any conversational intro, outro, preamble, or markdown codeblocks (no ``` or explanations).
+4. Start directly with the first line of the lyrics.
+''';
+
+    final result = await _callGemini(prompt);
+    if (result != null && result.trim().isNotEmpty) {
+      final text = result.trim();
+      // Remove any unwanted markdown fences if returned
+      return text
+          .replaceAll(RegExp(r'^```[a-z]*\s*', multiLine: true), '')
+          .replaceAll(RegExp(r'\s*```$', multiLine: true), '')
+          .trim();
+    }
+    return null;
+  }
+
   /// Curated fallback sets for common prompts when offline
   List<AiSongRecommendation> _getFallbackRecommendations(String prompt) {
     final p = prompt.toLowerCase();

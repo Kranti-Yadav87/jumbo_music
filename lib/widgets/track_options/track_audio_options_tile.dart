@@ -23,11 +23,10 @@ class TrackAudioOptionsTile extends StatelessWidget {
     return Column(
       children: [
         // 1. View Artist Button
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
-            borderRadius: BorderRadius.circular(20),
-          ),
+        Material(
+          color: const Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
           child: ListTile(
             leading: const Icon(
               Icons.person_pin_circle_outlined,
@@ -58,11 +57,10 @@ class TrackAudioOptionsTile extends StatelessWidget {
         const SizedBox(height: 10),
 
         // 2. Grouped Card (Details, Equalizer, Tempo and Pitch)
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1C1C1E),
-            borderRadius: BorderRadius.circular(20),
-          ),
+        Material(
+          color: const Color(0xFF1C1C1E),
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               ListTile(

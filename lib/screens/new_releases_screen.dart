@@ -235,147 +235,153 @@ class NewReleasesScreen extends StatelessWidget {
                   final song = newReleases[index];
                   final isCurrent = manager.currentSong?.id == song.id;
 
-                  return Container(
-                    margin: const EdgeInsets.symmetric(
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 4,
                     ),
-                    decoration: BoxDecoration(
+                    child: Material(
                       color: isCurrent
                           ? const Color(0xFF6366F1).withOpacity(0.12)
                           : const Color(0xFF13131A),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: isCurrent
-                            ? const Color(0xFF6366F1).withOpacity(0.4)
-                            : Colors.white.withOpacity(0.05),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isCurrent
+                              ? const Color(0xFF6366F1).withOpacity(0.4)
+                              : Colors.white.withOpacity(0.05),
+                        ),
                       ),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      onTap: () {
-                        if (isCurrent) {
-                          manager.togglePlay();
-                        } else {
-                          manager.playSong(song, newQueue: newReleases);
-                        }
-                      },
-                      leading: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Stack(
-                          children: [
-                            Image.network(
-                              song.coverUrl,
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                      clipBehavior: Clip.antiAlias,
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        onTap: () {
+                          if (isCurrent) {
+                            manager.togglePlay();
+                          } else {
+                            manager.playSong(song, newQueue: newReleases);
+                          }
+                        },
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Stack(
+                            children: [
+                              Image.network(
+                                song.coverUrl,
                                 width: 50,
                                 height: 50,
-                                color: const Color(0xFF1E1E24),
-                                child: const Icon(
-                                  Icons.music_note_rounded,
-                                  color: Colors.white38,
-                                ),
-                              ),
-                            ),
-                            if (isCurrent && manager.isPlaying)
-                              Positioned.fill(
-                                child: Container(
-                                  color: Colors.black.withOpacity(0.55),
-                                  child: const Center(
-                                    child: EqualizerBars(
-                                      isPlaying: true,
-                                      color: Color(0xFF818CF8),
-                                      height: 16,
-                                      barCount: 3,
-                                    ),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  width: 50,
+                                  height: 50,
+                                  color: const Color(0xFF1E1E24),
+                                  child: const Icon(
+                                    Icons.music_note_rounded,
+                                    color: Colors.white38,
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
-                      ),
-                      title: Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: isCurrent
-                              ? const Color(0xFF818CF8)
-                              : Colors.white,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${song.artist} • ${song.album.isNotEmpty ? song.album : 'Single'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                              manager.isFavorite(song.id)
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: manager.isFavorite(song.id)
-                                  ? const Color(0xFFF43F5E)
-                                  : Colors.white38,
-                              size: 20,
-                            ),
-                            onPressed: () => manager.toggleFavorite(song.id),
+                              if (isCurrent && manager.isPlaying)
+                                Positioned.fill(
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.55),
+                                    child: const Center(
+                                      child: EqualizerBars(
+                                        isPlaying: true,
+                                        color: Color(0xFF818CF8),
+                                        height: 16,
+                                        barCount: 3,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.more_vert_rounded,
-                              color: Colors.white54,
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              showModalBottomSheet(
-                                context: context,
-                                backgroundColor: Colors.transparent,
-                                isScrollControlled: true,
-                                builder: (_) => TrackOptionsSheet(song: song),
-                              );
-                            },
+                        ),
+                        title: Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: isCurrent
+                                ? const Color(0xFF818CF8)
+                                : Colors.white,
                           ),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              customBorder: const CircleBorder(),
-                              onTap: () {
-                                if (isCurrent) {
-                                  manager.togglePlay();
-                                } else {
-                                  manager.playSong(song, newQueue: newReleases);
-                                }
+                        ),
+                        subtitle: Text(
+                          '${song.artist} • ${song.album.isNotEmpty ? song.album : 'Single'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                manager.isFavorite(song.id)
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                color: manager.isFavorite(song.id)
+                                    ? const Color(0xFFF43F5E)
+                                    : Colors.white38,
+                                size: 20,
+                              ),
+                              onPressed: () => manager.toggleFavorite(song.id),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.more_vert_rounded,
+                                color: Colors.white54,
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  backgroundColor: Colors.transparent,
+                                  isScrollControlled: true,
+                                  builder: (_) => TrackOptionsSheet(song: song),
+                                );
                               },
-                              child: Padding(
-                                padding: const EdgeInsets.all(4),
-                                child: Icon(
-                                  isCurrent && manager.isPlaying
-                                      ? Icons.pause_circle_filled
-                                      : Icons.play_circle_fill,
-                                  color: isCurrent
-                                      ? const Color(0xFF818CF8)
-                                      : Colors.grey.shade400,
-                                  size: 28,
+                            ),
+                            Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () {
+                                  if (isCurrent) {
+                                    manager.togglePlay();
+                                  } else {
+                                    manager.playSong(
+                                      song,
+                                      newQueue: newReleases,
+                                    );
+                                  }
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4),
+                                  child: Icon(
+                                    isCurrent && manager.isPlaying
+                                        ? Icons.pause_circle_filled
+                                        : Icons.play_circle_fill,
+                                    color: isCurrent
+                                        ? const Color(0xFF818CF8)
+                                        : Colors.grey.shade400,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );

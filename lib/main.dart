@@ -70,10 +70,10 @@ void main() async {
           androidNotificationChannelId: AppConfig.audioNotificationChannelId,
           androidNotificationChannelName:
               AppConfig.audioNotificationChannelName,
-          androidNotificationOngoing: false,
+          androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
           androidNotificationIcon: 'drawable/ic_notification',
-          androidStopForegroundOnPause: false,
+          androidStopForegroundOnPause: true,
           preloadArtwork: true,
         );
       } catch (e) {
@@ -124,17 +124,18 @@ class JumboMusicApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: themeManager,
       builder: (context, _) {
-        return GlobalKeyboardShortcutsWrapper(
-          child: MaterialApp(
-            navigatorKey: navigatorKey,
-            scaffoldMessengerKey: scaffoldMessengerKey,
-            debugShowCheckedModeBanner: false,
-            title: 'Jumbo Music',
-            theme: AppThemeManager.lightTheme,
-            darkTheme: AppThemeManager.darkTheme,
-            themeMode: themeManager.themeMode,
-            home: const AuthGate(),
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          scaffoldMessengerKey: scaffoldMessengerKey,
+          debugShowCheckedModeBanner: false,
+          title: 'Jumbo Music',
+          theme: AppThemeManager.lightTheme,
+          darkTheme: AppThemeManager.darkTheme,
+          themeMode: themeManager.themeMode,
+          builder: (context, child) => GlobalKeyboardShortcutsWrapper(
+            child: child ?? const SizedBox.shrink(),
           ),
+          home: const AuthGate(),
         );
       },
     );

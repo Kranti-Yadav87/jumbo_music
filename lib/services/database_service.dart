@@ -53,6 +53,8 @@ class DatabaseService extends ChangeNotifier {
   final List<String> _searchHistory = [];
   final List<Friend> _friends = [];
   final List<Map<String, dynamic>> _notifications = [];
+  Song? _lastPlayedSong;
+  final List<Song> _lastPlayedQueue = [];
 
   List<Playlist> get playlists => List.unmodifiable(_customPlaylists);
   List<Song> get favoriteSongs => _favoriteSongsMap.values.toList();
@@ -61,6 +63,8 @@ class DatabaseService extends ChangeNotifier {
       .map((i) => Song.fromJson(i['song'] as Map<String, dynamic>))
       .toList();
   List<String> get searchHistory => List.unmodifiable(_searchHistory);
+  Song? get lastPlayedSong => _lastPlayedSong;
+  List<Song> get lastPlayedQueue => List.unmodifiable(_lastPlayedQueue);
 
   // User Profile & Authentication
   bool _isLoggedIn = false;
@@ -239,6 +243,14 @@ class DatabaseService extends ChangeNotifier {
     _searchHistory.clear();
     _friends.clear();
     _notifications.clear();
+    _lastPlayedSong = null;
+    _lastPlayedQueue.clear();
+  }
+
+  @visibleForTesting
+  void resetForTesting() {
+    _clearMemoryStores();
+    notifyListeners();
   }
 
   Future<void> _loadAllStores() async {
@@ -252,6 +264,7 @@ class DatabaseService extends ChangeNotifier {
       _loadProfile(),
       _loadFriends(),
       _loadNotifications(),
+      _loadLastPlayedTrack(),
     ]);
   }
 

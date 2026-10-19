@@ -1,4 +1,5 @@
 import '../../models/song.dart';
+import 'music_tag_classifier.dart';
 
 /// Pure parsing utility functions for music API responses.
 class SongParserUtils {
@@ -68,19 +69,25 @@ class SongParserUtils {
 
   static String extractAudioUrl(dynamic downloadUrlObj) {
     if (downloadUrlObj == null) return '';
-    if (downloadUrlObj is String) return downloadUrlObj;
-    if (downloadUrlObj is List && downloadUrlObj.isNotEmpty) {
+    String url = '';
+    if (downloadUrlObj is String) {
+      url = downloadUrlObj.trim();
+    } else if (downloadUrlObj is List && downloadUrlObj.isNotEmpty) {
       // Index 4 is 320kbps, index 3 is 160kbps
       for (final item in downloadUrlObj.reversed) {
         if (item is Map) {
-          final url = (item['url'] as String?) ?? (item['link'] as String?);
-          if (url != null && url.isNotEmpty) {
-            return url;
+          final u = (item['url'] as String?) ?? (item['link'] as String?);
+          if (u != null && u.trim().isNotEmpty) {
+            url = u.trim();
+            break;
           }
         }
       }
     }
-    return '';
+    if (url.startsWith('http://')) {
+      url = url.replaceFirst('http://', 'https://');
+    }
+    return url;
   }
 
   static String extractArtists(dynamic item) {
@@ -141,17 +148,25 @@ class SongParserUtils {
         return null;
       }
 
-      final year = item['year']?.toString().trim() ?? '';
+      var year = item['year']?.toString().trim() ?? '';
+      if (year.isEmpty && item['release_date'] != null) {
+        final rd = item['release_date'].toString().trim();
+        final match = RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(rd);
+        if (match != null) year = match.group(1)!;
+      }
+      if (year.isEmpty) {
+        final match =
+            RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(name) ??
+            RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(album);
+        if (match != null) year = match.group(1)!;
+      }
 
       // Extract language from metadata if present
       String rawLang =
           (item['language'] as String?) ?? (item['lang'] as String?) ?? '';
       rawLang = rawLang.trim().toLowerCase();
-      if (rawLang.isEmpty) {
-        rawLang = 'hindi';
-      }
 
-      String normalizedLang = 'Hindi';
+      String normalizedLang;
       if (rawLang.contains('punjabi')) {
         normalizedLang = 'Punjabi';
       } else if (rawLang.contains('tamil')) {
@@ -174,6 +189,28 @@ class SongParserUtils {
         normalizedLang = 'Kannada';
       } else if (rawLang.contains('malayalam')) {
         normalizedLang = 'Malayalam';
+      } else if (rawLang.contains('hindi')) {
+        // Distributor albums may tag bilingual tracks as 'hindi' in metadata.
+        // Validate against detectTextLanguage to correctly identify English singles (e.g. Prateek Kuhad, Hanumankind).
+        final detected = MusicTagClassifier.detectTextLanguage(
+          title: name,
+          artist: artist,
+          album: album,
+          rawLanguage: rawLang,
+          audioUrl: audioUrl,
+          id: id,
+        );
+        normalizedLang = detected == 'English' ? 'English' : 'Hindi';
+      } else {
+        // Missing or generic metadata language - detect accurately from title, artist, album, audioUrl
+        normalizedLang = MusicTagClassifier.detectTextLanguage(
+          title: name,
+          artist: artist,
+          album: album,
+          rawLanguage: rawLang,
+          audioUrl: audioUrl,
+          id: id,
+        );
       }
 
       return Song(
@@ -198,22 +235,42 @@ class SongParserUtils {
     }
   }
 
-  /// Normalizes a song title by lowercasing, stripping parentheses content like
-  /// (From "Movie"), (feat. Artist), [Remastered], (Lofi), etc., and punctuation.
+  /// Normalizes a song title by lowercasing, stripping delimiters (- | : //)
+  /// and content inside parentheses/brackets like (From "Movie"), [Remastered], (Lofi), etc.
   static String normalizeSongTitle(String title) {
     var clean = unescape(title).toLowerCase().trim();
-    // Remove content inside parentheses, brackets, braces
+
+    // 1. Split on common delimiters separating title from artist/movie/channel:
+    // e.g. "Song - Movie", "Song | Artist", "Song // Full Video", "Song : OST"
+    final delimiterMatch = RegExp(r'\s+[-|/:]\s+').firstMatch(clean);
+    if (delimiterMatch != null) {
+      final firstPart = clean.substring(0, delimiterMatch.start).trim();
+      if (firstPart.length >= 2) {
+        clean = firstPart;
+      }
+    }
+
+    // 2. Remove content inside parentheses, brackets, braces: (From "Movie"), [Remastered], {HD}, etc.
     clean = clean.replaceAll(RegExp(r'\s*[\(\[\{][^\)\]\}]*[\)\]\}]'), ' ');
-    // Remove common trailing prefixes like "- From ...", "- Remastered", etc.
+
+    // 3. Remove common trailing prefixes or suffixes like "- From ...", "- Remastered", "feat...", etc.
     clean = clean.replaceAll(
       RegExp(
-        r'\s*-\s*(from|remastered|lofi|original|reprise|acoustic|bonus|extended|audio|video|full|lyric|lyrics|official).*$',
+        r'\s*-\s*(from|remastered|lofi|lo-fi|original|reprise|acoustic|bonus|extended|audio|video|full|lyric|lyrics|official|dance|version).*$',
       ),
       '',
     );
-    // Remove punctuation
+    clean = clean.replaceAll(
+      RegExp(
+        r'\b(feat\.?|ft\.?|full song|official video|lyric video|remastered)\b.*$',
+      ),
+      '',
+    );
+
+    // 4. Remove punctuation
     clean = clean.replaceAll(RegExp(r'[^a-z0-9\s]'), '');
-    // Collapse multiple spaces
+
+    // 5. Collapse multiple spaces
     clean = clean.replaceAll(RegExp(r'\s+'), ' ').trim();
     return clean;
   }
@@ -235,7 +292,7 @@ class SongParserUtils {
     return song.id.toLowerCase().trim();
   }
 
-  /// Deduplicates a list of songs by ID and by canonical title+artist identity
+  /// Deduplicates a list of songs by ID and by canonical title identity
   static List<Song> deduplicateSongs(Iterable<Song> songs) {
     final Set<String> seenIds = {};
     final Set<String> seenKeys = {};

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/services/database_service.dart';
 import 'package:jumbo_music/services/music_player_manager.dart';
 
@@ -42,6 +43,17 @@ void main() {
 
     test('Audio playback stops completely with stopPlayback', () async {
       // stopPlayback resets all playback flags and empty queues
+      manager.setMockState(
+        isPlaying: true,
+        currentSong: const Song(
+          id: 'temp_stop_test',
+          title: 'Playing Track',
+          artist: 'Artist',
+          audioUrl: 'https://example.com/audio.mp3',
+          coverUrl: '',
+          duration: Duration(seconds: 200),
+        ),
+      );
       await manager.stopPlayback();
       expect(manager.isPlaying, isFalse);
       expect(manager.currentSong, isNull);

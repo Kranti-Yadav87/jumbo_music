@@ -70,8 +70,103 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
 
   Future<void> clearHistory() async {
     _historyList.clear();
+    _lastPlayedSong = null;
+    _lastPlayedQueue.clear();
     notify();
     await _flushHistory();
+    try {
+      await StorageEngine.removeItem(_scopedKey('last_played_song'));
+      await StorageEngine.removeItem(_scopedKey('last_played_queue'));
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:clearHistoryLastPlayed',
+      );
+    }
+  }
+
+  // 4b. Last Played Track & Queue Persistence
+  Future<void> _loadLastPlayedTrack() async {
+    try {
+      final rawSong = await StorageEngine.getItem(
+        _scopedKey('last_played_song'),
+      );
+      if (rawSong != null && rawSong.isNotEmpty) {
+        final decoded = jsonDecode(rawSong);
+        if (decoded is Map<String, dynamic>) {
+          _lastPlayedSong = Song.fromJson(decoded);
+        }
+      }
+
+      final rawQueue = await StorageEngine.getItem(
+        _scopedKey('last_played_queue'),
+      );
+      if (rawQueue != null && rawQueue.isNotEmpty) {
+        final decodedQueue = jsonDecode(rawQueue);
+        if (decodedQueue is List) {
+          _lastPlayedQueue.clear();
+          for (final item in decodedQueue) {
+            if (item is Map<String, dynamic>) {
+              _lastPlayedQueue.add(Song.fromJson(item));
+            }
+          }
+        }
+      }
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:_loadLastPlayedTrack',
+      );
+    }
+
+    // Safe fallback: If no explicit last_played_song was saved, restore latest track from history
+    if (_lastPlayedSong == null && _historyList.isNotEmpty) {
+      try {
+        final firstItem = _historyList.first;
+        if (firstItem['song'] is Map<String, dynamic>) {
+          _lastPlayedSong = Song.fromJson(
+            firstItem['song'] as Map<String, dynamic>,
+          );
+        }
+      } catch (e) {
+        CrashReportingService.swallow(
+          e,
+          'database_service_history_and_social.dart:lastPlayedFallback',
+        );
+      }
+    }
+  }
+
+  Future<void> saveLastPlayedTrack(Song song, [List<Song>? queue]) async {
+    if (getSetting('incognitoMode', false) == true) {
+      return;
+    }
+
+    _lastPlayedSong = song;
+    if (queue != null && queue.isNotEmpty) {
+      _lastPlayedQueue.clear();
+      _lastPlayedQueue.addAll(queue.take(50));
+    }
+
+    notify();
+
+    try {
+      await StorageEngine.setItem(
+        _scopedKey('last_played_song'),
+        jsonEncode(song.toJson()),
+      );
+      if (_lastPlayedQueue.isNotEmpty) {
+        await StorageEngine.setItem(
+          _scopedKey('last_played_queue'),
+          jsonEncode(_lastPlayedQueue.map((s) => s.toJson()).toList()),
+        );
+      }
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'database_service_history_and_social.dart:saveLastPlayedTrack',
+      );
+    }
   }
 
   // 5. Search History

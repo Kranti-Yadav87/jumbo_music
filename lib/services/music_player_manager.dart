@@ -5,7 +5,6 @@ import 'package:just_audio_background/just_audio_background.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/song.dart';
 import '../models/playlist.dart';
-import '../data/music_repository.dart';
 import 'music_api_service.dart';
 import 'privacy_security_service.dart';
 import 'database_service.dart';
@@ -41,16 +40,26 @@ class MusicPlayerManager extends ChangeNotifier {
   }) {
     _currentSong = currentSong;
     if (currentSong != null) {
-      _queue = queue ?? [currentSong];
+      _queue = queue != null
+          ? SongParserUtils.deduplicateSongs(queue)
+          : [currentSong];
+      final curKey = SongParserUtils.songDeduplicationKey(currentSong);
       _currentIndex = _queue.indexWhere((s) => s.id == currentSong.id);
+      if (_currentIndex == -1 && curKey.isNotEmpty) {
+        _currentIndex = _queue.indexWhere(
+          (s) => SongParserUtils.songDeduplicationKey(s) == curKey,
+        );
+      }
       if (_currentIndex == -1) {
         _queue.insert(0, currentSong);
         _currentIndex = 0;
+      } else {
+        _queue[_currentIndex] = currentSong;
       }
     } else if (queue != null) {
-      _queue = queue;
-      _currentIndex = queue.isNotEmpty ? 0 : -1;
-      _currentSong = queue.isNotEmpty ? queue[0] : null;
+      _queue = SongParserUtils.deduplicateSongs(queue);
+      _currentIndex = _queue.isNotEmpty ? 0 : -1;
+      _currentSong = _queue.isNotEmpty ? _queue[0] : null;
     } else {
       _queue = [];
       _currentIndex = -1;
@@ -76,6 +85,13 @@ class MusicPlayerManager extends ChangeNotifier {
     _isPlaying = false;
     _isBuffering = false;
     _favoriteIds.clear();
+    _allSongs = [];
+    _recentlyPlayed.clear();
+    _onlineTrending = [];
+    _newReleases = [];
+    _isLoadingRecommendations = false;
+    _infillCompleter = null;
+    _isTransitioning = false;
     notifyListeners();
   }
 
@@ -83,11 +99,14 @@ class MusicPlayerManager extends ChangeNotifier {
   late final AndroidLoudnessEnhancer _androidLoudnessEnhancer =
       AndroidLoudnessEnhancer();
   late final AudioPlayer _audioPlayer = AudioPlayer(
-    audioPipeline: AudioPipeline(
-      androidAudioEffects: [_androidEqualizer, _androidLoudnessEnhancer],
-    ),
+    audioPipeline: (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+        ? AudioPipeline(
+            androidAudioEffects: [_androidEqualizer, _androidLoudnessEnhancer],
+          )
+        : null,
   );
-  bool get equalizerSupported => true;
+  bool get equalizerSupported =>
+      kIsWeb || defaultTargetPlatform == TargetPlatform.android;
 
   List<Song> _allSongs = [];
   List<Song> _queue = [];
@@ -96,11 +115,29 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void _syncCurrentSongAndIndex() {
     if (_currentSong != null) {
-      final idx = _queue.indexWhere((s) => s.id == _currentSong!.id);
+      final curKey = SongParserUtils.songDeduplicationKey(_currentSong!);
+      var idx = _queue.indexWhere((s) => s.id == _currentSong!.id);
+      if (idx == -1) {
+        idx = _queue.indexWhere(
+          (s) => SongParserUtils.songDeduplicationKey(s) == curKey,
+        );
+      }
       if (idx != -1) {
+        _queue[idx] = _currentSong!;
         _currentIndex = idx;
       } else {
         _queue.insert(0, _currentSong!);
+        _currentIndex = 0;
+      }
+      // Guarantee queue is 100% duplicate-free
+      _queue = SongParserUtils.deduplicateSongs(_queue);
+      _currentIndex = _queue.indexWhere((s) => s.id == _currentSong!.id);
+      if (_currentIndex == -1) {
+        _currentIndex = _queue.indexWhere(
+          (s) => SongParserUtils.songDeduplicationKey(s) == curKey,
+        );
+      }
+      if (_currentIndex == -1) {
         _currentIndex = 0;
       }
     } else if (_currentIndex >= 0 && _currentIndex < _queue.length) {
@@ -144,6 +181,7 @@ class MusicPlayerManager extends ChangeNotifier {
   bool _isLoadingRecommendations = false;
   bool _isTransitioning = false;
   String? _lastInfilledSongId;
+  Completer<void>? _infillCompleter;
 
   final Set<String> _favoriteIds = {'1', '2'};
   final List<Song> _recentlyPlayed = [];
@@ -167,7 +205,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   // Getters
   List<Song> get allSongs => _allSongs;
-  List<Song> get queue => _queue;
+  List<Song> get queue => SongParserUtils.deduplicateSongs(_queue);
   int get currentIndex => _currentIndex;
   Song? get currentSong =>
       _currentSong ??
@@ -259,8 +297,8 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    _playlists = List.from(MusicRepository.samplePlaylists);
-    _queue = List.from(_allSongs);
+    _playlists = [];
+    _queue = [];
 
     // Hydrate state from DatabaseService and listen for scope updates
     _hydrateFromDatabase();
@@ -375,10 +413,19 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Listen to current sequence index (e.g. triggered by system lockscreen/notification next & prev)
     _currentIndexSubscription = _audioPlayer.currentIndexStream.listen((index) {
-      if (index != null &&
+      if (!kIsWeb &&
+          _playlistSource != null &&
+          !_isTransitioning &&
+          _isPlaying &&
+          index != null &&
           index >= 0 &&
           index < _queue.length &&
           index != _currentIndex) {
+        // Prevent ExoPlayer timeline initialization from reverting a newly selected track back to index 0
+        if (index == 0 && _currentIndex > 0 && _position.inMilliseconds < 500) {
+          return;
+        }
+
         final prevSong = _currentSong;
         _currentIndex = index;
         _currentSong = _queue[index];
@@ -395,6 +442,9 @@ class MusicPlayerManager extends ChangeNotifier {
         _recentlyPlayed.removeWhere((item) => item.id == _currentSong!.id);
         _recentlyPlayed.insert(0, _currentSong!);
         DatabaseService.instance.addHistory(_currentSong!);
+        unawaited(
+          DatabaseService.instance.saveLastPlayedTrack(_currentSong!, _queue),
+        );
         _updateDynamicLibrary(_currentSong!);
 
         if (_autoplay && _currentIndex >= _queue.length - 6) {
@@ -416,6 +466,56 @@ class MusicPlayerManager extends ChangeNotifier {
               : 'Jumbo Music',
           coverUrl: _currentSong!.coverUrl,
         );
+
+        // In-place resolution without recursive playSong loops
+        if (_currentSong != null &&
+            (_currentSong!.audioUrl.trim().isEmpty ||
+                _currentSong!.audioUrl.contains('preview') ||
+                _currentSong!.audioUrl.contains('apple.com') ||
+                (_currentSong!.duration.inSeconds > 0 &&
+                    _currentSong!.duration.inSeconds < 90))) {
+          unawaited(() async {
+            try {
+              final cleanTitle = SongParserUtils.normalizeSongTitle(
+                _currentSong!.title,
+              );
+              final primaryArtist = _currentSong!.artist
+                  .split(RegExp(r'[,&/]'))
+                  .first
+                  .trim();
+              final matches = await MusicApiService.searchLiveSongs(
+                cleanTitle.isNotEmpty && primaryArtist.isNotEmpty
+                    ? '$cleanTitle $primaryArtist'
+                    : cleanTitle,
+                limit: 5,
+              );
+              final genuine = matches.firstWhere(
+                (m) =>
+                    m.audioUrl.isNotEmpty &&
+                    !m.audioUrl.contains('apple.com') &&
+                    !m.audioUrl.contains('mzstatic.com') &&
+                    (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
+                orElse: () => matches.firstWhere(
+                  (m) => m.audioUrl.isNotEmpty,
+                  orElse: () => _currentSong!,
+                ),
+              );
+              if (genuine.audioUrl.isNotEmpty &&
+                  genuine.audioUrl != _currentSong?.audioUrl) {
+                final updated = _currentSong!.copyWith(
+                  audioUrl: genuine.audioUrl,
+                  duration: genuine.duration.inSeconds >= 90
+                      ? genuine.duration
+                      : _currentSong!.duration,
+                );
+                final qIdx = _queue.indexWhere((s) => s.id == updated.id);
+                if (qIdx != -1) _queue[qIdx] = updated;
+                if (_currentIndex == qIdx) _currentSong = updated;
+                notifyListeners();
+              }
+            } catch (_) {}
+          }());
+        }
 
         notifyListeners();
       }
@@ -503,13 +603,10 @@ class MusicPlayerManager extends ChangeNotifier {
     _favoriteIds.clear();
     _favoriteIds.addAll(db.favoriteIds);
 
-    _playlists.removeWhere(
-      (p) =>
-          p.type == PlaylistType.custom || p.type == PlaylistType.sharedBlend,
-    );
+    _playlists.clear();
     for (final p in db.customPlaylists) {
       if (!_playlists.any((item) => item.id == p.id)) {
-        _playlists.insert(0, p);
+        _playlists.add(p);
       }
     }
 
@@ -530,16 +627,79 @@ class MusicPlayerManager extends ChangeNotifier {
           _allSongs.insert(0, dl);
         }
       }
-      if (_queue.isEmpty && _currentSong == null) {
-        _queue = List.from(_allSongs);
-        if (_queue.isNotEmpty) {
-          _currentIndex = 0;
-          _currentSong = _queue[0];
+    }
+
+    // Restore last played track and queue on cold startup if player is idle
+    if (_currentSong == null && !_isPlaying) {
+      final lastPlayed =
+          db.lastPlayedSong ??
+          (_recentlyPlayed.isNotEmpty ? _recentlyPlayed.first : null);
+      if (lastPlayed != null) {
+        _currentSong = lastPlayed;
+        final savedQueue = db.lastPlayedQueue;
+        if (savedQueue.isNotEmpty) {
+          _queue = SongParserUtils.deduplicateSongs(savedQueue);
+        } else if (_recentlyPlayed.isNotEmpty) {
+          _queue = SongParserUtils.deduplicateSongs(_recentlyPlayed);
+        } else {
+          final seedCandidates = <Song>[lastPlayed];
+          final seen = <String>{lastPlayed.id};
+          final rLang = MusicApiService.detectSongLanguage(lastPlayed);
+          final rEra = MusicTagClassifier.detectSongEra(lastPlayed);
+
+          void addSeedFrom(List<Song> source) {
+            for (final s in source) {
+              if (s.id == lastPlayed.id) continue;
+              if (s.audioUrl.trim().isEmpty) continue;
+              if (MusicApiService.detectSongLanguage(s) != rLang) continue;
+              if (rLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
+                continue;
+              }
+              if (rLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
+                continue;
+              }
+              if (MusicTagClassifier.detectSongEra(s) != rEra) continue;
+              if (seen.add(s.id)) {
+                seedCandidates.add(s);
+              }
+            }
+          }
+
+          addSeedFrom(_allSongs);
+          addSeedFrom(_onlineTrending);
+          addSeedFrom(_newReleases);
+          _queue = seedCandidates;
         }
-      } else {
-        _syncCurrentSongAndIndex();
+        _queue = SongParserUtils.deduplicateSongs(_queue);
+        final lastKey = SongParserUtils.songDeduplicationKey(lastPlayed);
+        var idx = _queue.indexWhere((s) => s.id == lastPlayed.id);
+        if (idx == -1 && lastKey.isNotEmpty) {
+          idx = _queue.indexWhere(
+            (s) => SongParserUtils.songDeduplicationKey(s) == lastKey,
+          );
+        }
+        if (idx != -1) {
+          _queue[idx] = lastPlayed;
+          _currentIndex = idx;
+        } else {
+          _queue.insert(0, lastPlayed);
+          _currentIndex = 0;
+        }
+        _isPlaying = false;
+        _duration = lastPlayed.duration;
+        _position = Duration.zero;
+
+        MediaSessionService.updateMetadata(
+          title: lastPlayed.title,
+          artist: lastPlayed.artist,
+          album: lastPlayed.album.isNotEmpty ? lastPlayed.album : 'Jumbo Music',
+          coverUrl: lastPlayed.coverUrl,
+        );
+        MediaSessionService.updatePlaybackState(isPlaying: false);
       }
     }
+
+    _syncCurrentSongAndIndex();
   }
 
   Future<void> fetchOnlineTrending() async {
@@ -645,20 +805,7 @@ class MusicPlayerManager extends ChangeNotifier {
             .where((s) => !existingIds.contains(s.id))
             .toList();
         _allSongs = [...newUnique, ..._allSongs];
-
-        if (livePlaylists.isNotEmpty) {
-          _playlists = [...livePlaylists, ..._playlists];
-        }
-
-        if (_queue.isEmpty && _currentSong == null) {
-          _queue = List.from(_allSongs);
-          if (_queue.isNotEmpty) {
-            _currentIndex = 0;
-            _currentSong = _queue[0];
-          }
-        } else {
-          _syncCurrentSongAndIndex();
-        }
+        _syncCurrentSongAndIndex();
       }
     } catch (error) {
       CrashReportingService.swallow(error, 'music_player_manager.dart:441');
@@ -671,8 +818,12 @@ class MusicPlayerManager extends ChangeNotifier {
   /// Plays a song selected from Search and automatically builds a focused,
   /// 50-60 song smart queue tailored strictly to that song's era, artist, and genre,
   /// incorporating user's favorites, playlists, feed, and search history via AI recommendation engine.
-  Future<void> playSongFromSearch(Song song) async {
+  Future<void> playSongFromSearch(
+    Song song, {
+    List<Song>? searchResults,
+  }) async {
     final seedLang = MusicApiService.detectSongLanguage(song);
+    final seedEra = MusicTagClassifier.detectSongEra(song);
     final immediateCandidates = <Song>[];
     final seenIds = <String>{song.id};
     final seenKeys = <String>{SongParserUtils.songDeduplicationKey(song)};
@@ -693,10 +844,28 @@ class MusicPlayerManager extends ChangeNotifier {
       if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
         return;
       }
+      if (seedLang != 'English' &&
+          MusicTagClassifier.isEnglishSong(candidate)) {
+        return;
+      }
+      if (seedLang == 'English' &&
+          !MusicTagClassifier.isEnglishSong(candidate)) {
+        return;
+      }
+      // Strict era match
+      if (MusicTagClassifier.detectSongEra(candidate) != seedEra) {
+        return;
+      }
 
       final key = SongParserUtils.songDeduplicationKey(candidate);
       if (seenIds.add(candidate.id) && seenKeys.add(key)) {
         immediateCandidates.add(candidate);
+      }
+    }
+
+    if (searchResults != null) {
+      for (final s in searchResults) {
+        tryAddCandidate(s);
       }
     }
 
@@ -713,6 +882,27 @@ class MusicPlayerManager extends ChangeNotifier {
     }
     for (final a in _allSongs) {
       tryAddCandidate(a);
+    }
+
+    // If local/search pool has few tracks, proactively fetch live era-matching songs
+    if (immediateCandidates.length < 15) {
+      final targeted = AiRecommendationEngine.getEraTargetedQueries(
+        seedLang,
+        seedEra,
+        song,
+      );
+      for (final q in targeted) {
+        if (immediateCandidates.length >= 25) break;
+        try {
+          final liveMatches = await MusicApiService.searchLiveSongs(
+            q,
+            limit: 10,
+          );
+          for (final lm in liveMatches) {
+            tryAddCandidate(lm);
+          }
+        } catch (_) {}
+      }
     }
 
     immediateCandidates.sort((a, b) {
@@ -736,7 +926,14 @@ class MusicPlayerManager extends ChangeNotifier {
     _isTransitioning = true;
     _errorMessage = null;
 
-    // 1. Pre-resolve full live streaming URL if empty or if 30-second Apple preview
+    // Immediately pause/silence previous audio to prevent ghost playback and overlap
+    if (_audioPlayer.playing || _isPlaying) {
+      try {
+        await _audioPlayer.pause();
+      } catch (_) {}
+    }
+
+    // 1. Pre-resolve full live streaming URL if empty, Apple preview (30s), or short clip (< 90s)
     Song resolvedSong = song;
     final isDl = DownloadService().isDownloaded(resolvedSong.id);
     final offlineUri = await DownloadService().playableUriFor(
@@ -750,7 +947,7 @@ class MusicPlayerManager extends ChangeNotifier {
         resolvedSong.audioUrl.contains('preview');
     final bool isShortClip =
         resolvedSong.duration.inSeconds > 0 &&
-        resolvedSong.duration.inSeconds < 75;
+        resolvedSong.duration.inSeconds < 90;
 
     if (offlineUri == null &&
         !isDl &&
@@ -762,27 +959,68 @@ class MusicPlayerManager extends ChangeNotifier {
         debugPrint(
           '[Playback] Pre-resolving full live audioUrl for "${resolvedSong.title}"...',
         );
-        final freshMatches = await MusicApiService.searchLiveSongs(
-          '${resolvedSong.title} ${resolvedSong.artist}',
-          limit: 5,
+        final cleanTitle = SongParserUtils.normalizeSongTitle(
+          resolvedSong.title,
         );
+        final primaryArtist = resolvedSong.artist
+            .split(RegExp(r'[,&/]'))
+            .first
+            .trim();
+
+        List<Song> freshMatches = [];
+        // Strategy 1: Normalized clean title + primary artist
+        if (cleanTitle.isNotEmpty && primaryArtist.isNotEmpty) {
+          freshMatches = await MusicApiService.searchLiveSongs(
+            '$cleanTitle $primaryArtist',
+            limit: 6,
+          );
+        }
+
+        // Strategy 2: Clean title alone if Strategy 1 found no full track
+        final bool hasGenuineInFresh = freshMatches.any(
+          (m) =>
+              m.audioUrl.isNotEmpty &&
+              !m.audioUrl.contains('apple.com') &&
+              !m.audioUrl.contains('mzstatic.com') &&
+              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
+        );
+        if (!hasGenuineInFresh && cleanTitle.isNotEmpty) {
+          final titleMatches = await MusicApiService.searchLiveSongs(
+            cleanTitle,
+            limit: 6,
+          );
+          if (titleMatches.isNotEmpty) {
+            freshMatches = [...titleMatches, ...freshMatches];
+          }
+        }
+
+        // Strategy 3: Original raw query if still needed
+        if (freshMatches.isEmpty) {
+          freshMatches = await MusicApiService.searchLiveSongs(
+            '${resolvedSong.title} ${resolvedSong.artist}',
+            limit: 5,
+          );
+        }
+
+        // Prioritize full-length (>= 90s), non-preview stream
         final genuineMatch = freshMatches.firstWhere(
           (m) =>
               m.audioUrl.isNotEmpty &&
               !m.audioUrl.contains('apple.com') &&
               !m.audioUrl.contains('mzstatic.com') &&
-              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 75),
-          orElse: () =>
-              freshMatches.isNotEmpty ? freshMatches.first : resolvedSong,
+              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
+          orElse: () => freshMatches.firstWhere(
+            (m) => m.audioUrl.isNotEmpty,
+            orElse: () => resolvedSong,
+          ),
         );
-        if (genuineMatch.audioUrl.isNotEmpty &&
-            !genuineMatch.audioUrl.contains('apple.com') &&
-            !genuineMatch.audioUrl.contains('mzstatic.com')) {
+
+        if (genuineMatch.audioUrl.isNotEmpty) {
           resolvedSong = resolvedSong.copyWith(
             audioUrl: genuineMatch.audioUrl,
-            duration: genuineMatch.duration.inSeconds >= 75
+            duration: genuineMatch.duration.inSeconds >= 90
                 ? genuineMatch.duration
-                : (resolvedSong.duration.inSeconds >= 75
+                : (resolvedSong.duration.inSeconds >= 90
                       ? resolvedSong.duration
                       : genuineMatch.duration),
           );
@@ -807,9 +1045,15 @@ class MusicPlayerManager extends ChangeNotifier {
     }
 
     final queueToUse = newQueue ?? playlistContext;
+    final rKey = SongParserUtils.songDeduplicationKey(resolvedSong);
     if (queueToUse != null && queueToUse.isNotEmpty) {
       _queue = SongParserUtils.deduplicateSongs(queueToUse);
-      final idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      var idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      if (idx == -1 && rKey.isNotEmpty) {
+        idx = _queue.indexWhere(
+          (s) => SongParserUtils.songDeduplicationKey(s) == rKey,
+        );
+      }
       if (idx != -1) {
         _queue[idx] = resolvedSong;
         _currentIndex = idx;
@@ -819,42 +1063,108 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     } else {
       _queue = SongParserUtils.deduplicateSongs(_queue);
-      final existingIdx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      var existingIdx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+      if (existingIdx == -1 && rKey.isNotEmpty) {
+        existingIdx = _queue.indexWhere(
+          (s) => SongParserUtils.songDeduplicationKey(s) == rKey,
+        );
+      }
       if (existingIdx != -1) {
         _queue[existingIdx] = resolvedSong;
         _currentIndex = existingIdx;
       } else {
-        _queue = [resolvedSong];
+        final seedCandidates = <Song>[resolvedSong];
+        final seen = <String>{resolvedSong.id};
+        final seenKeys = <String>{
+          SongParserUtils.songDeduplicationKey(resolvedSong),
+        };
+        final rLang = MusicApiService.detectSongLanguage(resolvedSong);
+        final rEra = MusicTagClassifier.detectSongEra(resolvedSong);
+
+        void addSeedFrom(List<Song> source) {
+          for (final s in source) {
+            if (s.id == resolvedSong.id) continue;
+            final key = SongParserUtils.songDeduplicationKey(s);
+            if (seenKeys.contains(key)) continue;
+            if (s.audioUrl.trim().isEmpty) continue;
+            if (MusicApiService.detectSongLanguage(s) != rLang) continue;
+            if (rLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
+              continue;
+            }
+            if (rLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
+              continue;
+            }
+            if (MusicTagClassifier.detectSongEra(s) != rEra) continue;
+            if (seen.add(s.id) && seenKeys.add(key)) {
+              seedCandidates.add(s);
+            }
+          }
+        }
+
+        addSeedFrom(_allSongs);
+        addSeedFrom(_onlineTrending);
+        addSeedFrom(_newReleases);
+        addSeedFrom(DatabaseService.instance.historySongs);
+
+        _queue = seedCandidates;
         _currentIndex = 0;
       }
     }
 
-    // Filter out invalid/empty/preview audio tracks from queue to avoid ExoPlayer cutoffs
-    _queue = _queue.where((s) {
-      if (s.id == resolvedSong.id) return true;
-      if (s.audioUrl.trim().isEmpty) return false;
-      if (s.audioUrl.contains('apple.com') ||
-          s.audioUrl.contains('mzstatic.com') ||
-          s.audioUrl.contains('preview')) {
-        return false;
-      }
-      if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
-        return false;
-      }
-      return s.audioUrl.trim().isNotEmpty ||
-          DownloadService().isDownloaded(s.id);
-    }).toList();
-    _currentIndex = _queue.indexWhere((s) => s.id == resolvedSong.id);
-    if (_currentIndex == -1) {
+    // Filter out invalid/empty/preview audio tracks only for dynamic auto-infilled queues.
+    // If queue is provided by caller (playlistContext or newQueue), preserve the full playlist!
+    if (playlistContext == null && newQueue == null) {
+      final seedLang = MusicApiService.detectSongLanguage(resolvedSong);
+      final seedEra = MusicTagClassifier.detectSongEra(resolvedSong);
+      _queue = _queue.where((s) {
+        if (s.id == resolvedSong.id) return true;
+        if (s.audioUrl.trim().isEmpty) return false;
+        if (s.audioUrl.contains('apple.com') ||
+            s.audioUrl.contains('mzstatic.com') ||
+            s.audioUrl.contains('preview')) {
+          return false;
+        }
+        if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
+          return false;
+        }
+        if (MusicApiService.detectSongLanguage(s) != seedLang) return false;
+        if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
+          return false;
+        }
+        if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
+          return false;
+        }
+        if (MusicTagClassifier.detectSongEra(s) != seedEra) return false;
+        return s.audioUrl.trim().isNotEmpty ||
+            DownloadService().isDownloaded(s.id);
+      }).toList();
+    }
+
+    final resolvedKey = SongParserUtils.songDeduplicationKey(resolvedSong);
+    _queue = SongParserUtils.deduplicateSongs(_queue);
+    var targetIdx = _queue.indexWhere((s) => s.id == resolvedSong.id);
+    if (targetIdx == -1) {
+      targetIdx = _queue.indexWhere(
+        (s) => SongParserUtils.songDeduplicationKey(s) == resolvedKey,
+      );
+    }
+    if (targetIdx != -1) {
+      _queue[targetIdx] = resolvedSong;
+      _currentIndex = targetIdx;
+    } else {
       _queue.insert(0, resolvedSong);
       _currentIndex = 0;
     }
+    _queue = SongParserUtils.deduplicateSongs(_queue);
 
     _syncCurrentSongAndIndex();
 
     _recentlyPlayed.removeWhere((item) => item.id == resolvedSong.id);
     _recentlyPlayed.insert(0, resolvedSong);
     DatabaseService.instance.addHistory(resolvedSong);
+    unawaited(
+      DatabaseService.instance.saveLastPlayedTrack(resolvedSong, _queue),
+    );
 
     _updateDynamicLibrary(resolvedSong);
 
@@ -912,17 +1222,25 @@ class MusicPlayerManager extends ChangeNotifier {
 
       // Build playlist audio sources for the entire queue with MediaItem metadata.
       // This enables phone notification & lock screen playback controls: previous, play/pause, next, seekbar.
+      MediaItem? currentMediaItem;
       final List<AudioSource> audioSources = [];
-      for (int i = 0; i < _queue.length; i++) {
-        final qSong = _queue[i];
+      final queueSnapshot = List<Song>.from(_queue);
+      for (int i = 0; i < queueSnapshot.length; i++) {
+        final qSong = queueSnapshot[i];
+        final qCover = qSong.coverUrl.trim();
+        final qSecureCover = qCover.startsWith('http://')
+            ? qCover.replaceFirst('http://', 'https://')
+            : qCover;
+        final qArtUri = qSecureCover.isNotEmpty
+            ? Uri.tryParse(qSecureCover)
+            : null;
+
         final qMediaItem = MediaItem(
           id: qSong.id,
           album: qSong.album.isNotEmpty ? qSong.album : 'Jumbo Music',
           title: qSong.title.isNotEmpty ? qSong.title : 'Unknown Title',
           artist: qSong.artist.isNotEmpty ? qSong.artist : 'Unknown Artist',
-          artUri: qSong.coverUrl.isNotEmpty
-              ? Uri.tryParse(qSong.coverUrl)
-              : null,
+          artUri: qArtUri,
           duration: qSong.duration.inSeconds > 0 ? qSong.duration : null,
           playable: true,
           displayTitle: qSong.title.isNotEmpty ? qSong.title : 'Unknown Title',
@@ -933,6 +1251,10 @@ class MusicPlayerManager extends ChangeNotifier {
               ? qSong.album
               : 'Jumbo Music',
         );
+
+        if (i == _currentIndex) {
+          currentMediaItem = qMediaItem;
+        }
 
         final Uri qUri;
         if (i == _currentIndex) {
@@ -955,19 +1277,37 @@ class MusicPlayerManager extends ChangeNotifier {
         audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));
       }
 
-      _playlistSource = ConcatenatingAudioSource(
-        children: audioSources,
-        useLazyPreparation: true,
-      );
+      if (sourceUri.toString().trim().isEmpty) {
+        throw Exception(
+          "Audio stream URL is empty for '${resolvedSong.title}'",
+        );
+      }
 
-      await _audioPlayer.setAudioSource(
-        _playlistSource!,
-        initialIndex: _currentIndex,
-        initialPosition: Duration.zero,
-        preload: true,
-      );
+      if (kIsWeb) {
+        _playlistSource = null;
+        try {
+          await _audioPlayer.stop();
+        } catch (_) {}
+        await _audioPlayer.setAudioSource(
+          AudioSource.uri(sourceUri, tag: currentMediaItem),
+          initialPosition: Duration.zero,
+          preload: true,
+        );
+      } else {
+        _playlistSource = ConcatenatingAudioSource(
+          children: audioSources,
+          useLazyPreparation: true,
+        );
+
+        await _audioPlayer.setAudioSource(
+          _playlistSource!,
+          initialIndex: _currentIndex,
+          initialPosition: Duration.zero,
+          preload: true,
+        );
+      }
+
       unawaited(_applyEqualizerPreset());
-      await _audioPlayer.seek(Duration.zero);
       await _audioPlayer.setSpeed(_playbackSpeed);
       await _audioPlayer.setVolume(_volume);
       await _audioPlayer.setLoopMode(
@@ -980,7 +1320,7 @@ class MusicPlayerManager extends ChangeNotifier {
       if (_autoplay && _queue.length < 30) {
         unawaited(_infillSmartQueue(resolvedSong, targetQueueSize: 50));
       }
-    } catch (e) {
+    } catch (e, stack) {
       // 10/10 Resilience: Attempt automatic stream auto-heal if online URL was expired or broken
       final isDl = DownloadService().isDownloaded(resolvedSong.id);
       if (!isDl && resolvedSong.title.isNotEmpty) {
@@ -988,10 +1328,22 @@ class MusicPlayerManager extends ChangeNotifier {
           debugPrint(
             '[Playback] Attempting stream auto-heal for "${resolvedSong.title}"...',
           );
-          final healedSongs = await MusicApiService.searchLiveSongs(
-            '${resolvedSong.title} ${resolvedSong.artist}',
-            limit: 3,
+          final cleanTitle = SongParserUtils.normalizeSongTitle(
+            resolvedSong.title,
           );
+          List<Song> healedSongs = [];
+          if (cleanTitle.isNotEmpty) {
+            healedSongs = await MusicApiService.searchLiveSongs(
+              cleanTitle,
+              limit: 5,
+            );
+          }
+          if (healedSongs.isEmpty) {
+            healedSongs = await MusicApiService.searchLiveSongs(
+              '${resolvedSong.title} ${resolvedSong.artist}',
+              limit: 5,
+            );
+          }
           if (healedSongs.isNotEmpty &&
               healedSongs.first.audioUrl.isNotEmpty &&
               healedSongs.first.audioUrl != resolvedSong.audioUrl) {
@@ -1003,14 +1355,24 @@ class MusicPlayerManager extends ChangeNotifier {
 
             // Rebuild ConcatenatingAudioSource preserving the full queue for lockscreen next/prev
             final List<AudioSource> healedSources = [];
-            for (int i = 0; i < _queue.length; i++) {
-              final s = _queue[i];
+            MediaItem? healedCurrentItem;
+            final healedQueueSnapshot = List<Song>.from(_queue);
+            for (int i = 0; i < healedQueueSnapshot.length; i++) {
+              final s = healedQueueSnapshot[i];
+              final sCover = s.coverUrl.trim();
+              final sSecureCover = sCover.startsWith('http://')
+                  ? sCover.replaceFirst('http://', 'https://')
+                  : sCover;
+              final sArtUri = sSecureCover.isNotEmpty
+                  ? Uri.tryParse(sSecureCover)
+                  : null;
+
               final mItem = MediaItem(
                 id: s.id,
                 album: s.album.isNotEmpty ? s.album : 'Jumbo Music',
                 title: s.title.isNotEmpty ? s.title : 'Unknown Title',
                 artist: s.artist.isNotEmpty ? s.artist : 'Unknown Artist',
-                artUri: s.coverUrl.isNotEmpty ? Uri.tryParse(s.coverUrl) : null,
+                artUri: sArtUri,
                 duration: s.duration.inSeconds > 0 ? s.duration : null,
                 playable: true,
                 displayTitle: s.title.isNotEmpty ? s.title : 'Unknown Title',
@@ -1021,6 +1383,9 @@ class MusicPlayerManager extends ChangeNotifier {
                     ? s.album
                     : 'Jumbo Music',
               );
+              if (i == _currentIndex) {
+                healedCurrentItem = mItem;
+              }
               healedSources.add(
                 AudioSource.uri(
                   Uri.parse(
@@ -1031,19 +1396,33 @@ class MusicPlayerManager extends ChangeNotifier {
               );
             }
 
-            _playlistSource = ConcatenatingAudioSource(
-              children: healedSources,
-              useLazyPreparation: true,
-            );
+            if (kIsWeb) {
+              _playlistSource = null;
+              try {
+                await _audioPlayer.stop();
+              } catch (_) {}
+              await _audioPlayer.setAudioSource(
+                AudioSource.uri(
+                  Uri.parse(freshTrack.audioUrl),
+                  tag: healedCurrentItem,
+                ),
+                initialPosition: Duration.zero,
+                preload: true,
+              );
+            } else {
+              _playlistSource = ConcatenatingAudioSource(
+                children: healedSources,
+                useLazyPreparation: true,
+              );
 
-            await _audioPlayer.setAudioSource(
-              _playlistSource!,
-              initialIndex: _currentIndex,
-              initialPosition: Duration.zero,
-              preload: true,
-            );
+              await _audioPlayer.setAudioSource(
+                _playlistSource!,
+                initialIndex: _currentIndex,
+                initialPosition: Duration.zero,
+                preload: true,
+              );
+            }
             unawaited(_applyEqualizerPreset());
-            await _audioPlayer.seek(Duration.zero);
             await _audioPlayer.setSpeed(_playbackSpeed);
             await _audioPlayer.setVolume(_volume);
             _startPlayback();
@@ -1070,9 +1449,12 @@ class MusicPlayerManager extends ChangeNotifier {
       } else {
         _errorMessage = "Unable to play audio: $e";
       }
-      debugPrint('[Playback] FAILED: $_errorMessage (original: $e)');
+      debugPrint('[Playback] FAILED: $_errorMessage (original: $e)\n$stack');
       _isBuffering = false;
       _isPlaying = false;
+      try {
+        await _audioPlayer.stop();
+      } catch (_) {}
       MediaSessionService.updatePlaybackState(isPlaying: false);
     } finally {
       _isTransitioning = false;
@@ -1084,40 +1466,24 @@ class MusicPlayerManager extends ChangeNotifier {
   /// Preserves the existing queue and prevents recommendations from re-shuffling.
   Future<void> skipToQueueIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
-    if (index == _currentIndex && _isPlaying) return;
+    if (index == _currentIndex) {
+      if (_queue.length <= 1 && _loopMode != LoopMode.one) {
+        await next();
+        return;
+      }
+      if (_isPlaying) return;
+    }
 
     final prevSong = _currentSong;
     final targetSong = _queue[index];
 
-    // If _playlistSource is in sync and contains this index, seek natively!
-    if (_playlistSource != null && index < _playlistSource!.length) {
-      _currentIndex = index;
-      _currentSong = targetSong;
-      _isTransitioning = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      if (prevSong != null && targetSong.id != prevSong.id) {
-        AiRecommendationEngine.instance.recordTransition(
-          prevSong.id,
-          targetSong.id,
-        );
-      }
-
-      try {
-        await _audioPlayer.seek(Duration.zero, index: index);
-        _startPlayback();
-        _isPlaying = true;
-        _isBuffering = false;
-        _isTransitioning = false;
-        notifyListeners();
-        return;
-      } catch (e) {
-        debugPrint('[skipToQueueIndex] Native seek failed, falling back: $e');
-      }
+    if (prevSong != null && targetSong.id != prevSong.id) {
+      AiRecommendationEngine.instance.recordTransition(
+        prevSong.id,
+        targetSong.id,
+      );
     }
 
-    // Fallback if _playlistSource was not initialized: reload with preserved queue
     await playSong(targetSong, newQueue: List.from(_queue));
   }
 
@@ -1151,8 +1517,19 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> play() async {
-    if (currentSong == null && _allSongs.isNotEmpty) {
-      await playSong(_allSongs[0]);
+    if (currentSong == null) {
+      final db = DatabaseService.instance;
+      if (db.historySongs.isNotEmpty) {
+        await playSong(db.historySongs.first);
+        return;
+      } else if (_allSongs.isNotEmpty) {
+        await playSong(_allSongs[0]);
+        return;
+      }
+      return;
+    }
+    if (_audioPlayer.audioSource == null) {
+      await playSong(currentSong!, newQueue: _queue.isNotEmpty ? _queue : null);
       return;
     }
     _isPlaying = true;
@@ -1163,8 +1540,15 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> togglePlay() async {
-    if (currentSong == null && _allSongs.isNotEmpty) {
-      await playSong(_allSongs[0]);
+    if (currentSong == null) {
+      final db = DatabaseService.instance;
+      if (db.historySongs.isNotEmpty) {
+        await playSong(db.historySongs.first);
+        return;
+      } else if (_allSongs.isNotEmpty) {
+        await playSong(_allSongs[0]);
+        return;
+      }
       return;
     }
 
@@ -1175,6 +1559,13 @@ class MusicPlayerManager extends ChangeNotifier {
         MediaSessionService.updatePlaybackState(isPlaying: false);
         await _audioPlayer.pause();
       } else {
+        if (_audioPlayer.audioSource == null) {
+          await playSong(
+            currentSong!,
+            newQueue: _queue.isNotEmpty ? _queue : null,
+          );
+          return;
+        }
         _isPlaying = true;
         notifyListeners();
         MediaSessionService.updatePlaybackState(isPlaying: true);
@@ -1193,128 +1584,389 @@ class MusicPlayerManager extends ChangeNotifier {
   /// A fallback track from library / trending / offline when queue has no alternative song
   Song? _findDistinctNextTrack() {
     final curId = currentSong?.id;
-    final curTitle = currentSong?.title.trim().toLowerCase();
+    final curKey = currentSong != null
+        ? SongParserUtils.songDeduplicationKey(currentSong!)
+        : null;
+    final curLang = currentSong != null
+        ? MusicApiService.detectSongLanguage(currentSong!)
+        : null;
+    final curEra = currentSong != null
+        ? MusicTagClassifier.detectSongEra(currentSong!)
+        : null;
 
-    // 1. Check allSongs
-    final candidatePool = _allSongs.where((s) {
-      if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
-        return false;
+    final candidatePool = <Song>[];
+    final seen = <String>{};
+    if (curId != null) seen.add(curId);
+    final seenKeys = <String>{};
+    if (curKey != null && curKey.isNotEmpty) seenKeys.add(curKey);
+
+    void addFrom(List<Song> source) {
+      for (final s in List<Song>.from(source)) {
+        if (s.id == curId) continue;
+        final k = SongParserUtils.songDeduplicationKey(s);
+        if (curKey != null && k == curKey) {
+          continue;
+        }
+        if (s.audioUrl.trim().isEmpty &&
+            !DownloadService().isDownloaded(s.id)) {
+          continue;
+        }
+        if (curLang != null &&
+            MusicApiService.detectSongLanguage(s) != curLang) {
+          continue;
+        }
+        if (curLang != null) {
+          if (curLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
+            continue;
+          }
+          if (curLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
+            continue;
+          }
+        }
+        if (curEra != null && MusicTagClassifier.detectSongEra(s) != curEra) {
+          continue;
+        }
+        if (seen.add(s.id) && seenKeys.add(k)) {
+          candidatePool.add(s);
+        }
       }
-      return s.audioUrl.isNotEmpty;
-    }).toList();
-
-    if (candidatePool.isNotEmpty) {
-      final recentIds = _recentlyPlayed.take(10).map((s) => s.id).toSet();
-      final fresh = candidatePool
-          .where((s) => !recentIds.contains(s.id))
-          .toList();
-      final list = fresh.isNotEmpty ? fresh : candidatePool;
-      list.shuffle();
-      return list.first;
     }
 
-    // 2. Check offline downloads
-    final dlSongs = DownloadService().downloadedSongs.where((s) {
-      if (s.id == curId) return false;
-      if (curTitle != null && s.title.trim().toLowerCase() == curTitle) {
-        return false;
-      }
-      return true;
-    }).toList();
-    if (dlSongs.isNotEmpty) {
-      dlSongs.shuffle();
-      return dlSongs.first;
+    addFrom(_allSongs);
+    addFrom(_onlineTrending);
+    addFrom(_newReleases);
+    addFrom(_recentlyPlayed);
+    final db = DatabaseService.instance;
+    addFrom(db.historySongs);
+    addFrom(db.favoriteSongs);
+    for (final pl in db.playlists) {
+      addFrom(pl.songs);
+    }
+    addFrom(DownloadService().downloadedSongs);
+
+    if (candidatePool.isNotEmpty) {
+      candidatePool.shuffle();
+      return candidatePool.first;
     }
 
     return null;
   }
 
-  Future<void> next() async {
-    final prevSong = currentSong;
-    if (prevSong != null && _position.inSeconds < 25) {
-      AiRecommendationEngine.instance.recordSkip(prevSong.id);
-    }
+  Future<void> next({bool fromCompletion = false}) async {
+    if (_isTransitioning && !fromCompletion) return;
+    _isTransitioning = true;
 
-    if (_queue.isEmpty) {
-      final fallback = _findDistinctNextTrack();
-      if (fallback != null) {
-        _queue = [fallback];
-        await playSong(fallback);
+    try {
+      final prevSong = currentSong;
+      if (prevSong != null && _position.inSeconds < 25) {
+        AiRecommendationEngine.instance.recordSkip(prevSong.id);
       }
-      return;
-    }
 
-    if (_autoplay &&
-        currentSong != null &&
-        _currentIndex >= _queue.length - 6) {
-      _infillSmartQueue(currentSong!);
-    }
-
-    if (_isShuffle && _queue.length > 1) {
-      final List<int> candidates = [];
-      for (int i = 0; i < _queue.length; i++) {
-        if (i != _currentIndex && _queue[i].id != currentSong?.id) {
-          candidates.add(i);
+      if (_queue.isEmpty) {
+        final fallback = _findDistinctNextTrack();
+        if (fallback != null) {
+          _queue = [fallback];
+          await playSong(fallback);
         }
-      }
-      if (candidates.isNotEmpty) {
-        candidates.shuffle();
-        await skipToQueueIndex(candidates.first);
         return;
       }
-    }
 
-    if (_audioPlayer.hasNext && !_isShuffle) {
-      await _audioPlayer.seekToNext();
-      return;
-    }
+      if (_autoplay &&
+          currentSong != null &&
+          _currentIndex >= _queue.length - 6) {
+        _infillSmartQueue(currentSong!);
+      }
 
-    int nextIndex = _currentIndex + 1;
-    if (nextIndex >= _queue.length) {
-      if (_autoplay && currentSong != null) {
-        await _infillSmartQueue(currentSong!);
-        if (_queue.length > nextIndex) {
-          await skipToQueueIndex(nextIndex);
+      final curKey = currentSong != null
+          ? SongParserUtils.songDeduplicationKey(currentSong!)
+          : '';
+
+      if (_isShuffle && _queue.length > 1) {
+        final List<int> candidates = [];
+        for (int i = 0; i < _queue.length; i++) {
+          final track = _queue[i];
+          final key = SongParserUtils.songDeduplicationKey(track);
+          if (i != _currentIndex &&
+              track.id != currentSong?.id &&
+              (curKey.isEmpty || key != curKey)) {
+            candidates.add(i);
+          }
+        }
+        if (candidates.isNotEmpty) {
+          candidates.shuffle();
+          await skipToQueueIndex(candidates.first);
           return;
         }
       }
-      nextIndex = 0;
-    }
 
-    final target = _queue[nextIndex];
-    // Next button must never re-play the exact same track when other tracks exist
-    if (target.id == currentSong?.id && _loopMode != LoopMode.one) {
-      final fallback = _findDistinctNextTrack();
-      if (fallback != null) {
-        _appendTracksToQueueAndPlaylistSource([fallback]);
-        await skipToQueueIndex(_queue.length - 1);
+      // Look ahead in queue for the next distinct track
+      int foundIndex = -1;
+      for (int i = _currentIndex + 1; i < _queue.length; i++) {
+        final s = _queue[i];
+        final key = SongParserUtils.songDeduplicationKey(s);
+        if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+          foundIndex = i;
+          break;
+        }
+      }
+
+      if (foundIndex != -1) {
+        await skipToQueueIndex(foundIndex);
         return;
       }
-    }
 
-    await skipToQueueIndex(nextIndex);
+      // Queue ahead is exhausted of distinct tracks. Try autoplay infill.
+      if (_autoplay && currentSong != null) {
+        await _infillSmartQueue(currentSong!);
+        for (int i = _currentIndex + 1; i < _queue.length; i++) {
+          final s = _queue[i];
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+            foundIndex = i;
+            break;
+          }
+        }
+        if (foundIndex != -1) {
+          await skipToQueueIndex(foundIndex);
+          return;
+        }
+      }
+
+      // If user tapped Next (!fromCompletion && _queue.length > 1) or loopMode == LoopMode.all,
+      // scan from beginning of queue up to current to wrap around seamlessly
+      if (_loopMode == LoopMode.all || (!fromCompletion && _queue.length > 1)) {
+        for (int i = 0; i < _currentIndex; i++) {
+          final s = _queue[i];
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+            foundIndex = i;
+            break;
+          }
+        }
+        if (foundIndex != -1) {
+          await skipToQueueIndex(foundIndex);
+          return;
+        }
+      }
+
+      // Still no distinct track in queue: find fallback track or search live online
+      Song? fallback = _findDistinctNextTrack();
+
+      // Proactively fetch live online tracks for currentSong if in-memory pool was exhausted
+      if (fallback == null && currentSong != null) {
+        try {
+          final seedLang = MusicApiService.detectSongLanguage(currentSong!);
+          final seedEra = MusicTagClassifier.detectSongEra(currentSong!);
+          final targetedQueries = AiRecommendationEngine.getEraTargetedQueries(
+            seedLang,
+            seedEra,
+            currentSong!,
+          );
+          for (final query in targetedQueries) {
+            final liveResults = await MusicApiService.searchLiveSongs(
+              query,
+              limit: 15,
+            );
+            final candidates = liveResults
+                .where(
+                  (s) =>
+                      s.id != currentSong!.id &&
+                      (curKey.isEmpty ||
+                          SongParserUtils.songDeduplicationKey(s) != curKey) &&
+                      s.audioUrl.isNotEmpty &&
+                      MusicApiService.detectSongLanguage(s) == seedLang &&
+                      (seedLang == 'English'
+                          ? MusicTagClassifier.isEnglishSong(s)
+                          : !MusicTagClassifier.isEnglishSong(s)),
+                )
+                .toList();
+            if (candidates.isNotEmpty) {
+              final eraMatches = candidates
+                  .where((s) => MusicTagClassifier.detectSongEra(s) == seedEra)
+                  .toList();
+              if (eraMatches.isNotEmpty) {
+                fallback = eraMatches.first;
+                _allSongs.addAll(eraMatches);
+                _appendTracksToQueueAndPlaylistSource(eraMatches);
+                break;
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[next] Live fallback search error: $e');
+        }
+      }
+
+      // Safety net: find a distinct song from existing queue, library, or history matching seed era & language
+      if (fallback == null) {
+        for (final s in _queue) {
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+            fallback = s;
+            break;
+          }
+        }
+      }
+      if (fallback == null && currentSong != null) {
+        final seedEra = MusicTagClassifier.detectSongEra(currentSong!);
+        final seedLang = MusicApiService.detectSongLanguage(currentSong!);
+        for (final s in _allSongs) {
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id &&
+              (curKey.isEmpty || key != curKey) &&
+              MusicTagClassifier.detectSongEra(s) == seedEra &&
+              MusicApiService.detectSongLanguage(s) == seedLang &&
+              (seedLang == 'English'
+                  ? MusicTagClassifier.isEnglishSong(s)
+                  : !MusicTagClassifier.isEnglishSong(s))) {
+            fallback = s;
+            break;
+          }
+        }
+      }
+      if (fallback == null && currentSong != null) {
+        final seedEra = MusicTagClassifier.detectSongEra(currentSong!);
+        final seedLang = MusicApiService.detectSongLanguage(currentSong!);
+        for (final s in DatabaseService.instance.historySongs) {
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id &&
+              (curKey.isEmpty || key != curKey) &&
+              MusicTagClassifier.detectSongEra(s) == seedEra &&
+              MusicApiService.detectSongLanguage(s) == seedLang &&
+              (seedLang == 'English'
+                  ? MusicTagClassifier.isEnglishSong(s)
+                  : !MusicTagClassifier.isEnglishSong(s))) {
+            fallback = s;
+            break;
+          }
+        }
+      }
+
+      final fallbackKey = fallback != null
+          ? SongParserUtils.songDeduplicationKey(fallback)
+          : '';
+
+      if (fallback != null &&
+          fallback.id != currentSong?.id &&
+          (curKey.isEmpty || fallbackKey.isEmpty || fallbackKey != curKey)) {
+        if (!_queue.any(
+          (s) =>
+              s.id == fallback!.id ||
+              SongParserUtils.songDeduplicationKey(s) == fallbackKey,
+        )) {
+          _queue.add(fallback);
+        }
+        _queue = SongParserUtils.deduplicateSongs(_queue);
+        await playSong(fallback, newQueue: List.from(_queue));
+        return;
+      } else {
+        // Absolutely no other song could be found - do not replay the same song in a loop
+        await pause();
+        return;
+      }
+    } finally {
+      _isTransitioning = false;
+    }
   }
 
   Future<void> previous() async {
-    if (_queue.isEmpty) return;
+    if (_isTransitioning) return;
+    _isTransitioning = true;
 
-    if (_position.inSeconds > 3) {
+    try {
+      if (_queue.isEmpty && DatabaseService.instance.historySongs.isEmpty) {
+        return;
+      }
+
+      final curKey = currentSong != null
+          ? SongParserUtils.songDeduplicationKey(currentSong!)
+          : '';
+
+      // 1. If we have previous tracks in the current queue:
+      if (_currentIndex > 0) {
+        int prevIndex = -1;
+        for (int i = _currentIndex - 1; i >= 0; i--) {
+          final s = _queue[i];
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+            prevIndex = i;
+            break;
+          }
+        }
+        if (prevIndex != -1) {
+          await skipToQueueIndex(prevIndex);
+          return;
+        }
+      }
+
+      // 2. If at beginning of queue (_currentIndex <= 0) or single-song queue:
+      // Check listening history so the user can navigate back to earlier played songs!
+      final history = DatabaseService.instance.historySongs;
+      Song? prevHistorySong;
+      for (final s in history) {
+        if (s.id == currentSong?.id) continue;
+        if (curKey.isNotEmpty &&
+            SongParserUtils.songDeduplicationKey(s) == curKey) {
+          continue;
+        }
+        prevHistorySong = s;
+        break;
+      }
+
+      if (prevHistorySong != null) {
+        final prevKey = SongParserUtils.songDeduplicationKey(prevHistorySong);
+        if (!_queue.any(
+          (s) =>
+              s.id == prevHistorySong!.id ||
+              SongParserUtils.songDeduplicationKey(s) == prevKey,
+        )) {
+          _queue.insert(0, prevHistorySong);
+        }
+        _queue = SongParserUtils.deduplicateSongs(_queue);
+        _currentIndex = _queue.indexWhere((s) => s.id == prevHistorySong!.id);
+        if (_currentIndex == -1) {
+          _currentIndex = _queue.indexWhere(
+            (s) => SongParserUtils.songDeduplicationKey(s) == prevKey,
+          );
+        }
+        if (_currentIndex == -1) _currentIndex = 0;
+        await playSong(prevHistorySong, newQueue: List.from(_queue));
+        return;
+      }
+
+      // 3. If queue has multiple tracks, wrap to last distinct track
+      if (_queue.length > 1) {
+        for (int i = _queue.length - 1; i > _currentIndex; i--) {
+          final s = _queue[i];
+          final key = SongParserUtils.songDeduplicationKey(s);
+          if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+            await skipToQueueIndex(i);
+            return;
+          }
+        }
+      }
+
+      // 4. Fallback to allSongs
+      for (final s in _allSongs) {
+        final key = SongParserUtils.songDeduplicationKey(s);
+        if (s.id != currentSong?.id && (curKey.isEmpty || key != curKey)) {
+          if (!_queue.any(
+            (q) =>
+                q.id == s.id || SongParserUtils.songDeduplicationKey(q) == key,
+          )) {
+            _queue.insert(0, s);
+          }
+          _queue = SongParserUtils.deduplicateSongs(_queue);
+          await playSong(s, newQueue: List.from(_queue));
+          return;
+        }
+      }
+
+      // 5. Truly no other song anywhere: restart track from 0:00
       await seek(Duration.zero);
-      return;
+    } finally {
+      _isTransitioning = false;
     }
-
-    if (_audioPlayer.hasPrevious && !_isShuffle) {
-      await _audioPlayer.seekToPrevious();
-      return;
-    }
-
-    int prevIndex = _currentIndex - 1;
-    if (prevIndex < 0) {
-      prevIndex = _queue.length - 1;
-    }
-
-    await skipToQueueIndex(prevIndex);
   }
 
   Future<void> seek(Duration newPosition) async {
@@ -1330,7 +1982,11 @@ class MusicPlayerManager extends ChangeNotifier {
       playbackRate: _playbackSpeed,
     );
     notifyListeners();
-    await _audioPlayer.seek(newPosition);
+    try {
+      await _audioPlayer.seek(newPosition);
+    } catch (e) {
+      debugPrint('[Playback] seek error ignored: $e');
+    }
   }
 
   void _handleSongCompletion() async {
@@ -1342,7 +1998,6 @@ class MusicPlayerManager extends ChangeNotifier {
         cancelSleepTimer();
         await _audioPlayer.pause();
         _isPlaying = false;
-        _isTransitioning = false;
         notifyListeners();
         return;
       }
@@ -1350,31 +2005,27 @@ class MusicPlayerManager extends ChangeNotifier {
       if (_loopMode == LoopMode.one) {
         await _audioPlayer.seek(Duration.zero);
         _startPlayback();
-        _isTransitioning = false;
         return;
       }
 
       if (_currentIndex < _queue.length - 1) {
-        _isTransitioning = false;
-        await next();
+        await next(fromCompletion: true);
       } else if (_autoplay && currentSong != null) {
         await _infillSmartQueue(currentSong!);
-        _isTransitioning = false;
-        await next();
+        await next(fromCompletion: true);
       } else if (_loopMode == LoopMode.all && _queue.isNotEmpty) {
-        _isTransitioning = false;
         if (_queue.length > 1) {
           await playSong(_queue[0]);
         } else {
-          await next();
+          await next(fromCompletion: true);
         }
       } else {
         _isPlaying = false;
-        _isTransitioning = false;
         MediaSessionService.updatePlaybackState(isPlaying: false);
         notifyListeners();
       }
     } catch (_) {
+    } finally {
       _isTransitioning = false;
     }
   }
@@ -1448,6 +2099,7 @@ class MusicPlayerManager extends ChangeNotifier {
       _position = Duration.zero;
       _currentIndex = -1;
       _queue.clear();
+      _currentSong = null;
       unawaited(BatteryOptimizationService.releaseWakeLock());
       await _audioPlayer.stop();
       MediaSessionService.updatePlaybackState(isPlaying: false);

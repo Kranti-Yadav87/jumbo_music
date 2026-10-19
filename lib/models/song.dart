@@ -66,6 +66,7 @@ class Song {
   }
 
   String get formattedDuration {
+    if (duration.isNegative) return '0:00';
     final minutes = duration.inMinutes;
     final seconds = duration.inSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';

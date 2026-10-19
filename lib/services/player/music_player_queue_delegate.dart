@@ -7,9 +7,15 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       next();
     }
     _queue.removeAt(index);
-    if (_playlistSource != null && index < _playlistSource!.length) {
+    if (!kIsWeb && _playlistSource != null && index < _playlistSource!.length) {
       try {
-        _playlistSource!.removeAt(index);
+        unawaited(
+          _playlistSource!.removeAt(index).catchError((e) {
+            debugPrint(
+              '[QueueSync] Error removing index $index from _playlistSource: $e',
+            );
+          }),
+        );
       } catch (e) {
         debugPrint(
           '[QueueSync] Error removing index $index from _playlistSource: $e',
@@ -26,11 +32,16 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     }
     final item = _queue.removeAt(oldIndex);
     _queue.insert(newIndex, item);
-    if (_playlistSource != null &&
+    if (!kIsWeb &&
+        _playlistSource != null &&
         oldIndex < _playlistSource!.length &&
         newIndex < _playlistSource!.length) {
       try {
-        _playlistSource!.move(oldIndex, newIndex);
+        unawaited(
+          _playlistSource!.move(oldIndex, newIndex).catchError((e) {
+            debugPrint('[QueueSync] Error moving index in _playlistSource: $e');
+          }),
+        );
       } catch (e) {
         debugPrint('[QueueSync] Error moving index in _playlistSource: $e');
       }
@@ -46,10 +57,14 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       _queue.add(current);
       _currentSong = current;
       _currentIndex = 0;
-      if (_playlistSource != null && _playlistSource!.length > 1) {
+      if (!kIsWeb && _playlistSource != null && _playlistSource!.length > 1) {
         try {
           while (_playlistSource!.length > 1) {
-            _playlistSource!.removeAt(_playlistSource!.length - 1);
+            unawaited(
+              _playlistSource!
+                  .removeAt(_playlistSource!.length - 1)
+                  .catchError((_) {}),
+            );
           }
         } catch (_) {}
       }
@@ -67,10 +82,17 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     final seedLang = currentSong != null
         ? MusicApiService.detectSongLanguage(currentSong!)
         : null;
+    final seedEra = currentSong != null
+        ? MusicTagClassifier.detectSongEra(currentSong!)
+        : null;
     final Set<String> currentQueueIds = _queue.map((s) => s.id).toSet();
     final Set<String> currentQueueKeys = _queue
         .map(SongParserUtils.songDeduplicationKey)
         .toSet();
+    if (currentSong != null) {
+      currentQueueIds.add(currentSong!.id);
+      currentQueueKeys.add(SongParserUtils.songDeduplicationKey(currentSong!));
+    }
 
     for (final track in tracks) {
       if (track.audioUrl.trim().isEmpty) continue;
@@ -86,24 +108,48 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           MusicApiService.detectSongLanguage(track) != seedLang) {
         continue;
       }
+      if (seedLang != null) {
+        if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(track)) {
+          continue;
+        }
+        if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(track)) {
+          continue;
+        }
+      }
+      if (seedEra != null &&
+          MusicTagClassifier.detectSongEra(track) != seedEra) {
+        continue;
+      }
       if (currentQueueIds.contains(track.id)) continue;
       final key = SongParserUtils.songDeduplicationKey(track);
       if (currentQueueKeys.contains(key)) continue;
+      if (_queue.any(
+        (s) =>
+            s.id == track.id || SongParserUtils.songDeduplicationKey(s) == key,
+      )) {
+        continue;
+      }
 
       currentQueueIds.add(track.id);
       currentQueueKeys.add(key);
       _queue.add(track);
 
-      if (_playlistSource != null) {
+      if (!kIsWeb && _playlistSource != null && !_isTransitioning) {
         try {
+          final trackCover = track.coverUrl.trim();
+          final trackSecureCover = trackCover.startsWith('http://')
+              ? trackCover.replaceFirst('http://', 'https://')
+              : trackCover;
+          final trackArtUri = trackSecureCover.isNotEmpty
+              ? Uri.tryParse(trackSecureCover)
+              : null;
+
           final mediaItem = MediaItem(
             id: track.id,
             album: track.album.isNotEmpty ? track.album : 'Jumbo Music',
             title: track.title.isNotEmpty ? track.title : 'Unknown Title',
             artist: track.artist.isNotEmpty ? track.artist : 'Unknown Artist',
-            artUri: track.coverUrl.isNotEmpty
-                ? Uri.tryParse(track.coverUrl)
-                : null,
+            artUri: trackArtUri,
             duration: track.duration.inSeconds > 0 ? track.duration : null,
             playable: true,
             displayTitle: track.title.isNotEmpty
@@ -116,14 +162,21 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
                 ? track.album
                 : 'Jumbo Music',
           );
-          _playlistSource!.add(
-            AudioSource.uri(Uri.parse(track.audioUrl), tag: mediaItem),
+          unawaited(
+            _playlistSource!
+                .add(AudioSource.uri(Uri.parse(track.audioUrl), tag: mediaItem))
+                .catchError((e) {
+                  debugPrint(
+                    '[QueueSync] Error adding source to _playlistSource: $e',
+                  );
+                }),
           );
         } catch (e) {
           debugPrint('[QueueSync] Error adding source to _playlistSource: $e');
         }
       }
     }
+    _queue = SongParserUtils.deduplicateSongs(_queue);
     _syncCurrentSongAndIndex();
     notify();
   }
@@ -132,7 +185,17 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     Song seedSong, {
     int targetQueueSize = 60,
   }) async {
-    if (!_autoplay || _isLoadingRecommendations || _isQueueLocked) return;
+    if (!_autoplay || _isQueueLocked) return;
+
+    if (_isLoadingRecommendations) {
+      if (_infillCompleter != null && !_infillCompleter!.isCompleted) {
+        try {
+          await _infillCompleter!.future.timeout(const Duration(seconds: 4));
+        } catch (_) {}
+      }
+      return;
+    }
+
     if (_lastInfilledSongId == seedSong.id &&
         _queue.length >= targetQueueSize) {
       return;
@@ -140,10 +203,12 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
     _lastInfilledSongId = seedSong.id;
 
     _isLoadingRecommendations = true;
+    _infillCompleter = Completer<void>();
     notify();
 
     try {
       final seedLang = MusicApiService.detectSongLanguage(seedSong);
+      final seedEra = MusicTagClassifier.detectSongEra(seedSong);
       final smartTracks = await AiRecommendationEngine.instance.buildSmartQueue(
         seedSong: seedSong,
         existingQueue: _queue,
@@ -151,10 +216,12 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
       );
 
       if (smartTracks.isNotEmpty) {
-        final currentQueueIds = _queue.map((s) => s.id).toSet();
-        final currentQueueKeys = _queue
-            .map(SongParserUtils.songDeduplicationKey)
-            .toSet();
+        _queue = SongParserUtils.deduplicateSongs(_queue);
+        final currentQueueIds = _queue.map((s) => s.id).toSet()
+          ..add(seedSong.id);
+        final currentQueueKeys =
+            _queue.map(SongParserUtils.songDeduplicationKey).toSet()
+              ..add(SongParserUtils.songDeduplicationKey(seedSong));
 
         final List<Song> newTracks = smartTracks.where((s) {
           if (s.id == seedSong.id) return false;
@@ -170,9 +237,26 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           if (MusicApiService.detectSongLanguage(s) != seedLang) {
             return false;
           }
+          if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
+            return false;
+          }
+          if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
+            return false;
+          }
+          if (MusicTagClassifier.detectSongEra(s) != seedEra) {
+            return false;
+          }
           if (currentQueueIds.contains(s.id)) return false;
           final key = SongParserUtils.songDeduplicationKey(s);
           if (currentQueueKeys.contains(key)) return false;
+          if (_queue.any(
+            (q) =>
+                q.id == s.id || SongParserUtils.songDeduplicationKey(q) == key,
+          )) {
+            return false;
+          }
+          currentQueueIds.add(s.id);
+          currentQueueKeys.add(key);
           return true;
         }).toList();
 
@@ -190,6 +274,8 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
               allKeys.add(key);
             }
           }
+          _queue = SongParserUtils.deduplicateSongs(_queue);
+          _syncCurrentSongAndIndex();
         }
       }
     } catch (error) {
@@ -197,9 +283,13 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         error,
         'music_player_queue_delegate.dart:212',
       );
+    } finally {
+      _isLoadingRecommendations = false;
+      if (_infillCompleter != null && !_infillCompleter!.isCompleted) {
+        _infillCompleter!.complete();
+      }
+      _infillCompleter = null;
+      notify();
     }
-
-    _isLoadingRecommendations = false;
-    notify();
   }
 }

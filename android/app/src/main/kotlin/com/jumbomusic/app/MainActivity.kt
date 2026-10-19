@@ -49,18 +49,25 @@ class MainActivity : AudioServiceActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelId = "com.jumbomusic.app.channel.audio"
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
+            // Delete legacy low-importance channel that hid controls on lock screens
+            try {
+                notificationManager?.deleteNotificationChannel("com.jumbomusic.app.channel.audio")
+            } catch (_: Exception) {}
+
+            val channelId = "com.jumbomusic.app.channel.audio.v2"
             val channelName = "Jumbo Music Playback"
             val channel = android.app.NotificationChannel(
                 channelId,
                 channelName,
-                android.app.NotificationManager.IMPORTANCE_LOW
+                android.app.NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
                 description = "Media playback controls and information"
                 setShowBadge(true)
                 lockscreenVisibility = android.app.Notification.VISIBILITY_PUBLIC
+                setSound(null, null)
+                enableVibration(false)
             }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
             notificationManager?.createNotificationChannel(channel)
         }
         if (Build.VERSION.SDK_INT >= 33) {

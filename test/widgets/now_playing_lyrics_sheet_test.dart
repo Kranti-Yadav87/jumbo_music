@@ -17,10 +17,25 @@ void main() {
     coverUrl: 'https://example.com/cover.jpg',
   );
 
+  const plainSong = Song(
+    id: 'lyrics_plain_song_2',
+    title: 'Plain Lyrics Song',
+    artist: 'Plain Artist',
+    duration: Duration(seconds: 180),
+    audioUrl: 'https://example.com/plain.mp3',
+    coverUrl: 'https://example.com/plain.jpg',
+  );
+
   const sampleLrc = '''
 [00:00.00]First intro line
 [00:10.00]Second line of verse
 [00:20.00]Chorus line playing
+''';
+
+  const samplePlain = '''
+Hum Tere Bin Ab Reh Nahi Sakte
+Tere Bina Kya Wajood Mera
+Tujhse Juda Agar Ho Jayenge
 ''';
 
   setUp(() {
@@ -30,10 +45,16 @@ void main() {
       title: testSong.title,
       artist: testSong.artist,
     );
+    LyricsService.instance.cacheLyrics(
+      plainSong.id,
+      samplePlain,
+      title: plainSong.title,
+      artist: plainSong.artist,
+    );
   });
 
   testWidgets(
-    'NowPlayingLyricsSheet renders lyrics and highlights active line',
+    'NowPlayingLyricsSheet renders synchronized lyrics with LIVE SYNC badge and highlights active line',
     (tester) async {
       final manager = MusicPlayerManager();
 
@@ -58,9 +79,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Test Song Title'), findsOneWidget);
+      expect(find.text('LIVE SYNC 🎵'), findsOneWidget);
       expect(find.text('First intro line'), findsOneWidget);
       expect(find.text('Second line of verse'), findsOneWidget);
       expect(find.text('Chorus line playing'), findsOneWidget);
+      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
 
       // Tap on a line to seek
       await tester.tap(find.text('Second line of verse'));
@@ -70,6 +93,39 @@ void main() {
       await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
       expect(find.text('First intro line'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'NowPlayingLyricsSheet renders plain lyrics with FULL LYRICS badge',
+    (tester) async {
+      final manager = MusicPlayerManager();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) {
+                return ElevatedButton(
+                  onPressed: () {
+                    NowPlayingLyricsSheet.show(context, manager, plainSong);
+                  },
+                  child: const Text('Open Plain Lyrics'),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Plain Lyrics'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Plain Lyrics Song'), findsOneWidget);
+      expect(find.text('FULL LYRICS 📄'), findsOneWidget);
+      expect(find.text('Hum Tere Bin Ab Reh Nahi Sakte'), findsOneWidget);
+      expect(find.text('Tere Bina Kya Wajood Mera'), findsOneWidget);
+      expect(find.byIcon(Icons.copy_rounded), findsOneWidget);
     },
   );
 }
