@@ -14,7 +14,30 @@ void main() {
           const MethodChannel('com.ryanheise.just_audio.methods'),
           (MethodCall call) async {
             if (call.method == 'init') {
-              return {'id': 'test_player_1'};
+              final id = (call.arguments as Map?)?['id'] as String?;
+              if (id != null) {
+                TestDefaultBinaryMessengerBinding
+                    .instance
+                    .defaultBinaryMessenger
+                    .setMockMethodCallHandler(
+                      MethodChannel('com.ryanheise.just_audio.methods.$id'),
+                      (MethodCall instanceCall) async {
+                        if (instanceCall.method == 'load') {
+                          return {'duration': 180000000};
+                        }
+                        if (instanceCall.method ==
+                            'androidEqualizerGetParameters') {
+                          return {
+                            'minDecibels': -15.0,
+                            'maxDecibels': 15.0,
+                            'bands': [],
+                          };
+                        }
+                        return {};
+                      },
+                    );
+              }
+              return {'id': id ?? 'test_player_1'};
             }
             if (call.method == 'load') {
               return {'duration': 180000000};
@@ -178,6 +201,7 @@ void main() {
       'skipToQueueIndex(0) on a 1-song queue delegates to next() and never loops',
       () async {
         final manager = MusicPlayerManager();
+        if (manager.autoplay) manager.toggleAutoplay();
         manager.setMockState(allSongs: []);
 
         final nextTrack = Song(

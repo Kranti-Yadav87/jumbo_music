@@ -868,9 +868,18 @@ class MusicApiService {
             );
             futures.add(fetchBestOfIndie().catchError((_) => <Song>[]));
           } else {
+            if (rawArtist.isNotEmpty &&
+                rawArtist.toLowerCase() != 'unknown artist') {
+              futures.add(
+                searchLiveSongs(
+                  '$rawArtist Modern Romantic Hits',
+                  limit: 15,
+                ).catchError((_) => <Song>[]),
+              );
+            }
             futures.add(
               searchLiveSongs(
-                'Trending Viral Hindi Hits 2024',
+                'Trending Viral Hindi Hits',
                 limit: 15,
               ).catchError((_) => <Song>[]),
             );
@@ -892,8 +901,18 @@ class MusicApiService {
                 limit: 15,
               ).catchError((_) => <Song>[]),
             );
-            futures.add(fetchTrendingToday().catchError((_) => <Song>[]));
-            futures.add(fetchIndiaTop50().catchError((_) => <Song>[]));
+            futures.add(
+              searchLiveSongs(
+                'Top Bollywood Romantic Songs',
+                limit: 15,
+              ).catchError((_) => <Song>[]),
+            );
+            futures.add(
+              searchLiveSongs(
+                'Viral Hindi Romantic Hits',
+                limit: 15,
+              ).catchError((_) => <Song>[]),
+            );
           }
           break;
       }

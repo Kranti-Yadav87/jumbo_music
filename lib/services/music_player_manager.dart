@@ -803,7 +803,6 @@ class MusicPlayerManager extends ChangeNotifier {
     final immediateCandidates = <Song>[];
     final seenIds = <String>{song.id};
     final seenKeys = <String>{SongParserUtils.songDeduplicationKey(song)};
-    final db = DatabaseService.instance;
 
     void tryAddCandidate(Song candidate) {
       if (candidate.audioUrl.trim().isEmpty) return;
@@ -845,22 +844,18 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    for (final fav in db.favoriteSongs) {
-      tryAddCandidate(fav);
-    }
-    for (final pl in db.playlists) {
-      for (final s in pl.songs) {
-        tryAddCandidate(s);
+    // Proactively fetch smart recommendations tailored for this exact seed song & artist
+    try {
+      final liveRecs = await MusicApiService.fetchSmartRecommendations(
+        song,
+        limit: 30,
+      );
+      for (final r in liveRecs) {
+        tryAddCandidate(r);
       }
-    }
-    for (final h in db.historySongs) {
-      tryAddCandidate(h);
-    }
-    for (final a in _allSongs) {
-      tryAddCandidate(a);
-    }
+    } catch (_) {}
 
-    // If local/search pool has few tracks, proactively fetch live era-matching songs
+    // If candidate pool has few tracks, proactively fetch live era-matching songs
     if (immediateCandidates.length < 15) {
       final targeted = AiRecommendationEngine.getEraTargetedQueries(
         seedLang,
@@ -1080,7 +1075,6 @@ class MusicPlayerManager extends ChangeNotifier {
         addSeedFrom(_allSongs);
         addSeedFrom(_onlineTrending);
         addSeedFrom(_newReleases);
-        addSeedFrom(DatabaseService.instance.historySongs);
 
         _queue = seedCandidates;
         _currentIndex = 0;
@@ -1297,12 +1291,17 @@ class MusicPlayerManager extends ChangeNotifier {
         );
       }
 
-      unawaited(_applyEqualizerPreset());
-      await _audioPlayer.setSpeed(_playbackSpeed);
-      await _audioPlayer.setVolume(_volume);
-      await _audioPlayer.setLoopMode(
-        _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
-      );
+      try {
+        await _audioPlayer.setSpeed(_playbackSpeed);
+      } catch (_) {}
+      try {
+        await _audioPlayer.setVolume(_volume);
+      } catch (_) {}
+      try {
+        await _audioPlayer.setLoopMode(
+          _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+        );
+      } catch (_) {}
       _startPlayback();
       _isPlaying = true;
       _isBuffering = false;
@@ -1420,9 +1419,12 @@ class MusicPlayerManager extends ChangeNotifier {
                 preload: true,
               );
             }
-            unawaited(_applyEqualizerPreset());
-            await _audioPlayer.setSpeed(_playbackSpeed);
-            await _audioPlayer.setVolume(_volume);
+            try {
+              await _audioPlayer.setSpeed(_playbackSpeed);
+            } catch (_) {}
+            try {
+              await _audioPlayer.setVolume(_volume);
+            } catch (_) {}
             _startPlayback();
             _isPlaying = true;
             _isBuffering = false;

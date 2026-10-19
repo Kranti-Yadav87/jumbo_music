@@ -34,7 +34,191 @@ class MusicTagClassifier {
     }
 
     // 1. Explicit Hindi phonetic tokens
+    final titleTokens = titleLower
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((t) => t.isNotEmpty)
+        .toSet();
+
+    const hindiPhoneticTokens = {
+      'dil',
+      'hindi',
+      'bollywood',
+      'desi',
+      'filmi',
+      'ghazal',
+      'qawwali',
+      'sufi',
+      'bhangra',
+      'pyar',
+      'pyaar',
+      'ishq',
+      'tere',
+      'teri',
+      'tera',
+      'tum',
+      'hum',
+      'chalein',
+      'aao',
+      'kya',
+      'hai',
+      'hain',
+      'zindagi',
+      'sukoon',
+      'mohabbat',
+      'saath',
+      'raatein',
+      'baatein',
+      'jaana',
+      'deewana',
+      'deewani',
+      'sanam',
+      'chura',
+      'aaja',
+      'naina',
+      'akhiyaan',
+      'dholna',
+      'rabba',
+      'meri',
+      'mera',
+      'mere',
+      'musafir',
+      'dard',
+      'intezaar',
+      'aankhen',
+      'aankhon',
+      'khuda',
+      'dua',
+      'wafa',
+      'bewafa',
+      'tujhe',
+      'mujhko',
+      'humko',
+      'tumko',
+      'kabhi',
+      'kahin',
+      'kahan',
+      'jaane',
+      'maahi',
+      'chupke',
+      'dhadkan',
+      'saanson',
+      'rooh',
+      'chaahat',
+      'afsaana',
+      'yaadein',
+      'yaad',
+      'jeena',
+      'marna',
+      'kasam',
+      'khwaab',
+      'sapne',
+      'deewangi',
+      'nazar',
+      'nazron',
+      'aashiqui',
+      'safar',
+      'hawa',
+      'hawayein',
+      'hawaayein',
+      'banke',
+      'barsaat',
+      'baarish',
+      'chaand',
+      'roshni',
+      'tasveer',
+      'dosti',
+      'yaar',
+      'yaara',
+      'sajna',
+      'jhumka',
+      'saajan',
+      'awaaz',
+      'geet',
+      'kesariya',
+      'chaleya',
+      'satranga',
+      'heeriye',
+      'ranjha',
+      'bekhayali',
+      'aadat',
+      'alvida',
+      'khoobsurat',
+      'kamleya',
+      'kamli',
+      'tauba',
+      'sajni',
+      'taras',
+      'gulabi',
+      'chuttamalle',
+      'zikr',
+      'asal',
+      'mehar',
+      'jinna',
+      'sohna',
+      'apna',
+      'apne',
+      'apni',
+      'tumhe',
+      'humein',
+      'mujhe',
+      'bhi',
+      'main',
+      'mein',
+      'pehle',
+      'suno',
+      'kahani',
+      'chale',
+      'gaya',
+      'gaye',
+      'gayi',
+      'raha',
+      'rahe',
+      'rahi',
+      'hua',
+      'hue',
+      'hui',
+      'tha',
+      'the',
+      'thi',
+      'hoon',
+      'hona',
+      'hone',
+      'jaan',
+      'jaani',
+      'jahaan',
+      'duniya',
+      'khushi',
+      'gham',
+      'pal',
+      'lamha',
+      'lamhe',
+      'shab',
+      'subah',
+      'shaam',
+      'raat',
+      'din',
+      'aaj',
+      'kal',
+      'barsa',
+      'barso',
+      'aansoo',
+      'muskurana',
+      'shanti',
+      'chain',
+      'qaraar',
+      'tanha',
+      'tanhaai',
+      'akele',
+      'akelapan',
+      'juda',
+      'judaai',
+      'ibadat',
+      'ibaadat',
+      'sajda',
+    };
+
     final bool hasHindiWords =
+        titleTokens.any(hindiPhoneticTokens.contains) ||
         titleLower.contains('dil') ||
         titleLower.contains('pyar') ||
         titleLower.contains('pyaar') ||
@@ -42,92 +226,11 @@ class MusicTagClassifier {
         titleLower.contains('tere') ||
         titleLower.contains('teri') ||
         titleLower.contains('tera') ||
-        titleLower.contains('tum') ||
-        titleLower.contains('hum') ||
-        titleLower.contains('chalein') ||
-        titleLower.contains('aao') ||
-        titleLower.contains('kya') ||
-        titleLower.contains('hai') ||
-        titleLower.contains('hain') ||
         titleLower.contains('zindagi') ||
         titleLower.contains('sukoon') ||
         titleLower.contains('mohabbat') ||
-        titleLower.contains('saath') ||
-        titleLower.contains('raatein') ||
-        titleLower.contains('baatein') ||
-        titleLower.contains('jaana') ||
-        titleLower.contains('deewana') ||
-        titleLower.contains('deewani') ||
-        titleLower.contains('sanam') ||
-        titleLower.contains('chura') ||
-        titleLower.contains('aaja') ||
-        titleLower.contains('naina') ||
-        titleLower.contains('akhiyaan') ||
-        titleLower.contains('dholna') ||
-        titleLower.contains('rabba') ||
-        titleLower.contains('meri') ||
-        titleLower.contains('mera') ||
-        titleLower.contains('mere') ||
-        titleLower.contains('musafir') ||
-        titleLower.contains('dard') ||
-        titleLower.contains('intezaar') ||
-        titleLower.contains('aankhen') ||
-        titleLower.contains('aankhon') ||
-        titleLower.contains('khuda') ||
-        titleLower.contains('dua') ||
-        titleLower.contains('wafa') ||
-        titleLower.contains('bewafa') ||
-        titleLower.contains('tujhe') ||
-        titleLower.contains('mujhko') ||
-        titleLower.contains('humko') ||
-        titleLower.contains('tumko') ||
-        titleLower.contains('kabhi') ||
-        titleLower.contains('kahin') ||
-        titleLower.contains('kahan') ||
-        titleLower.contains('jaane') ||
-        titleLower.contains('maahi') ||
-        titleLower.contains('chupke') ||
-        titleLower.contains('dhadkan') ||
-        titleLower.contains('saanson') ||
-        titleLower.contains('rooh') ||
-        titleLower.contains('chaahat') ||
-        titleLower.contains('afsaana') ||
-        titleLower.contains('yaadein') ||
-        titleLower.contains('yaad') ||
-        titleLower.contains('jeena') ||
-        titleLower.contains('marna') ||
-        titleLower.contains('kasam') ||
-        titleLower.contains('khwaab') ||
-        titleLower.contains('sapne') ||
-        titleLower.contains('deewangi') ||
-        titleLower.contains('nazar') ||
-        titleLower.contains('nazron') ||
-        titleLower.contains('aashiqui') ||
-        titleLower.contains('safar') ||
-        titleLower.contains('hawaayein') ||
-        titleLower.contains('barsaat') ||
-        titleLower.contains('baarish') ||
-        titleLower.contains('chaand') ||
-        titleLower.contains('roshni') ||
-        titleLower.contains('tasveer') ||
-        titleLower.contains('dosti') ||
-        titleLower.contains('yaar') ||
-        titleLower.contains('yaara') ||
-        titleLower.contains('sajna') ||
-        titleLower.contains('jhumka') ||
-        titleLower.contains('saajan') ||
-        titleLower.contains('awaaz') ||
-        titleLower.contains('geet') ||
-        titleLower.contains('kesariya') ||
-        titleLower.contains('chaleya') ||
-        titleLower.contains('satranga') ||
-        titleLower.contains('heeriye') ||
-        titleLower.contains('ranjha') ||
-        titleLower.contains('lut gaye') ||
         titleLower.contains('tum hi ho') ||
         titleLower.contains('channa mereya') ||
-        titleLower.contains('hawayein') ||
-        titleLower.contains('bekhayali') ||
         titleLower.contains('pal pal dil') ||
         titleLower.contains('lag ja gale') ||
         titleLower.contains('roop tera mastana') ||
@@ -147,17 +250,16 @@ class MusicTagClassifier {
         titleLower.contains('dil ibaadat') ||
         titleLower.contains('woh lamhe') ||
         titleLower.contains('tu hi meri shab') ||
-        titleLower.contains('aadat') ||
-        titleLower.contains('alvida') ||
         titleLower.contains('tu jaane na') ||
         titleLower.contains('pehle bhi main') ||
         titleLower.contains('o maahi') ||
         titleLower.contains('lutt putt gaya') ||
         titleLower.contains('aaj ki raat') ||
-        titleLower.contains('khoobsurat') ||
         titleLower.contains('aayi nai') ||
         titleLower.contains('ve kamleya') ||
-        titleLower.contains('what jhumka');
+        titleLower.contains('what jhumka') ||
+        titleLower.contains('hawa banke') ||
+        titleLower.contains('lut gaye');
 
     if (hasHindiWords &&
         !albumLower.contains('english') &&
@@ -319,6 +421,31 @@ class MusicTagClassifier {
         artistLower.contains('chappell roan') ||
         artistLower.contains('tate mcrae') ||
         artistLower.contains('pitbull') ||
+        artistLower.contains('teddy swims') ||
+        artistLower.contains('noah kahan') ||
+        artistLower.contains('shaboozey') ||
+        artistLower.contains('tommy richman') ||
+        artistLower.contains('artemas') ||
+        artistLower.contains('myles smith') ||
+        artistLower.contains('david kushner') ||
+        artistLower.contains('alex warren') ||
+        artistLower.contains('djo') ||
+        artistLower.contains('mark ambor') ||
+        artistLower.contains('zach bryan') ||
+        artistLower.contains('gracie abrams') ||
+        artistLower.contains('luke combs') ||
+        artistLower.contains('morgan wallen') ||
+        artistLower.contains('linkin park') ||
+        artistLower.contains('green day') ||
+        artistLower.contains('twenty one pilots') ||
+        artistLower.contains('21 pilots') ||
+        artistLower.contains('passenger') ||
+        artistLower.contains('kodaline') ||
+        artistLower.contains('vance joy') ||
+        artistLower.contains('dj snake') ||
+        artistLower.contains('major lazer') ||
+        artistLower.contains('swedish house mafia') ||
+        artistLower.contains('fred again') ||
         artistLower.contains('akon');
 
     if (isEnglishArtist && !hasHindiWords) {
@@ -417,105 +544,329 @@ class MusicTagClassifier {
         titleLower.contains('memories') ||
         titleLower.contains('feelings');
 
-    final titleTokens = titleLower
-        .split(RegExp(r'[^a-z0-9]+'))
-        .where((t) => t.isNotEmpty)
-        .toSet();
-
     const commonEnglishTokens = {
+      'the',
+      'a',
+      'an',
+      'i',
+      'you',
+      'me',
+      'my',
+      'he',
+      'she',
+      'it',
+      'we',
+      'they',
+      'us',
+      'them',
+      'him',
+      'her',
+      'his',
+      'its',
+      'our',
+      'their',
+      'mine',
+      'yours',
+      'ours',
+      'theirs',
+      'myself',
+      'yourself',
+      'who',
+      'whom',
+      'whose',
+      'which',
+      'what',
+      'this',
+      'that',
+      'these',
+      'those',
+      'somebody',
+      'someone',
+      'something',
+      'anybody',
+      'anyone',
+      'anything',
+      'nobody',
+      'nothing',
+      'everybody',
+      'everyone',
+      'everything',
+      'in',
+      'on',
+      'at',
+      'to',
+      'for',
+      'with',
+      'by',
+      'from',
+      'up',
+      'about',
+      'into',
+      'over',
+      'after',
+      'under',
+      'above',
+      'through',
+      'between',
+      'before',
+      'against',
+      'out',
+      'off',
+      'down',
+      'around',
+      'without',
+      'and',
+      'but',
+      'or',
+      'nor',
+      'so',
+      'yet',
+      'because',
+      'if',
+      'is',
+      'am',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being',
+      'have',
+      'has',
+      'had',
+      'do',
+      'does',
+      'did',
+      'done',
+      'can',
+      'could',
+      'will',
+      'would',
+      'shall',
+      'should',
+      'may',
+      'might',
+      'must',
+      'get',
+      'got',
+      'make',
+      'know',
+      'think',
+      'take',
+      'see',
+      'want',
+      'look',
+      'find',
+      'give',
+      'tell',
+      'feel',
+      'leave',
+      'put',
+      'keep',
+      'let',
+      'talk',
+      'hear',
+      'play',
+      'run',
+      'like',
+      'live',
+      'believe',
+      'hold',
+      'bring',
+      'happen',
+      'stand',
+      'lose',
+      'meet',
+      'watch',
+      'stop',
+      'speak',
+      'read',
+      'spend',
+      'grow',
+      'open',
+      'walk',
+      'win',
+      'love',
+      'die',
+      'stay',
+      'fall',
+      'time',
+      'year',
+      'people',
+      'way',
+      'day',
+      'man',
+      'woman',
+      'life',
+      'child',
+      'world',
+      'school',
+      'hand',
+      'part',
+      'place',
+      'night',
+      'home',
+      'water',
+      'eye',
+      'word',
+      'head',
+      'house',
+      'friend',
+      'hour',
+      'game',
+      'line',
+      'end',
+      'city',
+      'name',
+      'minute',
+      'idea',
+      'body',
+      'face',
+      'party',
+      'morning',
+      'girl',
+      'guy',
+      'moment',
+      'boy',
+      'baby',
+      'song',
+      'music',
+      'dream',
+      'heart',
+      'soul',
+      'sky',
+      'sun',
+      'moon',
+      'star',
+      'stars',
+      'rain',
+      'tears',
+      'smile',
+      'kiss',
+      'touch',
+      'fire',
+      'ice',
+      'cold',
+      'dark',
+      'light',
+      'shadow',
+      'ocean',
+      'waves',
+      'sea',
+      'river',
+      'road',
+      'street',
+      'summer',
+      'winter',
+      'spring',
+      'good',
+      'new',
+      'first',
+      'last',
+      'long',
+      'great',
+      'little',
+      'own',
+      'other',
+      'old',
+      'right',
+      'big',
+      'high',
+      'different',
+      'small',
+      'large',
+      'next',
+      'early',
+      'young',
+      'bad',
+      'same',
+      'sweet',
+      'beautiful',
+      'crazy',
+      'wild',
+      'happy',
+      'sad',
+      'lonely',
+      'alone',
+      'perfect',
+      'better',
+      'best',
+      'broken',
+      'blind',
+      'golden',
+      'deep',
+      'free',
+      'alive',
+      'true',
+      'lost',
+      'found',
+      'taste',
+      'casual',
+      'luck',
+      'babe',
+      'control',
+      'door',
+      'dreams',
+      'stargazing',
+      'daylight',
+      'carry',
+      'bar',
+      'tipsy',
+      'help',
+      'skies',
+      'sorry',
+      'trouble',
+      'troubles',
+      'heaven',
+      'hell',
+      'angels',
+      'devil',
+      'money',
+      'rich',
+      'poor',
+      'gold',
+      'silver',
+      'diamond',
+      'diamonds',
+      'ring',
+      'secret',
+      'secrets',
+      'breath',
+      'breathe',
+      'burn',
+      'burning',
+      'shadows',
+      'magic',
+      'miracle',
+      'gravity',
+      'electric',
+      'radio',
+      'weekend',
+      'holiday',
+      'christmas',
+      'sunday',
+      'monday',
+      'friday',
+      'saturday',
+      'acoustic',
+      'unplugged',
+      'remix',
+      'edit',
+      'version',
+      'cover',
+      'single',
+      'album',
       'words',
       'movie',
       'pause',
       'need',
       'mess',
-      'alone',
-      'stay',
-      'love',
-      'baby',
-      'night',
-      'heart',
-      'dance',
-      'song',
-      'eyes',
-      'tears',
-      'hold',
-      'rain',
-      'dream',
-      'world',
-      'forever',
-      'never',
-      'always',
-      'goodbye',
-      'hello',
-      'light',
-      'fire',
-      'cold',
-      'kiss',
-      'touch',
-      'stop',
-      'beautiful',
-      'sweet',
-      'crazy',
-      'wild',
-      'young',
-      'summer',
-      'time',
-      'life',
-      'feel',
-      'mind',
-      'sky',
-      'star',
-      'stars',
-      'sun',
-      'moon',
-      'home',
-      'road',
-      'city',
-      'friends',
-      'friend',
-      'hope',
-      'lost',
-      'found',
-      'happy',
-      'sad',
-      'dark',
-      'shine',
-      'fly',
-      'fall',
-      'run',
-      'walk',
-      'talk',
-      'say',
-      'tell',
-      'hear',
-      'see',
-      'look',
-      'watch',
-      'give',
-      'take',
-      'make',
-      'break',
-      'keep',
-      'find',
-      'think',
-      'know',
-      'want',
-      'just',
-      'like',
-      'into',
-      'part',
-      'way',
-      'loved',
       'loving',
       'fade',
       'faded',
-      'memories',
-      'lights',
       'starboy',
       'believer',
-      'perfect',
       'shape',
-      'bad',
       'habits',
       'attention',
       'ghost',
@@ -525,7 +876,6 @@ class MusicTagClassifier {
       'levitating',
       'flowers',
       'greedy',
-      'water',
       'vampire',
       'cruel',
       'cardigan',
@@ -537,21 +887,14 @@ class MusicTagClassifier {
       'espresso',
       'birds',
       'feather',
-      'taste',
-      'ocean',
-      'waves',
-      'sea',
-      'river',
       'breeze',
       'shore',
-      'with',
-      'without',
-      'you',
-      'your',
-      'about',
-      'somebody',
-      'someone',
-      'nobody',
+      'track',
+      'tracks',
+      'isolated',
+      'instrumental',
+      'soundtrack',
+      'score',
     };
 
     final bool hasEnglishToken = titleTokens.any(commonEnglishTokens.contains);
@@ -584,6 +927,7 @@ class MusicTagClassifier {
         artistLower.contains('neha kakkar') ||
         artistLower.contains('jubin') ||
         artistLower.contains('armaan malik') ||
+        artistLower.contains('amaal mallik') ||
         artistLower.contains('vishal mishra') ||
         artistLower.contains('stebin ben') ||
         artistLower.contains('darshan raval') ||
@@ -594,6 +938,13 @@ class MusicTagClassifier {
         artistLower.contains('kaifi khalil') ||
         artistLower.contains('faheem abdullah') ||
         artistLower.contains('aditya a') ||
+        artistLower.contains('king') ||
+        artistLower.contains('divine') ||
+        artistLower.contains('emiway') ||
+        artistLower.contains('mc stan') ||
+        artistLower.contains('raftaar') ||
+        artistLower.contains('kr\$na') ||
+        artistLower.contains('seedhe maut') ||
         artistLower.contains('bappi lahiri') ||
         artistLower.contains('amit kumar') ||
         artistLower.contains('shabbir kumar') ||
@@ -616,16 +967,39 @@ class MusicTagClassifier {
         artistLower.contains('mithoon') ||
         artistLower.contains('vishal-shekhar') ||
         artistLower.contains('shankar-ehsaan-loy') ||
+        artistLower.contains('amit trivedi') ||
+        artistLower.contains('ajay-atul') ||
+        artistLower.contains('tanishk bagchi') ||
+        artistLower.contains('rochak kohli') ||
+        artistLower.contains('meet bros') ||
+        artistLower.contains('tony kakkar') ||
+        artistLower.contains('dhvani bhanushali') ||
+        artistLower.contains('tulsi kumar') ||
+        artistLower.contains('palak muchhal') ||
+        artistLower.contains('monali thakur') ||
+        artistLower.contains('shilpa rao') ||
+        artistLower.contains('neeti mohan') ||
+        artistLower.contains('jonita gandhi') ||
+        artistLower.contains('jagjit singh') ||
+        artistLower.contains('ghulam ali') ||
         artistLower.contains('s. d. burman') ||
         artistLower.contains('r. d. burman') ||
         artistLower.contains('manna dey') ||
-        artistLower.contains('hemant kumar');
+        artistLower.contains('hemant kumar') ||
+        artistLower.contains('a. r. rahman') ||
+        artistLower.contains('ar rahman');
 
     if (isIndianArtist) {
       return 'Hindi';
     }
 
-    return 'Hindi';
+    if (langLower.contains('hindi') && !hasEnglishWords && !hasEnglishToken) {
+      return 'Hindi';
+    }
+
+    // Default: If track has NO Indian artist, NO Indic phonetic tokens, and NO Hindi metadata,
+    // it is an English/Western track. Defaulting to 'Hindi' causes cross-language queue pollution.
+    return 'English';
   }
 
   /// Detects language of a song (Hindi, Punjabi, South, English, Bhojpuri, Haryanvi)

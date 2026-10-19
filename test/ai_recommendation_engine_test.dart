@@ -660,5 +660,177 @@ void main() {
         );
       },
     );
+
+    test(
+      'Darshan Raval - Hawa Banke: Zero English pollution and zero history leakage',
+      () async {
+        const darshanHawaBanke = Song(
+          id: 'dr_hawa_banke',
+          title: 'Hawa Banke',
+          artist: 'Darshan Raval',
+          album: 'Single',
+          duration: Duration(seconds: 195),
+          audioUrl: 'https://example.com/hawabanke.mp3',
+          coverUrl: '',
+          releaseYear: '2020',
+        );
+
+        const darshanAsalMein = Song(
+          id: 'dr_asal_mein',
+          title: 'Asal Mein',
+          artist: 'Darshan Raval',
+          album: 'Single',
+          duration: Duration(seconds: 220),
+          audioUrl: 'https://example.com/asalmein.mp3',
+          coverUrl: '',
+          releaseYear: '2020',
+        );
+
+        const englishTeddySwims = Song(
+          id: 'e_teddy_swims',
+          title: 'Lose Control',
+          artist: 'Teddy Swims',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://example.com/losecontrol.mp3',
+          coverUrl: '',
+          releaseYear: '2023',
+        );
+
+        const englishSabrina = Song(
+          id: 'e_sabrina',
+          title: 'Taste',
+          artist: 'Sabrina Carpenter',
+          duration: Duration(seconds: 160),
+          audioUrl: 'https://example.com/taste.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        const englishMarkAmbor = Song(
+          id: 'e_mark_ambor',
+          title: 'Belong Together',
+          artist: 'Mark Ambor',
+          duration: Duration(seconds: 145),
+          audioUrl: 'https://example.com/belongtogether.mp3',
+          coverUrl: '',
+          releaseYear: '2024',
+        );
+
+        const anuvOcean = Song(
+          id: 'anuv_ocean',
+          title: 'Ocean',
+          artist: 'Anuv Jain',
+          duration: Duration(seconds: 200),
+          audioUrl: 'https://example.com/ocean.mp3',
+          coverUrl: '',
+          releaseYear: '2018',
+        );
+
+        const anuvBaarishein = Song(
+          id: 'anuv_baarishein',
+          title: 'Baarishein',
+          artist: 'Anuv Jain',
+          duration: Duration(seconds: 210),
+          audioUrl: 'https://example.com/baarishein.mp3',
+          coverUrl: '',
+          releaseYear: '2018',
+        );
+
+        const oldHistorySongKishore = Song(
+          id: 'hist_kishore',
+          title: 'Pal Pal Dil Ke Paas',
+          artist: 'Kishore Kumar',
+          duration: Duration(seconds: 300),
+          audioUrl: 'https://example.com/palpal.mp3',
+          coverUrl: '',
+          releaseYear: '1973',
+        );
+
+        // 1. Language detection assertions
+        expect(
+          MusicTagClassifier.detectSongLanguage(darshanHawaBanke),
+          equals('Hindi'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(englishTeddySwims),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(englishSabrina),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(englishMarkAmbor),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(anuvOcean),
+          equals('English'),
+        );
+        expect(
+          MusicTagClassifier.detectSongLanguage(anuvBaarishein),
+          equals('Hindi'),
+        );
+
+        // 2. Era isolation
+        expect(
+          MusicTagClassifier.detectSongEra(darshanHawaBanke),
+          equals(MusicEra.genZModern),
+        );
+        expect(
+          MusicTagClassifier.detectSongEra(oldHistorySongKishore),
+          equals(MusicEra.vintage70s),
+        );
+
+        // 3. Score candidate checks: English and old vintage tracks must score -100.0
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, englishTeddySwims),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, englishSabrina),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, englishMarkAmbor),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, anuvOcean),
+          equals(-100.0),
+        );
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, oldHistorySongKishore),
+          equals(-100.0),
+        );
+
+        // Same artist / compatible Hindi modern track must score > 0
+        expect(
+          engine.scoreCandidate(darshanHawaBanke, darshanAsalMein),
+          greaterThan(0.0),
+        );
+
+        // 4. Smart queue generation: Verify English and History tracks are completely excluded
+        final queue = await engine.buildSmartQueue(
+          seedSong: darshanHawaBanke,
+          existingQueue: [
+            englishTeddySwims,
+            englishSabrina,
+            englishMarkAmbor,
+            anuvOcean,
+            oldHistorySongKishore,
+            darshanAsalMein,
+          ],
+          targetSize: 10,
+        );
+
+        expect(queue.any((s) => s.id == englishTeddySwims.id), isFalse);
+        expect(queue.any((s) => s.id == englishSabrina.id), isFalse);
+        expect(queue.any((s) => s.id == englishMarkAmbor.id), isFalse);
+        expect(queue.any((s) => s.id == anuvOcean.id), isFalse);
+        expect(queue.any((s) => s.id == oldHistorySongKishore.id), isFalse);
+        expect(queue.any((s) => s.id == darshanAsalMein.id), isTrue);
+      },
+    );
   });
 }

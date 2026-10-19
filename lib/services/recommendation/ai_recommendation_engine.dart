@@ -265,14 +265,6 @@ class AiRecommendationEngine {
       modifier += 0.25;
     }
 
-    // C. History repetition (+20%)
-    final historyCount = db.historySongs
-        .where((s) => s.id == candidate.id)
-        .length;
-    if (historyCount >= 2) {
-      modifier += 0.20;
-    }
-
     // D. Search history query relevance (+40%)
     final searchTerms = db.searchHistory;
     final candTitleLower = candidate.title.toLowerCase();
@@ -463,9 +455,6 @@ class AiRecommendationEngine {
         tryAddCandidate(s);
       }
     }
-    for (final h in db.historySongs) {
-      tryAddCandidate(h);
-    }
 
     // 2. Primary: Live smart recommendations specifically tailored for seedSong
     try {
@@ -494,23 +483,6 @@ class AiRecommendationEngine {
           );
           for (final lm in liveMatches) {
             tryAddCandidate(lm);
-          }
-        } catch (_) {}
-      }
-    }
-
-    // 4. Secondary: Candidates from user's recent search queries if still under targetSize
-    if (pool.length < targetSize) {
-      final recentSearches = db.searchHistory.take(3);
-      for (final query in recentSearches) {
-        if (pool.length >= targetSize) break;
-        try {
-          final searchMatches = await MusicApiService.searchLiveSongs(
-            query,
-            limit: 10,
-          );
-          for (final sm in searchMatches) {
-            tryAddCandidate(sm);
           }
         } catch (_) {}
       }
