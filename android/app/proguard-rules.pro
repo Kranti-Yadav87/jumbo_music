@@ -1,3 +1,6 @@
+# Flutter Play Core
+-dontwarn com.google.android.play.core.**
+
 # Flutter Wrapper
 -keep class io.flutter.app.** { *; }
 -keep class io.flutter.plugin.**  { *; }
