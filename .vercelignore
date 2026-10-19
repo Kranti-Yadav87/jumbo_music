@@ -1,0 +1,31 @@
+# Version control & CI
+.git
+.github
+
+# Flutter & Dart artifacts
+.dart_tool
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache
+build
+coverage
+
+# Mobile & Desktop native platform directories (Vercel is web-only)
+android
+ios
+windows
+macos
+linux
+
+# Secrets, configs & local caches
+.env*
+!.env.example
+.jumbo_vault
+.firebase
+.vscode
+.idea
+
+# Tests & docs
+test
+docs
+scripts

@@ -54,6 +54,7 @@ _flutter/
 .jumbo_vault/
 android/build/
 
-
-.env.local
 .vercel/
+.vercel
+.env*
+!.env.example

@@ -57,11 +57,12 @@ jobs:
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: jumbo-music-release-apk
           path: app-release.apk
-          if-no-files-found: error
-          retention-days: 30
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Publish GitHub Release (this makes the in-app APK link work)
         uses: softprops/action-gh-release@v2
