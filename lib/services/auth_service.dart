@@ -31,18 +31,22 @@ class AuthService {
     final msg = error.toString();
     if (msg.contains('unauthorized-domain')) {
       return 'This domain is not authorized for OAuth operations. Please verify authorized domains in Firebase Console.';
+    } else if (msg.contains('Account reauth failed') ||
+        msg.contains('[16]') ||
+        msg.contains('12500') ||
+        msg.contains('DEVELOPER_ERROR')) {
+      return 'Google Play Services or OAuth SHA-1 configuration check required on device.';
     } else if (msg.contains('reauth failed') ||
-        msg.contains('requires-recent-login')) {
+        msg.contains('requires-recent-login') ||
+        msg.contains('session-expired')) {
       return 'Re-authentication failed or session expired. Please log in again.';
     } else if (msg.contains('popup-closed-by-user') ||
         msg.contains('cancelled-popup-request') ||
-        msg.contains('cancelled') ||
+        msg.contains('user-cancelled') ||
         msg.contains('canceled') ||
-        msg.contains('user-cancelled')) {
+        msg.contains('cancelled')) {
       return 'Google Sign-In was cancelled.';
-    } else if (msg.contains('10') ||
-        msg.contains('12500') ||
-        msg.contains('DEVELOPER_ERROR')) {
+    } else if (msg.contains('10')) {
       return 'Google Play Services or OAuth SHA-1 configuration check required on device.';
     } else if (msg.contains('popup-blocked')) {
       return 'Sign-in popup was blocked by your browser. Please allow popups for this site and retry.';

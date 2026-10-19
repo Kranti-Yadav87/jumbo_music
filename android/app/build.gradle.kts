@@ -37,8 +37,18 @@ android {
     }
 
     signingConfigs {
+        val bundledKeystore = file("debug.keystore")
+        if (bundledKeystore.exists()) {
+            getByName("debug") {
+                storeFile = bundledKeystore
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+
         if (keystorePropertiesFile.exists()) {
-            val rawStoreFile = keystoreProperties["storeFile"] as? String
+            val rawStoreFile = (keystoreProperties["storeFile"] as? String)?.trim()
             val resolvedStoreFile = if (rawStoreFile != null) {
                 val appFile = file(rawStoreFile)
                 val rootFile = rootProject.file(rawStoreFile)
@@ -47,14 +57,15 @@ android {
 
             if (resolvedStoreFile != null && resolvedStoreFile.exists()) {
                 create("release") {
-                    keyAlias = keystoreProperties["keyAlias"] as String
-                    keyPassword = keystoreProperties["keyPassword"] as String
+                    keyAlias = (keystoreProperties["keyAlias"] as String).trim()
+                    keyPassword = (keystoreProperties["keyPassword"] as String).trim()
                     storeFile = resolvedStoreFile
-                    storePassword = keystoreProperties["storePassword"] as String
+                    storePassword = (keystoreProperties["storePassword"] as String).trim()
                 }
             }
         }
     }
+
 
     buildTypes {
         release {

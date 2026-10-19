@@ -29,21 +29,31 @@ jobs:
 
       # Optional release signing: add these repository secrets to sign the APK
       #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-      - name: Prepare signing key (if secrets exist)
+      - name: Prepare signing key
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          K_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          K_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           if [ -n "$KS" ]; then
             echo "$KS" | base64 -d > android/app/upload-keystore.jks
             echo "$KS" | base64 -d > android/upload-keystore.jks
-            cat > android/key.properties <<'PROPS'
-          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
-          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
-          storeFile=upload-keystore.jks
-          PROPS
+            cat > android/key.properties <<EOF
+storePassword=${K_PASS}
+keyPassword=${KEY_PASS}
+keyAlias=${K_ALIAS}
+storeFile=upload-keystore.jks
+EOF
+          elif [ -f "android/app/debug.keystore" ]; then
+            cat > android/key.properties <<EOF
+storePassword=android
+keyPassword=android
+keyAlias=androiddebugkey
+storeFile=debug.keystore
+EOF
           else
-            echo "No keystore secrets found - APK will be debug-signed (installable, not for Play Store)."
+            echo "No keystore found - APK will be debug-signed with runner default key."
           fi
 
       - name: Build release APK
