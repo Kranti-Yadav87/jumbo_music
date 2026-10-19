@@ -443,7 +443,11 @@ class MusicPlayerManager extends ChangeNotifier {
         _recentlyPlayed.insert(0, _currentSong!);
         DatabaseService.instance.addHistory(_currentSong!);
         unawaited(
-          DatabaseService.instance.saveLastPlayedTrack(_currentSong!, _queue),
+          DatabaseService.instance.saveLastPlayedTrack(
+            _currentSong!,
+            _queue,
+            _position.inMilliseconds,
+          ),
         );
         _updateDynamicLibrary(_currentSong!);
 
@@ -631,9 +635,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Restore last played track and queue on cold startup if player is idle
     if (_currentSong == null && !_isPlaying) {
-      final lastPlayed =
-          db.lastPlayedSong ??
-          (_recentlyPlayed.isNotEmpty ? _recentlyPlayed.first : null);
+      final lastPlayed = db.lastPlayedSong;
       if (lastPlayed != null) {
         _currentSong = lastPlayed;
         final savedQueue = db.lastPlayedQueue;
@@ -642,33 +644,7 @@ class MusicPlayerManager extends ChangeNotifier {
         } else if (_recentlyPlayed.isNotEmpty) {
           _queue = SongParserUtils.deduplicateSongs(_recentlyPlayed);
         } else {
-          final seedCandidates = <Song>[lastPlayed];
-          final seen = <String>{lastPlayed.id};
-          final rLang = MusicApiService.detectSongLanguage(lastPlayed);
-          final rEra = MusicTagClassifier.detectSongEra(lastPlayed);
-
-          void addSeedFrom(List<Song> source) {
-            for (final s in source) {
-              if (s.id == lastPlayed.id) continue;
-              if (s.audioUrl.trim().isEmpty) continue;
-              if (MusicApiService.detectSongLanguage(s) != rLang) continue;
-              if (rLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
-                continue;
-              }
-              if (rLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
-                continue;
-              }
-              if (MusicTagClassifier.detectSongEra(s) != rEra) continue;
-              if (seen.add(s.id)) {
-                seedCandidates.add(s);
-              }
-            }
-          }
-
-          addSeedFrom(_allSongs);
-          addSeedFrom(_onlineTrending);
-          addSeedFrom(_newReleases);
-          _queue = seedCandidates;
+          _queue = [lastPlayed];
         }
         _queue = SongParserUtils.deduplicateSongs(_queue);
         final lastKey = SongParserUtils.songDeduplicationKey(lastPlayed);
@@ -687,7 +663,7 @@ class MusicPlayerManager extends ChangeNotifier {
         }
         _isPlaying = false;
         _duration = lastPlayed.duration;
-        _position = Duration.zero;
+        _position = Duration(milliseconds: db.lastPlayedPositionMs);
 
         MediaSessionService.updateMetadata(
           title: lastPlayed.title,
@@ -1163,7 +1139,11 @@ class MusicPlayerManager extends ChangeNotifier {
     _recentlyPlayed.insert(0, resolvedSong);
     DatabaseService.instance.addHistory(resolvedSong);
     unawaited(
-      DatabaseService.instance.saveLastPlayedTrack(resolvedSong, _queue),
+      DatabaseService.instance.saveLastPlayedTrack(
+        resolvedSong,
+        _queue,
+        _position.inMilliseconds,
+      ),
     );
 
     _updateDynamicLibrary(resolvedSong);
@@ -1532,12 +1512,24 @@ class MusicPlayerManager extends ChangeNotifier {
     MediaSessionService.updatePlaybackState(isPlaying: false);
     unawaited(BatteryOptimizationService.releaseWakeLock());
     await _audioPlayer.pause();
+    if (_currentSong != null) {
+      unawaited(
+        DatabaseService.instance.saveLastPlayedTrack(
+          _currentSong!,
+          _queue,
+          _position.inMilliseconds,
+        ),
+      );
+    }
   }
 
   Future<void> play() async {
     if (currentSong == null) {
       final db = DatabaseService.instance;
-      if (db.historySongs.isNotEmpty) {
+      if (db.lastPlayedSong != null) {
+        await playSong(db.lastPlayedSong!);
+        return;
+      } else if (db.historySongs.isNotEmpty) {
         await playSong(db.historySongs.first);
         return;
       } else if (_allSongs.isNotEmpty) {

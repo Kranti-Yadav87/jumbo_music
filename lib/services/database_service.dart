@@ -55,6 +55,7 @@ class DatabaseService extends ChangeNotifier {
   final List<Map<String, dynamic>> _notifications = [];
   Song? _lastPlayedSong;
   final List<Song> _lastPlayedQueue = [];
+  int _lastPlayedPositionMs = 0;
 
   List<Playlist> get playlists => List.unmodifiable(_customPlaylists);
   List<Song> get favoriteSongs => _favoriteSongsMap.values.toList();
@@ -65,6 +66,7 @@ class DatabaseService extends ChangeNotifier {
   List<String> get searchHistory => List.unmodifiable(_searchHistory);
   Song? get lastPlayedSong => _lastPlayedSong;
   List<Song> get lastPlayedQueue => List.unmodifiable(_lastPlayedQueue);
+  int get lastPlayedPositionMs => _lastPlayedPositionMs;
 
   // User Profile & Authentication
   bool _isLoggedIn = false;
@@ -245,6 +247,7 @@ class DatabaseService extends ChangeNotifier {
     _notifications.clear();
     _lastPlayedSong = null;
     _lastPlayedQueue.clear();
+    _lastPlayedPositionMs = 0;
   }
 
   @visibleForTesting

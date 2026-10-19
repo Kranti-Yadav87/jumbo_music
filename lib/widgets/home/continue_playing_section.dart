@@ -42,7 +42,12 @@ class ContinuePlayingSection extends StatelessWidget {
     return AnimatedBuilder(
       animation: Listenable.merge([db, manager]),
       builder: (context, _) {
-        final songs = recentSongs(db.history, manager.currentSong);
+        // Strictly require an explicit last played/paused track or active current song.
+        // If the user has never played or paused a track, hide the entire section.
+        final lastSong = manager.currentSong ?? db.lastPlayedSong;
+        if (lastSong == null) return const SizedBox.shrink();
+
+        final songs = recentSongs(db.history, lastSong);
         if (songs.isEmpty) return const SizedBox.shrink();
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,

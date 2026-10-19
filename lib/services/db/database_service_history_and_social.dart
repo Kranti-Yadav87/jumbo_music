@@ -72,11 +72,13 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
     _historyList.clear();
     _lastPlayedSong = null;
     _lastPlayedQueue.clear();
+    _lastPlayedPositionMs = 0;
     notify();
     await _flushHistory();
     try {
       await StorageEngine.removeItem(_scopedKey('last_played_song'));
       await StorageEngine.removeItem(_scopedKey('last_played_queue'));
+      await StorageEngine.removeItem(_scopedKey('last_played_position_ms'));
     } catch (error) {
       CrashReportingService.swallow(
         error,
@@ -112,37 +114,36 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
           }
         }
       }
+
+      final rawPos = await StorageEngine.getItem(
+        _scopedKey('last_played_position_ms'),
+      );
+      if (rawPos != null && rawPos.isNotEmpty) {
+        _lastPlayedPositionMs = int.tryParse(rawPos) ?? 0;
+      } else {
+        _lastPlayedPositionMs = 0;
+      }
     } catch (error) {
       CrashReportingService.swallow(
         error,
         'database_service_history_and_social.dart:_loadLastPlayedTrack',
       );
     }
-
-    // Safe fallback: If no explicit last_played_song was saved, restore latest track from history
-    if (_lastPlayedSong == null && _historyList.isNotEmpty) {
-      try {
-        final firstItem = _historyList.first;
-        if (firstItem['song'] is Map<String, dynamic>) {
-          _lastPlayedSong = Song.fromJson(
-            firstItem['song'] as Map<String, dynamic>,
-          );
-        }
-      } catch (e) {
-        CrashReportingService.swallow(
-          e,
-          'database_service_history_and_social.dart:lastPlayedFallback',
-        );
-      }
-    }
   }
 
-  Future<void> saveLastPlayedTrack(Song song, [List<Song>? queue]) async {
+  Future<void> saveLastPlayedTrack(
+    Song song, [
+    List<Song>? queue,
+    int? positionMs,
+  ]) async {
     if (getSetting('incognitoMode', false) == true) {
       return;
     }
 
     _lastPlayedSong = song;
+    if (positionMs != null && positionMs >= 0) {
+      _lastPlayedPositionMs = positionMs;
+    }
     if (queue != null && queue.isNotEmpty) {
       _lastPlayedQueue.clear();
       _lastPlayedQueue.addAll(queue.take(50));
@@ -159,6 +160,12 @@ extension DatabaseServiceHistoryAndSocial on DatabaseService {
         await StorageEngine.setItem(
           _scopedKey('last_played_queue'),
           jsonEncode(_lastPlayedQueue.map((s) => s.toJson()).toList()),
+        );
+      }
+      if (_lastPlayedPositionMs > 0) {
+        await StorageEngine.setItem(
+          _scopedKey('last_played_position_ms'),
+          _lastPlayedPositionMs.toString(),
         );
       }
     } catch (error) {

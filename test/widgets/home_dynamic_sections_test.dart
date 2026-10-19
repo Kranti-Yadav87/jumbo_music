@@ -8,6 +8,7 @@ import 'package:jumbo_music/services/music_player_manager.dart';
 import 'package:jumbo_music/widgets/home/search_inspired_section.dart';
 import 'package:jumbo_music/widgets/home/featured_playlists_section.dart';
 import 'package:jumbo_music/widgets/home/bts_section.dart';
+import 'package:jumbo_music/widgets/home/continue_playing_section.dart';
 
 import 'package:jumbo_music/services/storage/storage_engine.dart';
 
@@ -171,6 +172,64 @@ void main() {
 
         // currentSong must still be mockSong (the user's last played song)
         expect(playerManager.currentSong?.id, equals(mockSong.id));
+      },
+    );
+
+    testWidgets(
+      'ContinuePlayingSection is completely hidden when no track has been played/paused',
+      (tester) async {
+        await db.clearHistory();
+        playerManager.resetStateForTesting();
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(child: ContinuePlayingSection()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Must NOT render the 'Continue Playing' header
+        expect(find.text('Continue Playing'), findsNothing);
+        expect(find.text('Pick up where you left off'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'ContinuePlayingSection displays exactly the last played/paused song',
+      (tester) async {
+        await db.saveLastPlayedTrack(mockSong, [mockSong], 45000);
+        playerManager.resetStateForTesting();
+
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(child: ContinuePlayingSection()),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Continue Playing'), findsOneWidget);
+        expect(find.text('Tum Hi Ho'), findsOneWidget);
+        expect(db.lastPlayedPositionMs, equals(45000));
+      },
+    );
+
+    test(
+      'DatabaseService does not pick random history items when lastPlayedSong is null',
+      () async {
+        await db.clearHistory();
+        // Add a history item without saving lastPlayedSong
+        await db.addHistory(mockSong, syncToCloud: false);
+
+        // Clear last played song explicitly
+        await StorageEngine.removeItem('guest_last_played_song');
+        await db.switchUserScope(null);
+
+        // _loadLastPlayedTrack must NOT fallback to history
+        expect(db.lastPlayedSong, isNull);
       },
     );
   });
