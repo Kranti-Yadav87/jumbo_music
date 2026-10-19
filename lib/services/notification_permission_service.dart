@@ -36,16 +36,22 @@ class NotificationPermissionService {
     }
   }
 
+  Future<bool> isPermissionGranted() async {
+    final status = await getStatus();
+    return status.isGranted;
+  }
+
   /// Checks notification permission before playback and presents a rationale dialog if not yet granted.
   Future<void> requestNotificationPermissionIfNeeded({
     BuildContext? context,
+    bool force = false,
   }) async {
     final platform = mockTargetPlatform ?? defaultTargetPlatform;
     if (kIsWeb || platform != TargetPlatform.android) {
       return;
     }
 
-    if (_hasPrompted) {
+    if (!force && _hasPrompted) {
       return;
     }
     _hasPrompted = true;

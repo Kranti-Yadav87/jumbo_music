@@ -88,11 +88,11 @@ void main() {
     );
 
     test(
-      'Audio notification channel is upgraded to v2 for lock screen support',
+      'Audio notification channel is upgraded to v3 for lock screen support',
       () {
         expect(
           AppConfig.audioNotificationChannelId,
-          'com.jumbomusic.app.channel.audio.v2',
+          'com.jumbomusic.app.channel.audio.v3',
         );
       },
     );

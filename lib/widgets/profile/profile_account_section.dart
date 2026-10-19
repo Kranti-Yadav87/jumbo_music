@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../screens/downloaded_songs_screen.dart';
 import '../../screens/privacy_security_screen.dart';
 import '../../screens/feedback_screen.dart';
+import '../../services/notification_permission_service.dart';
 import 'profile_dialogs.dart';
 
 /// Account section items in ProfileScreen (Log Out, Offline Vault, Privacy & Security, Feedback).
@@ -55,6 +57,24 @@ class ProfileAccountSection extends StatelessWidget {
             );
           },
         ),
+
+        // Lock Screen & Media Controls (Android)
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
+          _buildAccountCard(
+            isDark: isDark,
+            iconBg: const Color(0xFF38BDF8).withOpacity(0.12),
+            icon: Icons.notifications_active_rounded,
+            iconColor: const Color(0xFF38BDF8),
+            title: 'Lock Screen & Media Controls',
+            subtitle: 'Enable lock screen player & Bluetooth buttons',
+            onTap: () {
+              NotificationPermissionService.instance
+                  .requestNotificationPermissionIfNeeded(
+                context: context,
+                force: true,
+              );
+            },
+          ),
 
         // Privacy & Security
         _buildAccountCard(

@@ -1231,9 +1231,17 @@ class MusicPlayerManager extends ChangeNotifier {
         final qSecureCover = qCover.startsWith('http://')
             ? qCover.replaceFirst('http://', 'https://')
             : qCover;
-        final qArtUri = qSecureCover.isNotEmpty
-            ? Uri.tryParse(qSecureCover)
-            : null;
+        final Uri? qArtUri;
+        if (qSecureCover.startsWith('file://')) {
+          qArtUri = Uri.parse(qSecureCover);
+        } else if (qSecureCover.startsWith('/') &&
+            !qSecureCover.startsWith('//')) {
+          qArtUri = Uri.file(qSecureCover);
+        } else if (qSecureCover.isNotEmpty) {
+          qArtUri = Uri.tryParse(qSecureCover);
+        } else {
+          qArtUri = null;
+        }
 
         final qMediaItem = MediaItem(
           id: qSong.id,
@@ -1270,7 +1278,9 @@ class MusicPlayerManager extends ChangeNotifier {
           qUri =
               offlineQUri ??
               Uri.parse(
-                qSong.audioUrl.isNotEmpty ? qSong.audioUrl : 'about:blank',
+                qSong.audioUrl.isNotEmpty
+                    ? qSong.audioUrl
+                    : sourceUri.toString(),
               );
         }
 
@@ -1363,9 +1373,17 @@ class MusicPlayerManager extends ChangeNotifier {
               final sSecureCover = sCover.startsWith('http://')
                   ? sCover.replaceFirst('http://', 'https://')
                   : sCover;
-              final sArtUri = sSecureCover.isNotEmpty
-                  ? Uri.tryParse(sSecureCover)
-                  : null;
+              final Uri? sArtUri;
+              if (sSecureCover.startsWith('file://')) {
+                sArtUri = Uri.parse(sSecureCover);
+              } else if (sSecureCover.startsWith('/') &&
+                  !sSecureCover.startsWith('//')) {
+                sArtUri = Uri.file(sSecureCover);
+              } else if (sSecureCover.isNotEmpty) {
+                sArtUri = Uri.tryParse(sSecureCover);
+              } else {
+                sArtUri = null;
+              }
 
               final mItem = MediaItem(
                 id: s.id,

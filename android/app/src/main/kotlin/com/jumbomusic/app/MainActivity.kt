@@ -50,12 +50,15 @@ class MainActivity : AudioServiceActivity() {
         super.onCreate(savedInstanceState)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as? android.app.NotificationManager
-            // Delete legacy low-importance channel that hid controls on lock screens
+            // Delete legacy channels that hid or muted controls on lock screens
             try {
                 notificationManager?.deleteNotificationChannel("com.jumbomusic.app.channel.audio")
             } catch (_: Exception) {}
+            try {
+                notificationManager?.deleteNotificationChannel("com.jumbomusic.app.channel.audio.v2")
+            } catch (_: Exception) {}
 
-            val channelId = "com.jumbomusic.app.channel.audio.v2"
+            val channelId = "com.jumbomusic.app.channel.audio.v3"
             val channelName = "Jumbo Music Playback"
             val channel = android.app.NotificationChannel(
                 channelId,

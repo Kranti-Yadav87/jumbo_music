@@ -69,7 +69,7 @@ class AppConfig {
 
   /// Default notification channel ID for background audio
   static const String audioNotificationChannelId =
-      'com.jumbomusic.app.channel.audio.v2';
+      'com.jumbomusic.app.channel.audio.v3';
   static const String audioNotificationChannelName = 'Jumbo Music Playback';
 
   /// Web Client ID / Server Client ID for Google Sign-In backend authentication
