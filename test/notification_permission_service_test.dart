@@ -128,33 +128,42 @@ void main() {
       },
     );
 
-    test('isPermissionGranted returns true when granted and false otherwise', () async {
-      NotificationPermissionService.mockStatusCheck = () async => PermissionStatus.granted;
-      expect(await service.isPermissionGranted(), isTrue);
+    test(
+      'isPermissionGranted returns true when granted and false otherwise',
+      () async {
+        NotificationPermissionService.mockStatusCheck = () async =>
+            PermissionStatus.granted;
+        expect(await service.isPermissionGranted(), isTrue);
 
-      NotificationPermissionService.mockStatusCheck = () async => PermissionStatus.denied;
-      expect(await service.isPermissionGranted(), isFalse);
-    });
+        NotificationPermissionService.mockStatusCheck = () async =>
+            PermissionStatus.denied;
+        expect(await service.isPermissionGranted(), isFalse);
+      },
+    );
 
-    test('requestNotificationPermissionIfNeeded with force=true bypasses hasPrompted', () async {
-      int requestCount = 0;
-      NotificationPermissionService.mockStatusCheck = () async => PermissionStatus.denied;
-      NotificationPermissionService.mockRequest = () async {
-        requestCount++;
-        return PermissionStatus.granted;
-      };
+    test(
+      'requestNotificationPermissionIfNeeded with force=true bypasses hasPrompted',
+      () async {
+        int requestCount = 0;
+        NotificationPermissionService.mockStatusCheck = () async =>
+            PermissionStatus.denied;
+        NotificationPermissionService.mockRequest = () async {
+          requestCount++;
+          return PermissionStatus.granted;
+        };
 
-      await service.requestNotificationPermissionIfNeeded();
-      expect(service.hasPrompted, isTrue);
-      expect(requestCount, equals(1));
+        await service.requestNotificationPermissionIfNeeded();
+        expect(service.hasPrompted, isTrue);
+        expect(requestCount, equals(1));
 
-      // Without force, should be skipped
-      await service.requestNotificationPermissionIfNeeded();
-      expect(requestCount, equals(1));
+        // Without force, should be skipped
+        await service.requestNotificationPermissionIfNeeded();
+        expect(requestCount, equals(1));
 
-      // With force=true, should run request again
-      await service.requestNotificationPermissionIfNeeded(force: true);
-      expect(requestCount, equals(2));
-    });
+        // With force=true, should run request again
+        await service.requestNotificationPermissionIfNeeded(force: true);
+        expect(requestCount, equals(2));
+      },
+    );
   });
 }

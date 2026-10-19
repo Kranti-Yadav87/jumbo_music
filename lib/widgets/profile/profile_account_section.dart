@@ -70,9 +70,9 @@ class ProfileAccountSection extends StatelessWidget {
             onTap: () {
               NotificationPermissionService.instance
                   .requestNotificationPermissionIfNeeded(
-                context: context,
-                force: true,
-              );
+                    context: context,
+                    force: true,
+                  );
             },
           ),
 
