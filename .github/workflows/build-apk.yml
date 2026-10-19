@@ -39,19 +39,9 @@ jobs:
           if [ -n "$KS" ]; then
             echo "$KS" | base64 -d > android/app/upload-keystore.jks
             echo "$KS" | base64 -d > android/upload-keystore.jks
-            cat > android/key.properties <<EOF
-storePassword=${K_PASS}
-keyPassword=${KEY_PASS}
-keyAlias=${K_ALIAS}
-storeFile=upload-keystore.jks
-EOF
+            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n" "$K_PASS" "$KEY_PASS" "$K_ALIAS" > android/key.properties
           elif [ -f "android/app/debug.keystore" ]; then
-            cat > android/key.properties <<EOF
-storePassword=android
-keyPassword=android
-keyAlias=androiddebugkey
-storeFile=debug.keystore
-EOF
+            printf "storePassword=android\nkeyPassword=android\nkeyAlias=androiddebugkey\nstoreFile=debug.keystore\n" > android/key.properties
           else
             echo "No keystore found - APK will be debug-signed with runner default key."
           fi
