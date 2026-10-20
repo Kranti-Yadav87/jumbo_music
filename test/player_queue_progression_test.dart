@@ -23,6 +23,29 @@ void main() {
                       MethodChannel('com.ryanheise.just_audio.methods.$id'),
                       (MethodCall instanceCall) async {
                         if (instanceCall.method == 'load') {
+                          final eventData = const StandardMethodCodec()
+                              .encodeSuccessEnvelope({
+                                'processingState':
+                                    3, // ProcessingStateMessage.ready
+                                'updateTime':
+                                    DateTime.now().millisecondsSinceEpoch,
+                                'updatePosition': 0,
+                                'bufferedPosition': 0,
+                                'duration': 180000000,
+                                'currentIndex':
+                                    (instanceCall.arguments
+                                        as Map?)?['initialIndex'] ??
+                                    0,
+                                'androidAudioSessionId': 1,
+                              });
+                          TestDefaultBinaryMessengerBinding
+                              .instance
+                              .defaultBinaryMessenger
+                              .handlePlatformMessage(
+                                'com.ryanheise.just_audio.events.$id',
+                                eventData,
+                                (ByteData? data) {},
+                              );
                           return {'duration': 180000000};
                         }
                         if (instanceCall.method ==
