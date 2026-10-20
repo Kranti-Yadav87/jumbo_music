@@ -161,7 +161,8 @@ void main() {
           return Uri.parse(secure);
         } else if (secure.startsWith('/') && !secure.startsWith('//')) {
           return Uri.file(secure);
-        } else if (secure.startsWith('https://') || secure.startsWith('http://')) {
+        } else if (secure.startsWith('https://') ||
+            secure.startsWith('http://')) {
           final parsed = Uri.tryParse(secure);
           return (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
               ? parsed

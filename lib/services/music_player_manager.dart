@@ -1204,7 +1204,8 @@ class MusicPlayerManager extends ChangeNotifier {
         } else if (qSecureCover.startsWith('https://') ||
             qSecureCover.startsWith('http://')) {
           final parsed = Uri.tryParse(qSecureCover);
-          qArtUri = (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+          qArtUri =
+              (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
               ? parsed
               : null;
         } else {
@@ -1355,7 +1356,10 @@ class MusicPlayerManager extends ChangeNotifier {
               } else if (sSecureCover.startsWith('https://') ||
                   sSecureCover.startsWith('http://')) {
                 final parsed = Uri.tryParse(sSecureCover);
-                sArtUri = (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+                sArtUri =
+                    (parsed != null &&
+                        parsed.hasScheme &&
+                        parsed.host.isNotEmpty)
                     ? parsed
                     : null;
               } else {

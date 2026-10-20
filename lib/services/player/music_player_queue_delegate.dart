@@ -149,7 +149,8 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           } else if (trackSecureCover.startsWith('https://') ||
               trackSecureCover.startsWith('http://')) {
             final parsed = Uri.tryParse(trackSecureCover);
-            trackArtUri = (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+            trackArtUri =
+                (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
                 ? parsed
                 : null;
           } else {
