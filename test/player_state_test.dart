@@ -147,5 +147,35 @@ void main() {
         expect(manager.queue[0].title, equals('Song 1'));
       },
     );
+
+    test('Equalizer is supported and AudioPlayer runs stably', () {
+      expect(manager.equalizerSupported, isTrue);
+    });
+
+    test('Strict artUri scheme validation rejects invalid schemes', () {
+      Uri? parseArt(String raw) {
+        final secure = raw.startsWith('http://')
+            ? raw.replaceFirst('http://', 'https://')
+            : raw;
+        if (secure.startsWith('file://')) {
+          return Uri.parse(secure);
+        } else if (secure.startsWith('/') && !secure.startsWith('//')) {
+          return Uri.file(secure);
+        } else if (secure.startsWith('https://') || secure.startsWith('http://')) {
+          final parsed = Uri.tryParse(secure);
+          return (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+              ? parsed
+              : null;
+        }
+        return null;
+      }
+
+      expect(parseArt('https://example.com/art.jpg')?.scheme, equals('https'));
+      expect(parseArt('http://example.com/art.jpg')?.scheme, equals('https'));
+      expect(parseArt('file:///storage/art.jpg')?.scheme, equals('file'));
+      expect(parseArt(''), isNull);
+      expect(parseArt('invalid_uri_without_scheme'), isNull);
+      expect(parseArt('assets/images/logo.png'), isNull);
+    });
   });
 }

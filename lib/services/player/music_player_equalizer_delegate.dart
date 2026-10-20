@@ -133,41 +133,8 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
       );
     }
 
-    // 2. Android Hardware Equalizer & Loudness Enhancer
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      try {
-        await _androidEqualizer.setEnabled(_equalizerEnabled);
-        if (_equalizerEnabled) {
-          final params = await _androidEqualizer.parameters;
-          if (params.bands.isNotEmpty) {
-            final gains = EqPresets.interpolateGains(
-              _bandGains,
-              targetBandCount: params.bands.length,
-              minDb: params.minDecibels,
-              maxDb: params.maxDecibels,
-              bassBoost: _bassBoost,
-            );
-            for (int i = 0; i < params.bands.length && i < gains.length; i++) {
-              await params.bands[i].setGain(gains[i]);
-            }
-          }
-          await _androidLoudnessEnhancer.setEnabled(_loudnessGain > 0.0);
-          if (_loudnessGain > 0.0) {
-            await _androidLoudnessEnhancer.setTargetGain(
-              _loudnessGain * 1000.0,
-            );
-          }
-        }
-      } catch (e) {
-        debugPrint('Android EQ apply note: $e');
-      }
-    }
-
-    // Dynamic Volume scaling for loudness gain on other platforms
-    if (_equalizerEnabled &&
-        _loudnessGain > 0.0 &&
-        !kIsWeb &&
-        defaultTargetPlatform != TargetPlatform.android) {
+    // 2. Dynamic Volume & Loudness Scaling on Mobile Platforms
+    if (_equalizerEnabled && _loudnessGain > 0.0 && !kIsWeb) {
       final boosted = (_volume * (1.0 + _loudnessGain * 0.25)).clamp(0.0, 1.0);
       await _audioPlayer.setVolume(boosted);
     } else {

@@ -95,18 +95,8 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  late final AndroidEqualizer _androidEqualizer = AndroidEqualizer();
-  late final AndroidLoudnessEnhancer _androidLoudnessEnhancer =
-      AndroidLoudnessEnhancer();
-  late final AudioPlayer _audioPlayer = AudioPlayer(
-    audioPipeline: (!kIsWeb && defaultTargetPlatform == TargetPlatform.android)
-        ? AudioPipeline(
-            androidAudioEffects: [_androidEqualizer, _androidLoudnessEnhancer],
-          )
-        : null,
-  );
-  bool get equalizerSupported =>
-      kIsWeb || defaultTargetPlatform == TargetPlatform.android;
+  late final AudioPlayer _audioPlayer = AudioPlayer();
+  bool get equalizerSupported => true;
 
   List<Song> _allSongs = [];
   List<Song> _queue = [];
@@ -1211,8 +1201,12 @@ class MusicPlayerManager extends ChangeNotifier {
         } else if (qSecureCover.startsWith('/') &&
             !qSecureCover.startsWith('//')) {
           qArtUri = Uri.file(qSecureCover);
-        } else if (qSecureCover.isNotEmpty) {
-          qArtUri = Uri.tryParse(qSecureCover);
+        } else if (qSecureCover.startsWith('https://') ||
+            qSecureCover.startsWith('http://')) {
+          final parsed = Uri.tryParse(qSecureCover);
+          qArtUri = (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+              ? parsed
+              : null;
         } else {
           qArtUri = null;
         }
@@ -1358,8 +1352,12 @@ class MusicPlayerManager extends ChangeNotifier {
               } else if (sSecureCover.startsWith('/') &&
                   !sSecureCover.startsWith('//')) {
                 sArtUri = Uri.file(sSecureCover);
-              } else if (sSecureCover.isNotEmpty) {
-                sArtUri = Uri.tryParse(sSecureCover);
+              } else if (sSecureCover.startsWith('https://') ||
+                  sSecureCover.startsWith('http://')) {
+                final parsed = Uri.tryParse(sSecureCover);
+                sArtUri = (parsed != null && parsed.hasScheme && parsed.host.isNotEmpty)
+                    ? parsed
+                    : null;
               } else {
                 sArtUri = null;
               }

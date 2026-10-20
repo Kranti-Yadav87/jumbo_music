@@ -72,9 +72,9 @@ void main() async {
               AppConfig.audioNotificationChannelName,
           androidNotificationOngoing: true,
           androidShowNotificationBadge: true,
-          androidNotificationIcon: 'drawable/ic_notification',
+          androidNotificationIcon: 'mipmap/ic_launcher',
           androidStopForegroundOnPause: true,
-          preloadArtwork: true,
+          preloadArtwork: false,
         );
       } catch (e) {
         debugPrint('JustAudioBackground init note: $e');
