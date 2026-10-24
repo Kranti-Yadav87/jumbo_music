@@ -164,6 +164,54 @@ void main() {
       },
     );
 
+    test(
+      'Pillar 3 - The 30-Second Rule: recordCompletedListen increases candidate score',
+      () {
+        final initialScore = engine.calculateContextualAndBehavioralScore(
+          songB,
+        );
+        engine.recordCompletedListen(songB.id);
+        final completedScore = engine.calculateContextualAndBehavioralScore(
+          songB,
+        );
+
+        expect(completedScore, greaterThan(initialScore));
+      },
+    );
+
+    test(
+      'Pillar 3 - Spotify Loop Affinity: recordLoop increases candidate score strongly',
+      () {
+        final initialScore = engine.calculateContextualAndBehavioralScore(
+          songB,
+        );
+        engine.recordLoop(songB.id);
+        final loopScore = engine.calculateContextualAndBehavioralScore(songB);
+
+        expect(loopScore, greaterThan(initialScore));
+        expect(loopScore - initialScore, closeTo(0.25, 0.01));
+      },
+    );
+
+    test(
+      'Pillar 3 - Regional Language Priority: preferred languages boost matching candidates',
+      () async {
+        await DatabaseService.instance.saveSetting('preferred_languages', [
+          'Hindi',
+        ]);
+        final hindiScore = engine.calculateContextualAndBehavioralScore(songA);
+
+        await DatabaseService.instance.saveSetting('preferred_languages', [
+          'Tamil',
+        ]);
+        final nonTamilScore = engine.calculateContextualAndBehavioralScore(
+          songA,
+        );
+
+        expect(hindiScore, greaterThan(nonTamilScore));
+      },
+    );
+
     test('selectBestNextSong chooses highest scoring compatible track', () {
       final best = engine.selectBestNextSong(
         currentSong: songA,

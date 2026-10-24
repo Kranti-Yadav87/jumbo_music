@@ -9,6 +9,7 @@ import '../screens/feedback_screen.dart';
 import '../screens/equalizer_screen.dart';
 import '../widgets/notifications_sheet.dart';
 import '../widgets/download_app_dialog.dart';
+import '../config/app_config.dart';
 
 class AppTopHeader extends StatelessWidget {
   final VoidCallback? onProfileTap;
@@ -23,6 +24,7 @@ class AppTopHeader extends StatelessWidget {
   });
 
   void _showSettingsSheet(BuildContext context, MusicPlayerManager manager) {
+    final db = DatabaseService.instance;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
@@ -148,6 +150,72 @@ class AppTopHeader extends StatelessWidget {
                     activeColor: const Color(0xFFFF5E3A),
                     onChanged: (_) => AppThemeManager.instance.toggleTheme(),
                   ),
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.translate_rounded,
+                    color: Color(0xFF38BDF8),
+                  ),
+                  title: Text(
+                    'Music Languages',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    () {
+                      final pref = db.getSetting('preferred_languages');
+                      if (pref is List && pref.isNotEmpty) {
+                        return pref.join(', ');
+                      }
+                      return 'Hindi, Punjabi, English (Default)';
+                    }(),
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showLanguageSelectionDialog(context);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
+                    Icons.auto_awesome_rounded,
+                    color: Color(0xFF6366F1),
+                  ),
+                  title: Text(
+                    'AI & Gemini Engine',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    AppConfig.geminiApiKey.isNotEmpty
+                        ? 'Active (Spotify-Grade Recommendations)'
+                        : 'Tap to configure Gemini API Key',
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showGeminiKeyDialog(context);
+                  },
                 ),
                 ListTile(
                   leading: const Icon(
@@ -378,6 +446,374 @@ class AppTopHeader extends StatelessWidget {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showLanguageSelectionDialog(BuildContext context) {
+    final db = DatabaseService.instance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final allLanguages = [
+      'Hindi',
+      'Punjabi',
+      'Bhojpuri',
+      'English',
+      'Haryanvi',
+      'Tamil',
+      'Telugu',
+      'Bengali',
+      'Gujarati',
+      'Marathi',
+      'Malayalam',
+      'Kannada',
+      'Urdu',
+      'Rajasthani',
+    ];
+
+    final rawLangs = db.getSetting('preferred_languages');
+    final selectedLangs = (rawLangs is List && rawLangs.isNotEmpty)
+        ? rawLangs.map((e) => e.toString()).toSet()
+        : {'Hindi', 'Punjabi', 'English'};
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialogState) {
+            return AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  const Icon(
+                    Icons.translate_rounded,
+                    color: Color(0xFF10B981),
+                    size: 24,
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Preferred Languages',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select languages to prioritize in your AI feed, home mixes, and recommendations (JioSaavn / Spotify model).',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isDark
+                            ? Colors.white60
+                            : const Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 280),
+                      child: SingleChildScrollView(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: allLanguages.map((lang) {
+                            final isSelected = selectedLangs.contains(lang);
+                            return FilterChip(
+                              label: Text(lang),
+                              selected: isSelected,
+                              selectedColor: const Color(0xFF10B981),
+                              checkmarkColor: Colors.white,
+                              labelStyle: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                          ? Colors.white70
+                                          : const Color(0xFF0F172A)),
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                              ),
+                              backgroundColor: isDark
+                                  ? const Color(0xFF2A2A3C)
+                                  : const Color(0xFFF1F5F9),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? const Color(0xFF10B981)
+                                      : Colors.transparent,
+                                ),
+                              ),
+                              onSelected: (selected) {
+                                setDialogState(() {
+                                  if (selected) {
+                                    selectedLangs.add(lang);
+                                  } else {
+                                    if (selectedLangs.length > 1) {
+                                      selectedLangs.remove(lang);
+                                    }
+                                  }
+                                });
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: isDark ? Colors.white60 : Colors.grey[700],
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () async {
+                    await db.saveSetting(
+                      'preferred_languages',
+                      selectedLangs.toList(),
+                    );
+                    if (context.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Preferred languages updated! AI recommendations refreshed.',
+                          ),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  child: const Text(
+                    'Save Preferences',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showGeminiKeyDialog(BuildContext context) {
+    final db = DatabaseService.instance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentCustomKey = db.getSetting('gemini_api_key')?.toString() ?? '';
+    final controller = TextEditingController(text: currentCustomKey);
+    final isGlobalActive = AppConfig.geminiApiKey.isNotEmpty;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.auto_awesome_rounded,
+                color: Color(0xFF6366F1),
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Gemini AI Engine',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isGlobalActive
+                        ? const Color(0xFF10B981).withOpacity(0.15)
+                        : const Color(0xFFF59E0B).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isGlobalActive
+                          ? const Color(0xFF10B981).withOpacity(0.4)
+                          : const Color(0xFFF59E0B).withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isGlobalActive
+                            ? Icons.check_circle_rounded
+                            : Icons.info_outline_rounded,
+                        color: isGlobalActive
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isGlobalActive
+                              ? 'Gemini AI is ACTIVE. Spotify-grade NLP Mood & Acoustic matching is enabled.'
+                              : 'No Gemini key detected. Enter an API key below to unlock AI recommendations.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isGlobalActive
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Custom API Key (Optional override):',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: controller,
+                  obscureText: true,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter AIzaSy... key',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF2A2A3C)
+                        : const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Keys added in GitHub Secrets are automatically used during APK builds. You can also paste a key directly here.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white38 : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (currentCustomKey.isNotEmpty)
+              TextButton(
+                onPressed: () async {
+                  await db.saveSetting('gemini_api_key', '');
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Custom API key removed.'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Clear Key',
+                  style: TextStyle(color: Color(0xFFEF4444)),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                final newKey = controller.text.trim();
+                await db.saveSetting('gemini_api_key', newKey);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        newKey.isNotEmpty
+                            ? 'Gemini API Key saved and activated!'
+                            : 'Settings updated.',
+                      ),
+                      duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

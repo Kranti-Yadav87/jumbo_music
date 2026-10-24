@@ -28,6 +28,12 @@ class AiRecommendationEngine {
   /// Skip count map for behavioral penalty: songId -> skip count
   final Map<String, int> _skipCounts = {};
 
+  /// Completed listen count map for 30s rule positive signal: songId -> count
+  final Map<String, int> _completedListens = {};
+
+  /// Loop / Repeat count map for Spotify heavy affinity signal: songId -> count
+  final Map<String, int> _loopCounts = {};
+
   /// Transition count map for Collaborative Filtering: songIdA -> (songIdB -> count)
   final Map<String, Map<String, int>> _transitionGraph = {};
 
@@ -37,6 +43,8 @@ class AiRecommendationEngine {
   @visibleForTesting
   void resetForTesting() {
     _skipCounts.clear();
+    _completedListens.clear();
+    _loopCounts.clear();
     _transitionGraph.clear();
     nowProvider = DateTime.now;
   }
@@ -235,11 +243,23 @@ class AiRecommendationEngine {
     _skipCounts[songId] = (_skipCounts[songId] ?? 0) + 1;
   }
 
+  /// The 30-Second Rule positive signal: track listened past 30s or played to completion
+  void recordCompletedListen(String songId) {
+    if (songId.isEmpty) return;
+    _completedListens[songId] = (_completedListens[songId] ?? 0) + 1;
+  }
+
+  /// Spotify loop affinity signal: user listened to track repeatedly on loop
+  void recordLoop(String songId) {
+    if (songId.isEmpty) return;
+    _loopCounts[songId] = (_loopCounts[songId] ?? 0) + 1;
+  }
+
   /// Calculates real-time behavioral adjustments & time-of-day contextual modulation
   double calculateContextualAndBehavioralScore(Song candidate) {
     double modifier = 0.0;
 
-    // 1. Skip penalty: penalize songs the user skips repeatedly
+    // 1. Skip penalty: penalize songs the user skips repeatedly (The 30-Second Rule negative)
     final skips = _skipCounts[candidate.id] ?? 0;
     if (skips >= 3) {
       return -1.0; // completely exclude heavily skipped tracks
@@ -265,7 +285,19 @@ class AiRecommendationEngine {
       modifier += 0.25;
     }
 
-    // D. Search history query relevance (+40%)
+    // C. The 30-Second Rule positive: Listened to completion or > 30s (+35%)
+    final completed = _completedListens[candidate.id] ?? 0;
+    if (completed > 0) {
+      modifier += min(completed * 0.15, 0.35);
+    }
+
+    // D. Spotify Loop Signal: Listened on loop/repeat mode (+50% strong affinity)
+    final loops = _loopCounts[candidate.id] ?? 0;
+    if (loops > 0) {
+      modifier += min(loops * 0.25, 0.50);
+    }
+
+    // E. Search history query relevance (+40%)
     final searchTerms = db.searchHistory;
     final candTitleLower = candidate.title.toLowerCase();
     final candArtistLower = candidate.artist.toLowerCase();
@@ -275,6 +307,17 @@ class AiRecommendationEngine {
           (candTitleLower.contains(t) || candArtistLower.contains(t))) {
         modifier += 0.40;
         break;
+      }
+    }
+
+    // F. Regional / Preferred Languages Priority (JioSaavn / Gaana Math) (+30%)
+    final prefLangs = db.getSetting('preferred_languages');
+    if (prefLangs is List && prefLangs.isNotEmpty) {
+      final candLang = MusicApiService.detectSongLanguage(candidate);
+      if (prefLangs.any(
+        (l) => l.toString().toLowerCase() == candLang.toLowerCase(),
+      )) {
+        modifier += 0.30;
       }
     }
 

@@ -141,10 +141,11 @@ class SongParserUtils {
           (item['id'] as String?) ??
           'song_${DateTime.now().millisecondsSinceEpoch}';
 
-      final durationSec =
-          int.tryParse(item['duration']?.toString() ?? '0') ?? 240;
-      // Filter out tracks shorter than 75s (ringtones, promos, teasers, 30s snippets)
-      if (durationSec > 0 && durationSec < 75) {
+      final rawDur = int.tryParse(item['duration']?.toString() ?? '');
+      // If duration is missing or zero, default to 240s so valid songs are not discarded
+      final durationSec = (rawDur != null && rawDur > 0) ? rawDur : 240;
+      // Filter out true short snippets/ringtones/30s promos (< 45s)
+      if (rawDur != null && rawDur > 0 && rawDur < 45) {
         return null;
       }
 

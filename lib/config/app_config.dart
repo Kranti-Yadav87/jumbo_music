@@ -1,3 +1,5 @@
+import '../services/database_service.dart';
+
 /// Application configuration and environment secrets manager.
 /// Allows injecting values via `--dart-define` at compile-time or using secure defaults.
 class AppConfig {
@@ -80,10 +82,18 @@ class AppConfig {
   );
 
   /// Google Gemini AI API key for AI DJ, playlist generation & song insights.
-  /// Securely injected at compile-time via --dart-define=GEMINI_API_KEY=xxx
+  /// Injected via --dart-define=GEMINI_API_KEY=xxx or configured in App Settings.
   static String get geminiApiKey {
     if (mockGeminiApiKey != null) return mockGeminiApiKey!;
-    return const String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    const envKey = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+    if (envKey.isNotEmpty) return envKey;
+    try {
+      final fromDb =
+          DatabaseService.instance.getSetting('gemini_api_key')?.toString() ??
+          '';
+      if (fromDb.isNotEmpty) return fromDb;
+    } catch (_) {}
+    return '';
   }
 
   /// Headers map for music API calls. Only adds auth headers if a key is provided.

@@ -1672,8 +1672,12 @@ class MusicPlayerManager extends ChangeNotifier {
 
     try {
       final prevSong = currentSong;
-      if (prevSong != null && _position.inSeconds < 25) {
-        AiRecommendationEngine.instance.recordSkip(prevSong.id);
+      if (prevSong != null) {
+        if (_position.inSeconds < 25 && !fromCompletion) {
+          AiRecommendationEngine.instance.recordSkip(prevSong.id);
+        } else if (_position.inSeconds >= 30 || fromCompletion) {
+          AiRecommendationEngine.instance.recordCompletedListen(prevSong.id);
+        }
       }
 
       if (_queue.isEmpty) {
@@ -2017,6 +2021,12 @@ class MusicPlayerManager extends ChangeNotifier {
       }
 
       if (_loopMode == LoopMode.one) {
+        if (currentSong != null) {
+          AiRecommendationEngine.instance.recordLoop(currentSong!.id);
+          AiRecommendationEngine.instance.recordCompletedListen(
+            currentSong!.id,
+          );
+        }
         await _audioPlayer.seek(Duration.zero);
         _startPlayback();
         return;

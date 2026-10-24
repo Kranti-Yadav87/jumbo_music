@@ -70,22 +70,35 @@ class _SearchTabState extends State<SearchTab> {
 
     final q = trimmed.toLowerCase();
 
+    // 0. Synchronous instant cache check (0ms response)
+    final cached = MusicApiService.getCachedSearch(trimmed);
+    if (cached != null && cached.isNotEmpty) {
+      setState(() {
+        _searchQuery = trimmed;
+        _isLoading = false;
+        _searchResults = cached;
+      });
+      return;
+    }
+
+    // 1. Instant local library matches shown immediately while network loads
+    final manager = MusicPlayerManager();
+    final localMatches = manager.allSongs.where((s) {
+      return s.title.toLowerCase().contains(q) ||
+          s.artist.toLowerCase().contains(q) ||
+          s.album.toLowerCase().contains(q) ||
+          s.genre.toLowerCase().contains(q);
+    }).toList();
+
     setState(() {
       _searchQuery = trimmed;
       _isLoading = true;
+      if (localMatches.isNotEmpty) {
+        _searchResults = localMatches;
+      }
     });
 
-    _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
-      final manager = MusicPlayerManager();
-
-      // 1. Local matches
-      final localMatches = manager.allSongs.where((s) {
-        return s.title.toLowerCase().contains(q) ||
-            s.artist.toLowerCase().contains(q) ||
-            s.album.toLowerCase().contains(q) ||
-            s.genre.toLowerCase().contains(q);
-      }).toList();
-
+    _debounceTimer = Timer(const Duration(milliseconds: 250), () async {
       // 2. Fetch live online 320 kbps matches from JioSaavn API
       final onlineMatches = await MusicApiService.searchLiveSongs(
         trimmed,

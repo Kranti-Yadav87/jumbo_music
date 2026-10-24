@@ -51,7 +51,28 @@ class MusicApiService {
   static Future<List<Song>> Function(String query, {int limit})?
   mockSearchLiveSongs;
 
-  /// Live Search matching aura-stream-henna.vercel.app
+  // In-memory LRU search cache for instant 0ms responses
+  static final Map<String, List<Song>> _searchCache = {};
+  static const int _maxSearchCacheSize = 60;
+
+  /// Returns cached search results synchronously if available
+  static List<Song>? getCachedSearch(String query) {
+    final key = query.trim().toLowerCase();
+    if (key.isEmpty) return null;
+    return _searchCache[key];
+  }
+
+  static void _cacheSearch(String query, List<Song> results) {
+    if (results.isEmpty) return;
+    final key = query.trim().toLowerCase();
+    if (key.isEmpty) return;
+    if (_searchCache.length >= _maxSearchCacheSize) {
+      _searchCache.remove(_searchCache.keys.first);
+    }
+    _searchCache[key] = List.unmodifiable(results);
+  }
+
+  /// Live Search matching aura-stream-henna.vercel.app with instant caching
   static Future<List<Song>> searchLiveSongs(
     String query, {
     int limit = 30,
@@ -62,9 +83,17 @@ class MusicApiService {
     final cleanQuery = query.trim();
     if (cleanQuery.isEmpty) return [];
 
+    // Instant return if query is already cached in memory
+    final cached = getCachedSearch(cleanQuery);
+    if (cached != null && cached.isNotEmpty) {
+      return cached;
+    }
+
     // When unofficial catalog is disabled, use ONLY Jamendo and never Supabase or iTunes
     if (!AppConfig.isUnofficialCatalogEnabled) {
-      return JamendoSearchService.search(cleanQuery, limit: limit);
+      final jRes = await JamendoSearchService.search(cleanQuery, limit: limit);
+      _cacheSearch(cleanQuery, jRes);
+      return jRes;
     }
 
     try {
@@ -74,7 +103,7 @@ class MusicApiService {
 
       final response = await http
           .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -91,12 +120,17 @@ class MusicApiService {
         for (final item in results) {
           if (item is Map<String, dynamic>) {
             final song = SongParserUtils.parseSong(item);
-            if (song != null && song.duration.inSeconds >= 75) {
+            if (song != null &&
+                (song.duration.inSeconds == 0 ||
+                    song.duration.inSeconds >= 45)) {
               songs.add(song);
             }
           }
         }
-        if (songs.isNotEmpty) return songs;
+        if (songs.isNotEmpty) {
+          _cacheSearch(cleanQuery, songs);
+          return songs;
+        }
       }
 
       // If initial search with raw title returned empty, retry with normalized title
@@ -108,7 +142,7 @@ class MusicApiService {
         );
         final normResponse = await http
             .get(normUri, headers: _headers)
-            .timeout(const Duration(seconds: 8));
+            .timeout(const Duration(seconds: 6));
 
         if (normResponse.statusCode == 200) {
           final data = jsonDecode(normResponse.body) as Map<String, dynamic>;
@@ -125,12 +159,18 @@ class MusicApiService {
           for (final item in results) {
             if (item is Map<String, dynamic>) {
               final song = SongParserUtils.parseSong(item);
-              if (song != null && song.duration.inSeconds >= 75) {
+              if (song != null &&
+                  (song.duration.inSeconds == 0 ||
+                      song.duration.inSeconds >= 45)) {
                 songs.add(song);
               }
             }
           }
-          if (songs.isNotEmpty) return songs;
+          if (songs.isNotEmpty) {
+            _cacheSearch(cleanQuery, songs);
+            _cacheSearch(normalizedQuery, songs);
+            return songs;
+          }
         }
       }
     } catch (error) {
@@ -142,13 +182,20 @@ class MusicApiService {
     final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
     if (jamendo.isNotEmpty) {
       final fullJamendo = jamendo
-          .where((s) => s.duration.inSeconds >= 60)
+          .where((s) => s.duration.inSeconds >= 45)
           .toList();
-      if (fullJamendo.isNotEmpty) return fullJamendo;
+      if (fullJamendo.isNotEmpty) {
+        _cacheSearch(cleanQuery, fullJamendo);
+        return fullJamendo;
+      }
     }
 
     // Fallback 2: iTunes live search
-    return searchOnlineSongsFallback(cleanQuery, limit: limit);
+    final itunes = await searchOnlineSongsFallback(cleanQuery, limit: limit);
+    if (itunes.isNotEmpty) {
+      _cacheSearch(cleanQuery, itunes);
+    }
+    return itunes;
   }
 
   /// Fetch playlist songs by ID
