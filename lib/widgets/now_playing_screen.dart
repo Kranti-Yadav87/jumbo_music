@@ -68,7 +68,11 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 30),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white70,
+                  size: 30,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),

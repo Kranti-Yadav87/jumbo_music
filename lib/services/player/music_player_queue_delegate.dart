@@ -249,7 +249,8 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           }
           final candLang = MusicApiService.detectSongLanguage(s);
           if (candLang != seedLang) {
-            final bool indicOk = MusicTagClassifier.isIndicLanguage(seedLang) &&
+            final bool indicOk =
+                MusicTagClassifier.isIndicLanguage(seedLang) &&
                 MusicTagClassifier.isIndicLanguage(candLang);
             if (!indicOk) return false;
           }

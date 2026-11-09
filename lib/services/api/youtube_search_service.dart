@@ -23,7 +23,10 @@ class YouTubeSearchService {
     // Replace standalone "by" surrounded by whitespace with a single space
     q = q.replaceAll(RegExp(r'\s+by\s+', caseSensitive: false), ' ');
     // Remove standalone "by" at start or end
-    q = q.replaceAll(RegExp(r'(^\s*by\s+|\s+by\s*$)', caseSensitive: false), ' ');
+    q = q.replaceAll(
+      RegExp(r'(^\s*by\s+|\s+by\s*$)', caseSensitive: false),
+      ' ',
+    );
     // Remove common media suffixes
     q = q.replaceAll(
       RegExp(
@@ -64,7 +67,10 @@ class YouTubeSearchService {
     return results;
   }
 
-  static Future<List<Song>> _executeSearch(String query, {int limit = 20}) async {
+  static Future<List<Song>> _executeSearch(
+    String query, {
+    int limit = 20,
+  }) async {
     for (int attempt = 0; attempt < 2; attempt++) {
       try {
         if (kIsWeb) {
@@ -250,15 +256,23 @@ class YouTubeSearchService {
           if (cardVideoId.isEmpty) {
             final buttons = card['buttons'];
             if (buttons is List && buttons.isNotEmpty && buttons[0] is Map) {
-              cardVideoId = buttons[0]['musicPlayButtonRenderer']?['playNavigationEndpoint']?['watchEndpoint']?['videoId']?.toString() ?? '';
+              cardVideoId =
+                  buttons[0]['musicPlayButtonRenderer']?['playNavigationEndpoint']?['watchEndpoint']?['videoId']
+                      ?.toString() ??
+                  '';
             }
           }
           if (cardVideoId.isEmpty) {
             final titleObj = card['title'];
-            if (titleObj is Map && titleObj['runs'] is List && (titleObj['runs'] as List).isNotEmpty) {
+            if (titleObj is Map &&
+                titleObj['runs'] is List &&
+                (titleObj['runs'] as List).isNotEmpty) {
               final r0 = (titleObj['runs'] as List)[0];
               if (r0 is Map) {
-                cardVideoId = r0['navigationEndpoint']?['watchEndpoint']?['videoId']?.toString() ?? '';
+                cardVideoId =
+                    r0['navigationEndpoint']?['watchEndpoint']?['videoId']
+                        ?.toString() ??
+                    '';
               }
             }
           }
@@ -266,7 +280,9 @@ class YouTubeSearchService {
           if (cardVideoId.isNotEmpty) {
             String cardTitle = '';
             final titleRuns = card['title']?['runs'];
-            if (titleRuns is List && titleRuns.isNotEmpty && titleRuns[0] is Map) {
+            if (titleRuns is List &&
+                titleRuns.isNotEmpty &&
+                titleRuns[0] is Map) {
               cardTitle = titleRuns[0]['text']?.toString().trim() ?? '';
             }
 
@@ -299,7 +315,9 @@ class YouTubeSearchService {
                     cardDuration = d;
                     continue;
                   }
-                  if (seg.toLowerCase() == 'song' || seg.toLowerCase() == 'video') continue;
+                  if (seg.toLowerCase() == 'song' ||
+                      seg.toLowerCase() == 'video')
+                    continue;
                   if (cardArtist == 'Various Artists') {
                     cardArtist = seg;
                   } else if (cardAlbum == 'Single') {
@@ -308,7 +326,8 @@ class YouTubeSearchService {
                 }
               }
 
-              final thumbs = card['thumbnail']?['musicThumbnailRenderer']?['thumbnail']?['thumbnails'];
+              final thumbs =
+                  card['thumbnail']?['musicThumbnailRenderer']?['thumbnail']?['thumbnails'];
               final coverUrl = _extractCover(thumbs, cardVideoId);
               final song = _buildSong(
                 videoId: cardVideoId,
@@ -407,12 +426,16 @@ class YouTubeSearchService {
                   duration = d;
                   continue;
                 }
-                final yearMatch = RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(seg);
+                final yearMatch = RegExp(
+                  r'\b(19\d{2}|20\d{2})\b',
+                ).firstMatch(seg);
                 if (yearMatch != null && seg.length <= 6) {
                   releaseYear = yearMatch.group(1)!;
                   continue;
                 }
-                if (album == 'Single' && !seg.contains('views') && !seg.contains('plays')) {
+                if (album == 'Single' &&
+                    !seg.contains('views') &&
+                    !seg.contains('plays')) {
                   album = seg;
                 }
               }
@@ -534,9 +557,7 @@ class YouTubeSearchService {
             album = bylineParts[1];
           }
           for (final part in bylineParts) {
-            final match = RegExp(
-              r'\b(19\d{2}|20\d{2})\b',
-            ).firstMatch(part);
+            final match = RegExp(r'\b(19\d{2}|20\d{2})\b').firstMatch(part);
             if (match != null) {
               releaseYear = match.group(1)!;
               break;
@@ -611,9 +632,10 @@ class YouTubeSearchService {
     if (thumbObj is List && thumbObj.isNotEmpty) {
       final last = thumbObj.last;
       if (last is Map && last['url'] != null) {
-        final url = last['url']
-            .toString()
-            .replaceAll(RegExp(r'=w\d+-h\d+.*'), '=w540-h540-l90-rj');
+        final url = last['url'].toString().replaceAll(
+          RegExp(r'=w\d+-h\d+.*'),
+          '=w540-h540-l90-rj',
+        );
         return url.startsWith('http://')
             ? url.replaceFirst('http://', 'https://')
             : url;

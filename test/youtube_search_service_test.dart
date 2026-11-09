@@ -157,9 +157,7 @@ void main() {
                               ],
                             },
                             'onTap': {
-                              'watchEndpoint': {
-                                'videoId': 'mOB1S1qXcPQ',
-                              },
+                              'watchEndpoint': {'videoId': 'mOB1S1qXcPQ'},
                             },
                             'thumbnail': {
                               'musicThumbnailRenderer': {
@@ -190,7 +188,10 @@ void main() {
       expect(songs.first.id, equals('yt_mOB1S1qXcPQ'));
       expect(songs.first.title, equals('Heer'));
       expect(songs.first.artist, equals('Afusic & AliSoomroMusic'));
-      expect(songs.first.duration, equals(const Duration(minutes: 3, seconds: 17)));
+      expect(
+        songs.first.duration,
+        equals(const Duration(minutes: 3, seconds: 17)),
+      );
     });
   });
 }

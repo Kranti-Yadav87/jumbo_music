@@ -197,29 +197,28 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void _startYouTubeProgressTimer() {
     _youtubeProgressTimer?.cancel();
-    _youtubeProgressTimer = Timer.periodic(
-      const Duration(milliseconds: 300),
-      (_) {
-        if (!_isYouTubeWebPlaying || !_isPlaying) return;
-        final curSec = YouTubeWebPlayer.getCurrentTime();
-        final durSec = YouTubeWebPlayer.getDuration();
-        if (durSec > 0) {
-          _duration = Duration(milliseconds: (durSec * 1000).toInt());
-        }
-        _position = Duration(milliseconds: (curSec * 1000).toInt());
-        if (_isBuffering && (_isPlaying || _position.inMilliseconds > 0)) {
-          _isBuffering = false;
-        }
-        MediaSessionService.updatePositionState(
-          durationSeconds: _duration.inSeconds > 0
-              ? _duration.inSeconds.toDouble()
-              : 240.0,
-          positionSeconds: _position.inSeconds.toDouble(),
-          playbackRate: _playbackSpeed,
-        );
-        notifyListeners();
-      },
-    );
+    _youtubeProgressTimer = Timer.periodic(const Duration(milliseconds: 300), (
+      _,
+    ) {
+      if (!_isYouTubeWebPlaying || !_isPlaying) return;
+      final curSec = YouTubeWebPlayer.getCurrentTime();
+      final durSec = YouTubeWebPlayer.getDuration();
+      if (durSec > 0) {
+        _duration = Duration(milliseconds: (durSec * 1000).toInt());
+      }
+      _position = Duration(milliseconds: (curSec * 1000).toInt());
+      if (_isBuffering && (_isPlaying || _position.inMilliseconds > 0)) {
+        _isBuffering = false;
+      }
+      MediaSessionService.updatePositionState(
+        durationSeconds: _duration.inSeconds > 0
+            ? _duration.inSeconds.toDouble()
+            : 240.0,
+        positionSeconds: _position.inSeconds.toDouble(),
+        playbackRate: _playbackSpeed,
+      );
+      notifyListeners();
+    });
   }
 
   void _stopYouTubeProgressTimer() {
@@ -906,7 +905,8 @@ class MusicPlayerManager extends ChangeNotifier {
       }
       final candLang = MusicApiService.detectSongLanguage(candidate);
       if (candLang != seedLang) {
-        final bool indicOk = MusicTagClassifier.isIndicLanguage(seedLang) &&
+        final bool indicOk =
+            MusicTagClassifier.isIndicLanguage(seedLang) &&
             MusicTagClassifier.isIndicLanguage(candLang);
         if (!indicOk) return;
       }
@@ -1750,7 +1750,9 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = "Playback toggle error: $e";
-      _isPlaying = (kIsWeb && _isYouTubeWebPlaying) ? false : _audioPlayer.playing;
+      _isPlaying = (kIsWeb && _isYouTubeWebPlaying)
+          ? false
+          : _audioPlayer.playing;
       notifyListeners();
     }
   }

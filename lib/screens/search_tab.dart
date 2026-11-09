@@ -232,7 +232,9 @@ class _SearchTabState extends State<SearchTab> {
                             onSubmitted: (val) {
                               final trimmed = val.trim();
                               if (trimmed.isNotEmpty) {
-                                DatabaseService.instance.addSearchQuery(trimmed);
+                                DatabaseService.instance.addSearchQuery(
+                                  trimmed,
+                                );
                                 _debounceTimer?.cancel();
                                 _triggerSearch(trimmed);
                               }

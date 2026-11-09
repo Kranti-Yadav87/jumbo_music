@@ -834,7 +834,8 @@ class MusicTagClassifier {
       r'(?:[kgjdbz]h|[aeo]{2}|[iI]ya[n]?|ei[n]?|oo[n]?|aa[n]?|aaye|[wW]ali|[wW]ala)',
       caseSensitive: false,
     );
-    final bool hasIndicPhonetics = indicPhonotacticPattern.hasMatch(titleLower) ||
+    final bool hasIndicPhonetics =
+        indicPhonotacticPattern.hasMatch(titleLower) ||
         indicPhonotacticPattern.hasMatch(artistLower);
 
     // If text has Hindi words or Indic phonotactic patterns, it is Hindi/Indic

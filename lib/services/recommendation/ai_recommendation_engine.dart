@@ -298,9 +298,9 @@ class AiRecommendationEngine {
     }
 
     // B. Added to custom playlist (Strongest Explicit Signal: +40%)
-    final inPlaylists = db.playlists.any(
-      (p) => p.songs.any((s) => s.id == candidate.id),
-    ) || (_playlistAddCounts[candidate.id] ?? 0) > 0;
+    final inPlaylists =
+        db.playlists.any((p) => p.songs.any((s) => s.id == candidate.id)) ||
+        (_playlistAddCounts[candidate.id] ?? 0) > 0;
     if (inPlaylists) {
       modifier += 0.40;
     }
@@ -402,14 +402,16 @@ class AiRecommendationEngine {
       return -100.0;
     }
 
-    final bool isYtRadioTrack =
-        _youtubeRadioRecommendedIds.contains(candidate.id);
+    final bool isYtRadioTrack = _youtubeRadioRecommendedIds.contains(
+      candidate.id,
+    );
 
     // Language Consistency
     final seedLang = MusicApiService.detectSongLanguage(seedSong);
     final candLang = MusicApiService.detectSongLanguage(candidate);
     if (seedLang != candLang) {
-      final bool indicCompatible = isYtRadioTrack &&
+      final bool indicCompatible =
+          isYtRadioTrack &&
           MusicTagClassifier.isIndicLanguage(seedLang) &&
           MusicTagClassifier.isIndicLanguage(candLang);
       if (!indicCompatible) {
@@ -427,7 +429,8 @@ class AiRecommendationEngine {
     final seedEra = MusicTagClassifier.detectSongEra(seedSong);
     final candEra = MusicTagClassifier.detectSongEra(candidate);
     if (seedEra != candEra) {
-      final bool eraCompatible = isYtRadioTrack &&
+      final bool eraCompatible =
+          isYtRadioTrack &&
           MusicTagClassifier.isEraCompatible(seedEra, candEra);
       if (!eraCompatible) {
         return -100.0;
@@ -501,7 +504,8 @@ class AiRecommendationEngine {
       }
       final candLang = MusicApiService.detectSongLanguage(candidate);
       if (candLang != seedLang) {
-        final bool indicOk = isFromYtRadio &&
+        final bool indicOk =
+            isFromYtRadio &&
             MusicTagClassifier.isIndicLanguage(seedLang) &&
             MusicTagClassifier.isIndicLanguage(candLang);
         if (!indicOk) return;
@@ -516,7 +520,8 @@ class AiRecommendationEngine {
       }
       final candEra = MusicTagClassifier.detectSongEra(candidate);
       if (candEra != seedEra) {
-        final bool eraOk = isFromYtRadio &&
+        final bool eraOk =
+            isFromYtRadio &&
             MusicTagClassifier.isEraCompatible(seedEra, candEra);
         if (!eraOk) return;
       }
@@ -558,8 +563,10 @@ class AiRecommendationEngine {
     if (ytVideoId.isEmpty && seedSong.title.isNotEmpty) {
       try {
         final cleanTitle = SongParserUtils.normalizeSongTitle(seedSong.title);
-        final primaryArtist =
-            seedSong.artist.split(RegExp(r'[,&/]')).first.trim();
+        final primaryArtist = seedSong.artist
+            .split(RegExp(r'[,&/]'))
+            .first
+            .trim();
         final searchHits = await YouTubeSearchService.search(
           '$cleanTitle $primaryArtist',
           limit: 3,
@@ -574,9 +581,9 @@ class AiRecommendationEngine {
       try {
         final ytRadioSongs =
             await YouTubeSearchService.fetchRadioRecommendations(
-          ytVideoId,
-          limit: 50,
-        );
+              ytVideoId,
+              limit: 50,
+            );
         final ytIds = ytRadioSongs.map((s) => s.id).toSet();
         setYouTubeRadioRecommendations(ytIds);
         for (final r in ytRadioSongs) {
