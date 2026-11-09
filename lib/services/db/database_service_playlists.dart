@@ -115,6 +115,7 @@ extension DatabaseServicePlaylists on DatabaseService {
     );
 
     _customPlaylists[idx] = updatedPlaylist;
+    AiRecommendationEngine.instance.recordPlaylistAdd(song.id);
     notify();
     await _flushPlaylists();
 

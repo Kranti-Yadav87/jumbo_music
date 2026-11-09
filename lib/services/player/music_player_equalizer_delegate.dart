@@ -5,6 +5,9 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
   Future<void> setVolume(double val) async {
     _volume = val.clamp(0.0, 1.0);
     _isMuted = _volume == 0.0;
+    if (kIsWeb && _isYouTubeWebPlaying) {
+      YouTubeWebPlayer.setVolume(_volume);
+    }
     await _audioPlayer.setVolume(_volume);
     notify();
   }
@@ -17,6 +20,9 @@ extension MusicPlayerEqualizerDelegate on MusicPlayerManager {
       _preMuteVolume = _volume;
       _volume = 0.0;
       _isMuted = true;
+    }
+    if (kIsWeb && _isYouTubeWebPlaying) {
+      YouTubeWebPlayer.setVolume(_volume);
     }
     await _audioPlayer.setVolume(_volume);
     notify();

@@ -58,3 +58,5 @@ android/build/
 .vercel
 .env*
 !.env.example
+ytmusicapi-main/
+api-samples-master/

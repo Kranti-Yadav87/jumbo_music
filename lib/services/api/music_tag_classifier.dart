@@ -215,6 +215,43 @@ class MusicTagClassifier {
       'ibadat',
       'ibaadat',
       'sajda',
+      'heer',
+      'aarzu',
+      'arzoo',
+      'majboor',
+      'zulfein',
+      'zulf',
+      'bairan',
+      'jhol',
+      'kanwal',
+      'haseen',
+      'faasle',
+      'muskurahat',
+      'choo',
+      'gul',
+      'husn',
+      'mishri',
+      'manjha',
+      'kahaani',
+      'parwaaz',
+      'dastoor',
+      'marham',
+      'ishqan',
+      'bekhabar',
+      'tasalli',
+      'khumari',
+      'qurbat',
+      'raabta',
+      'mehfil',
+      'suroor',
+      'junoon',
+      'humsafar',
+      'chahat',
+      'hasrat',
+      'madhosh',
+      'khudaaya',
+      'khudaya',
+      'beparwah',
     };
 
     final bool hasHindiWords =
@@ -346,151 +383,32 @@ class MusicTagClassifier {
       return 'Haryanvi';
     }
 
-    // 6. Global & Western English Artists
-    final bool isEnglishArtist =
-        artistLower.contains('taylor swift') ||
-        artistLower.contains('the weeknd') ||
-        artistLower.contains('drake') ||
-        artistLower.contains('ed sheeran') ||
-        artistLower.contains('justin bieber') ||
-        artistLower.contains('dua lipa') ||
-        artistLower.contains('billie eilish') ||
-        artistLower.contains('bruno mars') ||
-        artistLower.contains('coldplay') ||
-        artistLower.contains('post malone') ||
-        artistLower.contains('maroon 5') ||
-        artistLower.contains('charlie puth') ||
-        artistLower.contains('shawn mendes') ||
-        artistLower.contains('selena gomez') ||
-        artistLower.contains('ariana grande') ||
-        artistLower.contains('eminem') ||
-        artistLower.contains('adele') ||
-        artistLower.contains('rihanna') ||
-        artistLower.contains('hanumankind') ||
-        artistLower.contains('parekh & singh') ||
-        artistLower.contains('when chai met toast') ||
-        artistLower.contains('raghav meattle') ||
-        artistLower.contains('tsumyoki') ||
-        artistLower.contains('imagine dragons') ||
-        artistLower.contains('queen') ||
-        artistLower.contains('the beatles') ||
-        artistLower.contains('michael jackson') ||
-        artistLower.contains('katy perry') ||
-        artistLower.contains('lady gaga') ||
-        artistLower.contains('beyonce') ||
-        artistLower.contains('shakira') ||
-        artistLower.contains('harry styles') ||
-        artistLower.contains('zayn') ||
-        artistLower.contains('sia') ||
-        artistLower.contains('alan walker') ||
-        artistLower.contains('marshmello') ||
-        artistLower.contains('chainsmokers') ||
-        artistLower.contains('onerepublic') ||
-        artistLower.contains('one direction') ||
-        artistLower.contains('stephen sanchez') ||
-        artistLower.contains('jvke') ||
-        artistLower.contains('benson boone') ||
-        artistLower.contains('sabrina carpenter') ||
-        artistLower.contains('olivia rodrigo') ||
-        artistLower.contains('travis scott') ||
-        artistLower.contains('kendrick lamar') ||
-        artistLower.contains('sza') ||
-        artistLower.contains('lana del rey') ||
-        artistLower.contains('cigarettes after sex') ||
-        artistLower.contains('arctic monkeys') ||
-        artistLower.contains('the neighbourhood') ||
-        artistLower.contains('alec benjamin') ||
-        artistLower.contains('conan gray') ||
-        artistLower.contains('laufey') ||
-        artistLower.contains('tom odell') ||
-        artistLower.contains('james arthur') ||
-        artistLower.contains('lewis capaldi') ||
-        artistLower.contains('dean lewis') ||
-        artistLower.contains('calum scott') ||
-        artistLower.contains('ruth b.') ||
-        artistLower.contains('lord huron') ||
-        artistLower.contains('hozier') ||
-        artistLower.contains('avicii') ||
-        artistLower.contains('david guetta') ||
-        artistLower.contains('calvin harris') ||
-        artistLower.contains('martin garrix') ||
-        artistLower.contains('kygo') ||
-        artistLower.contains('sam smith') ||
-        artistLower.contains('glass animals') ||
-        artistLower.contains('the kid laroi') ||
-        artistLower.contains('chappell roan') ||
-        artistLower.contains('tate mcrae') ||
-        artistLower.contains('pitbull') ||
-        artistLower.contains('teddy swims') ||
-        artistLower.contains('noah kahan') ||
-        artistLower.contains('shaboozey') ||
-        artistLower.contains('tommy richman') ||
-        artistLower.contains('artemas') ||
-        artistLower.contains('myles smith') ||
-        artistLower.contains('david kushner') ||
-        artistLower.contains('alex warren') ||
-        artistLower.contains('djo') ||
-        artistLower.contains('mark ambor') ||
-        artistLower.contains('zach bryan') ||
-        artistLower.contains('gracie abrams') ||
-        artistLower.contains('luke combs') ||
-        artistLower.contains('morgan wallen') ||
-        artistLower.contains('linkin park') ||
-        artistLower.contains('green day') ||
-        artistLower.contains('twenty one pilots') ||
-        artistLower.contains('21 pilots') ||
-        artistLower.contains('passenger') ||
-        artistLower.contains('kodaline') ||
-        artistLower.contains('vance joy') ||
-        artistLower.contains('dj snake') ||
-        artistLower.contains('major lazer') ||
-        artistLower.contains('swedish house mafia') ||
-        artistLower.contains('fred again') ||
-        artistLower.contains('akon');
-
-    if (isEnglishArtist && !hasHindiWords) {
-      return 'English';
+    // 6. Native Unicode Script Detection (Universal & 100% deterministic)
+    if (RegExp(r'[\u0900-\u097F]').hasMatch(title) ||
+        RegExp(r'[\u0900-\u097F]').hasMatch(artist)) {
+      return 'Hindi';
+    }
+    if (RegExp(r'[\u0A00-\u0A7F]').hasMatch(title) ||
+        RegExp(r'[\u0A00-\u0A7F]').hasMatch(artist)) {
+      return 'Punjabi';
+    }
+    if (RegExp(r'[\u0B80-\u0D7F]').hasMatch(title) ||
+        RegExp(r'[\u0B80-\u0D7F]').hasMatch(artist)) {
+      return 'South';
+    }
+    if (RegExp(r'[\u0600-\u06FF]').hasMatch(title) ||
+        RegExp(r'[\u0600-\u06FF]').hasMatch(artist)) {
+      return 'Hindi';
     }
 
-    // 7. English Metadata or Specific English Title Words
+    // 7. Explicit English catalog / genre metadata
     if (langLower.contains('english') ||
         langLower.contains('western') ||
         genreLower.contains('english') ||
+        genreLower.contains('western') ||
         albumLower.contains('english') ||
         albumLower.contains('billboard') ||
         albumLower.contains('hollywood')) {
-      return 'English';
-    }
-
-    // Check specific English track titles
-    if (titleLower == 'blush' ||
-        titleLower == 'co2' ||
-        titleLower == 'stay' ||
-        titleLower == 'starboy' ||
-        titleLower == 'believer' ||
-        titleLower == 'heat waves' ||
-        titleLower == 'blinding lights' ||
-        titleLower == 'shape of you' ||
-        titleLower == 'bad guy' ||
-        titleLower == 'levitating' ||
-        titleLower == 'alone' ||
-        titleLower == 'faded' ||
-        titleLower == 'counting stars' ||
-        titleLower == 'night changes' ||
-        titleLower == 'until i found you' ||
-        titleLower == 'golden hour' ||
-        titleLower == 'espresso' ||
-        titleLower == 'please please please' ||
-        titleLower == 'birds of a feather' ||
-        titleLower == 'beautiful things' ||
-        titleLower == 'die with a smile' ||
-        titleLower == 'ocean' ||
-        titleLower.contains('mess') ||
-        titleLower.contains('doll') ||
-        titleLower.contains('unicorn') ||
-        titleLower.contains('pink blue') ||
-        titleLower.contains('when we feel young') ||
-        titleLower.contains('big dawgs')) {
       return 'English';
     }
 
@@ -895,6 +813,10 @@ class MusicTagClassifier {
       'instrumental',
       'soundtrack',
       'score',
+      'belong',
+      'belongs',
+      'belonging',
+      'together',
     };
 
     final bool hasEnglishToken = titleTokens.any(commonEnglishTokens.contains);
@@ -905,101 +827,76 @@ class MusicTagClassifier {
       return 'English';
     }
 
-    // Indian Artist Signatures
-    final bool isIndianArtist =
-        artistLower.contains('arijit') ||
-        artistLower.contains('kishore kumar') ||
-        artistLower.contains('lata mangeshkar') ||
-        artistLower.contains('mohammed rafi') ||
-        artistLower.contains('mohd rafi') ||
-        artistLower.contains('mukesh') ||
-        artistLower.contains('asha bhosle') ||
-        artistLower.contains('kumar sanu') ||
-        artistLower.contains('alka yagnik') ||
-        artistLower.contains('udit narayan') ||
-        artistLower.contains('sonu nigam') ||
-        artistLower.contains('shaan') ||
-        artistLower.contains('kk') ||
-        artistLower.contains('mohit chauhan') ||
-        artistLower.contains('lucky ali') ||
-        artistLower.contains('sunidhi') ||
-        artistLower.contains('shreya ghoshal') ||
-        artistLower.contains('neha kakkar') ||
-        artistLower.contains('jubin') ||
-        artistLower.contains('armaan malik') ||
-        artistLower.contains('amaal mallik') ||
-        artistLower.contains('vishal mishra') ||
-        artistLower.contains('stebin ben') ||
-        artistLower.contains('darshan raval') ||
-        artistLower.contains('anuv jain') ||
-        artistLower.contains('prateek kuhad') ||
-        artistLower.contains('mitraz') ||
-        artistLower.contains('jasleen royal') ||
-        artistLower.contains('kaifi khalil') ||
-        artistLower.contains('faheem abdullah') ||
-        artistLower.contains('aditya a') ||
-        artistLower.contains('king') ||
-        artistLower.contains('divine') ||
-        artistLower.contains('emiway') ||
-        artistLower.contains('mc stan') ||
-        artistLower.contains('raftaar') ||
-        artistLower.contains('kr\$na') ||
-        artistLower.contains('seedhe maut') ||
-        artistLower.contains('bappi lahiri') ||
-        artistLower.contains('amit kumar') ||
-        artistLower.contains('shabbir kumar') ||
-        artistLower.contains('anuradha paudwal') ||
-        artistLower.contains('sadhana sargam') ||
-        artistLower.contains('kavita krishnamurthy') ||
-        artistLower.contains('abhijeet') ||
-        artistLower.contains('pankaj udhas') ||
-        artistLower.contains('himesh reshammiya') ||
-        artistLower.contains('kailash kher') ||
-        artistLower.contains('adnan sami') ||
-        artistLower.contains('kunal ganjawala') ||
-        artistLower.contains('zubeen garg') ||
-        artistLower.contains('mustafa zahid') ||
-        artistLower.contains('atif aslam') ||
-        artistLower.contains('badshah') ||
-        artistLower.contains('honey singh') ||
-        artistLower.contains('pritam') ||
-        artistLower.contains('sachin-jigar') ||
-        artistLower.contains('mithoon') ||
-        artistLower.contains('vishal-shekhar') ||
-        artistLower.contains('shankar-ehsaan-loy') ||
-        artistLower.contains('amit trivedi') ||
-        artistLower.contains('ajay-atul') ||
-        artistLower.contains('tanishk bagchi') ||
-        artistLower.contains('rochak kohli') ||
-        artistLower.contains('meet bros') ||
-        artistLower.contains('tony kakkar') ||
-        artistLower.contains('dhvani bhanushali') ||
-        artistLower.contains('tulsi kumar') ||
-        artistLower.contains('palak muchhal') ||
-        artistLower.contains('monali thakur') ||
-        artistLower.contains('shilpa rao') ||
-        artistLower.contains('neeti mohan') ||
-        artistLower.contains('jonita gandhi') ||
-        artistLower.contains('jagjit singh') ||
-        artistLower.contains('ghulam ali') ||
-        artistLower.contains('s. d. burman') ||
-        artistLower.contains('r. d. burman') ||
-        artistLower.contains('manna dey') ||
-        artistLower.contains('hemant kumar') ||
-        artistLower.contains('a. r. rahman') ||
-        artistLower.contains('ar rahman');
+    // 9. Indic Phonotactic Character Patterns and Syllable Morphemes
+    // Detects Romanized Indic phonotactics (aspirated consonant digraphs kh/gh/jh/dh/bh/zh,
+    // vowel doubling aa/ee/oo, and Indic morpheme suffixes -iya, -iyan, -ein, -on, -aan, -aaye, -wali, -wala)
+    final indicPhonotacticPattern = RegExp(
+      r'(?:[kgjdbz]h|[aeo]{2}|[iI]ya[n]?|ei[n]?|oo[n]?|aa[n]?|aaye|[wW]ali|[wW]ala)',
+      caseSensitive: false,
+    );
+    final bool hasIndicPhonetics = indicPhonotacticPattern.hasMatch(titleLower) ||
+        indicPhonotacticPattern.hasMatch(artistLower);
 
-    if (isIndianArtist) {
+    // If text has Hindi words or Indic phonotactic patterns, it is Hindi/Indic
+    if (hasHindiWords || hasIndicPhonetics) {
       return 'Hindi';
     }
 
-    if (langLower.contains('hindi') && !hasEnglishWords && !hasEnglishToken) {
+    if (hasEnglishWords || hasEnglishToken) {
+      return 'English';
+    }
+
+    // YouTube / Desi catalog context fallback
+    if (id.startsWith('yt_') ||
+        genreLower.contains('youtube') ||
+        genreLower.contains('desi') ||
+        langLower.contains('hindi')) {
       return 'Hindi';
     }
 
-    // Default: If track has NO Indian artist, NO Indic phonetic tokens, and NO Hindi metadata,
-    // it is an English/Western track. Defaulting to 'Hindi' causes cross-language queue pollution.
+    // Default: Western / English track when zero Indic signals exist
     return 'English';
+  }
+
+  /// Helper to check if a language belongs to the Indic/Desi family (Hindi, Punjabi, Haryanvi, Bhojpuri, Urdu)
+  static bool isIndicLanguage(String lang) {
+    final l = lang.toLowerCase().trim();
+    return l == 'hindi' ||
+        l == 'punjabi' ||
+        l == 'haryanvi' ||
+        l == 'bhojpuri' ||
+        l == 'urdu';
+  }
+
+  /// Checks whether two musical eras are compatible for continuous playback flow
+  static bool isEraCompatible(MusicEra a, MusicEra b) {
+    if (a == b) return true;
+    // Modern eras (2010s and Gen Z) flow together naturally
+    if ((a == MusicEra.era2010s && b == MusicEra.genZModern) ||
+        (a == MusicEra.genZModern && b == MusicEra.era2010s)) {
+      return true;
+    }
+    // 2000s and 2010s Bollywood melodies flow together
+    if ((a == MusicEra.era2000s && b == MusicEra.era2010s) ||
+        (a == MusicEra.era2010s && b == MusicEra.era2000s)) {
+      return true;
+    }
+    // 90s and 2000s romantic melodies flow together
+    if ((a == MusicEra.era90s && b == MusicEra.era2000s) ||
+        (a == MusicEra.era2000s && b == MusicEra.era90s)) {
+      return true;
+    }
+    // 80s and 90s classic melodies flow together
+    if ((a == MusicEra.era80s && b == MusicEra.era90s) ||
+        (a == MusicEra.era90s && b == MusicEra.era80s)) {
+      return true;
+    }
+    // Vintage 70s and 80s retro classics flow together
+    if ((a == MusicEra.vintage70s && b == MusicEra.era80s) ||
+        (a == MusicEra.era80s && b == MusicEra.vintage70s)) {
+      return true;
+    }
+    return false;
   }
 
   /// Detects language of a song (Hindi, Punjabi, South, English, Bhojpuri, Haryanvi)

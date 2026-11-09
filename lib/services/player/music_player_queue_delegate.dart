@@ -247,8 +247,11 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
             return false;
           }
-          if (MusicApiService.detectSongLanguage(s) != seedLang) {
-            return false;
+          final candLang = MusicApiService.detectSongLanguage(s);
+          if (candLang != seedLang) {
+            final bool indicOk = MusicTagClassifier.isIndicLanguage(seedLang) &&
+                MusicTagClassifier.isIndicLanguage(candLang);
+            if (!indicOk) return false;
           }
           if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
             return false;
@@ -256,8 +259,11 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
             return false;
           }
-          if (MusicTagClassifier.detectSongEra(s) != seedEra) {
-            return false;
+          final candEra = MusicTagClassifier.detectSongEra(s);
+          if (candEra != seedEra) {
+            if (!MusicTagClassifier.isEraCompatible(seedEra, candEra)) {
+              return false;
+            }
           }
           if (currentQueueIds.contains(s.id)) return false;
           final key = SongParserUtils.songDeduplicationKey(s);

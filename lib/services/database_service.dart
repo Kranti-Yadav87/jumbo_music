@@ -6,6 +6,7 @@ import '../models/friend.dart';
 import 'storage/storage_engine.dart';
 import 'firestore_sync_service.dart';
 import 'crash_reporting_service.dart';
+import 'recommendation/ai_recommendation_engine.dart';
 
 part 'db/database_service_favorites_and_downloads.dart';
 part 'db/database_service_playlists.dart';

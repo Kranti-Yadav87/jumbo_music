@@ -219,6 +219,37 @@ class AppTopHeader extends StatelessWidget {
                 ),
                 ListTile(
                   leading: const Icon(
+                    Icons.play_circle_filled_rounded,
+                    color: Color(0xFFFF0000),
+                  ),
+                  title: Text(
+                    'YouTube Music API',
+                    style: TextStyle(
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    AppConfig.youtubeApiKey.isNotEmpty
+                        ? 'Active (InnerTube Key Configured)'
+                        : 'Tap to configure YouTube API Key',
+                    style: TextStyle(
+                      color: isDark ? Colors.white54 : const Color(0xFF64748B),
+                      fontSize: 12,
+                    ),
+                  ),
+                  trailing: const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: Colors.grey,
+                  ),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _showYouTubeKeyDialog(context);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(
                     Icons.star_rate_rounded,
                     color: Color(0xFFFF5E3A),
                   ),
@@ -800,6 +831,202 @@ class AppTopHeader extends StatelessWidget {
                             : 'Settings updated.',
                       ),
                       duration: const Duration(seconds: 2),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Save',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showYouTubeKeyDialog(BuildContext context) {
+    final db = DatabaseService.instance;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentCustomKey = db.getSetting('youtube_api_key')?.toString() ?? '';
+    final controller = TextEditingController(
+      text: currentCustomKey.isNotEmpty
+          ? currentCustomKey
+          : AppConfig.youtubeApiKey,
+    );
+    final isGlobalActive = AppConfig.youtubeApiKey.isNotEmpty;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E2E) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              const Icon(
+                Icons.play_circle_filled_rounded,
+                color: Color(0xFFFF0000),
+                size: 24,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'YouTube Music API',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isGlobalActive
+                        ? const Color(0xFF10B981).withOpacity(0.15)
+                        : const Color(0xFFF59E0B).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isGlobalActive
+                          ? const Color(0xFF10B981).withOpacity(0.4)
+                          : const Color(0xFFF59E0B).withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        isGlobalActive
+                            ? Icons.check_circle_rounded
+                            : Icons.info_outline_rounded,
+                        color: isGlobalActive
+                            ? const Color(0xFF10B981)
+                            : const Color(0xFFF59E0B),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isGlobalActive
+                              ? 'YouTube Music InnerTube API is ACTIVE.\nKey: ${AppConfig.youtubeApiKey.substring(0, 8)}...${AppConfig.youtubeApiKey.substring(AppConfig.youtubeApiKey.length - 4)}'
+                              : 'No YouTube Music API key configured.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isGlobalActive
+                                ? const Color(0xFF10B981)
+                                : const Color(0xFFF59E0B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'API Key (from ytmusicapi):',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white70 : const Color(0xFF334155),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: controller,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter AIzaSy... key',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    filled: true,
+                    fillColor: isDark
+                        ? const Color(0xFF2A2A3C)
+                        : const Color(0xFFF1F5F9),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Extracted from ytmusicapi constants.py and integrated with Jumbo Music catalog fallback.',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? Colors.white38 : Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            if (currentCustomKey.isNotEmpty)
+              TextButton(
+                onPressed: () async {
+                  await db.saveSetting('youtube_api_key', '');
+                  if (context.mounted) {
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Custom YouTube API key reset to default.',
+                        ),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                child: const Text(
+                  'Reset Default',
+                  style: TextStyle(color: Color(0xFFEF4444)),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Close',
+                style: TextStyle(
+                  color: isDark ? Colors.white60 : Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF0000),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () async {
+                final newKey = controller.text.trim();
+                await db.saveSetting('youtube_api_key', newKey);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('YouTube Music API Key saved!'),
+                      duration: Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
                     ),
                   );

@@ -34,6 +34,12 @@ class AiRecommendationEngine {
   /// Loop / Repeat count map for Spotify heavy affinity signal: songId -> count
   final Map<String, int> _loopCounts = {};
 
+  /// Playlist add count map: songId -> count (Strongest User Explicit Endorsement)
+  final Map<String, int> _playlistAddCounts = {};
+
+  /// Set of song IDs recommended by YouTube Music's official Radio continuation for current seed
+  final Set<String> _youtubeRadioRecommendedIds = {};
+
   /// Transition count map for Collaborative Filtering: songIdA -> (songIdB -> count)
   final Map<String, Map<String, int>> _transitionGraph = {};
 
@@ -45,6 +51,8 @@ class AiRecommendationEngine {
     _skipCounts.clear();
     _completedListens.clear();
     _loopCounts.clear();
+    _playlistAddCounts.clear();
+    _youtubeRadioRecommendedIds.clear();
     _transitionGraph.clear();
     nowProvider = DateTime.now;
   }
@@ -255,6 +263,18 @@ class AiRecommendationEngine {
     _loopCounts[songId] = (_loopCounts[songId] ?? 0) + 1;
   }
 
+  /// Playlist addition explicit signal: user saved track to personal playlist
+  void recordPlaylistAdd(String songId) {
+    if (songId.isEmpty) return;
+    _playlistAddCounts[songId] = (_playlistAddCounts[songId] ?? 0) + 1;
+  }
+
+  /// Sets current YouTube Music Radio recommended song IDs for seed track
+  void setYouTubeRadioRecommendations(Iterable<String> songIds) {
+    _youtubeRadioRecommendedIds.clear();
+    _youtubeRadioRecommendedIds.addAll(songIds);
+  }
+
   /// Calculates real-time behavioral adjustments & time-of-day contextual modulation
   double calculateContextualAndBehavioralScore(Song candidate) {
     double modifier = 0.0;
@@ -266,7 +286,7 @@ class AiRecommendationEngine {
     } else if (skips == 2) {
       modifier -= 0.60;
     } else if (skips == 1) {
-      modifier -= 0.25;
+      modifier -= 0.30;
     }
 
     // 2. Behavioral positive signals
@@ -277,27 +297,33 @@ class AiRecommendationEngine {
       modifier += 0.30;
     }
 
-    // B. Added to custom playlist (+25%)
+    // B. Added to custom playlist (Strongest Explicit Signal: +40%)
     final inPlaylists = db.playlists.any(
       (p) => p.songs.any((s) => s.id == candidate.id),
-    );
+    ) || (_playlistAddCounts[candidate.id] ?? 0) > 0;
     if (inPlaylists) {
-      modifier += 0.25;
+      modifier += 0.40;
     }
 
     // C. The 30-Second Rule positive: Listened to completion or > 30s (+35%)
     final completed = _completedListens[candidate.id] ?? 0;
     if (completed > 0) {
-      modifier += min(completed * 0.15, 0.35);
+      modifier += min(completed * 0.20, 0.40);
     }
 
-    // D. Spotify Loop Signal: Listened on loop/repeat mode (+50% strong affinity)
+    // D. Spotify & YouTube Loop Signal: Listened on loop/repeat mode (+50% strong affinity)
     final loops = _loopCounts[candidate.id] ?? 0;
     if (loops > 0) {
       modifier += min(loops * 0.25, 0.50);
     }
 
-    // E. Search history query relevance (+40%)
+    // E. YouTube Music Radio Continuation Match (+60%)
+    // Track was explicitly recommended by YouTube's ML session continuation engine for seedSong
+    if (_youtubeRadioRecommendedIds.contains(candidate.id)) {
+      modifier += 0.60;
+    }
+
+    // F. Search history query relevance (+40%)
     final searchTerms = db.searchHistory;
     final candTitleLower = candidate.title.toLowerCase();
     final candArtistLower = candidate.artist.toLowerCase();
@@ -310,7 +336,7 @@ class AiRecommendationEngine {
       }
     }
 
-    // F. Regional / Preferred Languages Priority (JioSaavn / Gaana Math) (+30%)
+    // G. Regional / Preferred Languages Priority (JioSaavn / Gaana Math) (+30%)
     final prefLangs = db.getSetting('preferred_languages');
     if (prefLangs is List && prefLangs.isNotEmpty) {
       final candLang = MusicApiService.detectSongLanguage(candidate);
@@ -376,11 +402,19 @@ class AiRecommendationEngine {
       return -100.0;
     }
 
-    // Strict Language Consistency: Queue must strictly match seed song language!
+    final bool isYtRadioTrack =
+        _youtubeRadioRecommendedIds.contains(candidate.id);
+
+    // Language Consistency
     final seedLang = MusicApiService.detectSongLanguage(seedSong);
     final candLang = MusicApiService.detectSongLanguage(candidate);
     if (seedLang != candLang) {
-      return -100.0;
+      final bool indicCompatible = isYtRadioTrack &&
+          MusicTagClassifier.isIndicLanguage(seedLang) &&
+          MusicTagClassifier.isIndicLanguage(candLang);
+      if (!indicCompatible) {
+        return -100.0;
+      }
     }
     if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(candidate)) {
       return -100.0;
@@ -389,12 +423,15 @@ class AiRecommendationEngine {
       return -100.0;
     }
 
-    // Strict Musical Era Consistency: Queue must strictly match seed song era!
-    // (Vintage 70s, 80s, 90s, 2000s, 2010s, Gen Z/Modern)
+    // Musical Era Consistency
     final seedEra = MusicTagClassifier.detectSongEra(seedSong);
     final candEra = MusicTagClassifier.detectSongEra(candidate);
     if (seedEra != candEra) {
-      return -100.0;
+      final bool eraCompatible = isYtRadioTrack &&
+          MusicTagClassifier.isEraCompatible(seedEra, candEra);
+      if (!eraCompatible) {
+        return -100.0;
+      }
     }
 
     final collabScore = calculateCollaborativeScore(seedSong, candidate);
@@ -450,7 +487,7 @@ class AiRecommendationEngine {
       SongParserUtils.songDeduplicationKey(seedSong),
     };
 
-    void tryAddCandidate(Song candidate) {
+    void tryAddCandidate(Song candidate, {bool isFromYtRadio = false}) {
       if (candidate.id == seedSong.id) return;
       if (candidate.audioUrl.trim().isEmpty) return;
       if (candidate.audioUrl.contains('apple.com') ||
@@ -462,8 +499,12 @@ class AiRecommendationEngine {
           candidate.duration.inSeconds < 75) {
         return;
       }
-      if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
-        return;
+      final candLang = MusicApiService.detectSongLanguage(candidate);
+      if (candLang != seedLang) {
+        final bool indicOk = isFromYtRadio &&
+            MusicTagClassifier.isIndicLanguage(seedLang) &&
+            MusicTagClassifier.isIndicLanguage(candLang);
+        if (!indicOk) return;
       }
       if (seedLang != 'English' &&
           MusicTagClassifier.isEnglishSong(candidate)) {
@@ -473,8 +514,11 @@ class AiRecommendationEngine {
           !MusicTagClassifier.isEnglishSong(candidate)) {
         return;
       }
-      if (MusicTagClassifier.detectSongEra(candidate) != seedEra) {
-        return;
+      final candEra = MusicTagClassifier.detectSongEra(candidate);
+      if (candEra != seedEra) {
+        final bool eraOk = isFromYtRadio &&
+            MusicTagClassifier.isEraCompatible(seedEra, candEra);
+        if (!eraOk) return;
       }
 
       final key = SongParserUtils.songDeduplicationKey(candidate);
@@ -499,7 +543,49 @@ class AiRecommendationEngine {
       }
     }
 
-    // 2. Primary: Live smart recommendations specifically tailored for seedSong
+    // 2. Primary Engine A: Official YouTube Music Radio Continuation (RDAMVM Algorithm)
+    // Fetches the exact tracks YouTube's algorithm queues next for this track
+    String ytVideoId = '';
+    if (seedSong.id.startsWith('yt_')) {
+      ytVideoId = seedSong.id.substring(3);
+    } else {
+      final uri = Uri.tryParse(seedSong.audioUrl);
+      if (uri != null && uri.queryParameters.containsKey('v')) {
+        ytVideoId = uri.queryParameters['v']!;
+      }
+    }
+
+    if (ytVideoId.isEmpty && seedSong.title.isNotEmpty) {
+      try {
+        final cleanTitle = SongParserUtils.normalizeSongTitle(seedSong.title);
+        final primaryArtist =
+            seedSong.artist.split(RegExp(r'[,&/]')).first.trim();
+        final searchHits = await YouTubeSearchService.search(
+          '$cleanTitle $primaryArtist',
+          limit: 3,
+        );
+        if (searchHits.isNotEmpty && searchHits.first.id.startsWith('yt_')) {
+          ytVideoId = searchHits.first.id.substring(3);
+        }
+      } catch (_) {}
+    }
+
+    if (ytVideoId.isNotEmpty) {
+      try {
+        final ytRadioSongs =
+            await YouTubeSearchService.fetchRadioRecommendations(
+          ytVideoId,
+          limit: 50,
+        );
+        final ytIds = ytRadioSongs.map((s) => s.id).toSet();
+        setYouTubeRadioRecommendations(ytIds);
+        for (final r in ytRadioSongs) {
+          tryAddCandidate(r, isFromYtRadio: true);
+        }
+      } catch (_) {}
+    }
+
+    // 2b. Primary Engine B: Spotify & JioSaavn Smart Recommendations (Acoustic & Collaborative similarity)
     try {
       final recs = await MusicApiService.fetchSmartRecommendations(
         seedSong,

@@ -8,11 +8,13 @@ import 'api/song_parser_utils.dart';
 import 'api/music_tag_classifier.dart';
 import 'api/itunes_search_service.dart';
 import 'api/jamendo_search_service.dart';
+import 'api/youtube_search_service.dart';
 import 'crash_reporting_service.dart';
 
 export 'api/song_parser_utils.dart';
 export 'api/music_tag_classifier.dart';
 export 'api/itunes_search_service.dart';
+export 'api/youtube_search_service.dart';
 
 class MusicApiService {
   static String get _endpoint => AppConfig.supabaseEndpoint;
@@ -96,6 +98,59 @@ class MusicApiService {
       return jRes;
     }
 
+    // 1. Run JioSaavn and YouTube Music search in parallel simultaneously!
+    final searchFutures = await Future.wait([
+      _searchJioSaavn(cleanQuery, limit: limit).catchError((e) {
+        CrashReportingService.swallow(e, 'music_api_service.dart:jioSearch');
+        return <Song>[];
+      }),
+      YouTubeSearchService.search(cleanQuery, limit: limit).catchError((e) {
+        CrashReportingService.swallow(e, 'music_api_service.dart:ytSearch');
+        return <Song>[];
+      }),
+    ]);
+
+    final jioSongs = searchFutures[0];
+    final ytSongs = searchFutures[1];
+
+    if (jioSongs.isNotEmpty || ytSongs.isNotEmpty) {
+      final ranked = _rankAndDeduplicateResults(
+        cleanQuery,
+        jioSongs,
+        ytSongs,
+        limit: limit,
+      );
+      if (ranked.isNotEmpty) {
+        _cacheSearch(cleanQuery, ranked);
+        return ranked;
+      }
+    }
+
+    // Fallback 1: Jamendo (legal, full-length tracks) when configured
+    final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
+    if (jamendo.isNotEmpty) {
+      final fullJamendo = jamendo
+          .where((s) => s.duration.inSeconds >= 45)
+          .toList();
+      if (fullJamendo.isNotEmpty) {
+        _cacheSearch(cleanQuery, fullJamendo);
+        return fullJamendo;
+      }
+    }
+
+    // Fallback 2: iTunes live search
+    final itunes = await searchOnlineSongsFallback(cleanQuery, limit: limit);
+    if (itunes.isNotEmpty) {
+      _cacheSearch(cleanQuery, itunes);
+    }
+    return itunes;
+  }
+
+  /// Internal JioSaavn search with raw and normalized title fallback
+  static Future<List<Song>> _searchJioSaavn(
+    String cleanQuery, {
+    int limit = 20,
+  }) async {
     try {
       final uri = Uri.parse(
         '$_endpoint?action=jiosaavn-search&q=${Uri.encodeComponent(cleanQuery)}&limit=$limit',
@@ -103,7 +158,7 @@ class MusicApiService {
 
       final response = await http
           .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 3));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
@@ -128,12 +183,11 @@ class MusicApiService {
           }
         }
         if (songs.isNotEmpty) {
-          _cacheSearch(cleanQuery, songs);
           return songs;
         }
       }
 
-      // If initial search with raw title returned empty, retry with normalized title
+      // If initial search with raw query returned empty, retry with normalized title
       final normalizedQuery = SongParserUtils.normalizeSongTitle(cleanQuery);
       if (normalizedQuery.isNotEmpty &&
           normalizedQuery != cleanQuery.toLowerCase()) {
@@ -142,7 +196,7 @@ class MusicApiService {
         );
         final normResponse = await http
             .get(normUri, headers: _headers)
-            .timeout(const Duration(seconds: 6));
+            .timeout(const Duration(seconds: 3));
 
         if (normResponse.statusCode == 200) {
           final data = jsonDecode(normResponse.body) as Map<String, dynamic>;
@@ -167,35 +221,156 @@ class MusicApiService {
             }
           }
           if (songs.isNotEmpty) {
-            _cacheSearch(cleanQuery, songs);
-            _cacheSearch(normalizedQuery, songs);
             return songs;
           }
         }
       }
     } catch (error) {
-      // Fallback below
-      CrashReportingService.swallow(error, 'music_api_service.dart:81');
+      CrashReportingService.swallow(
+        error,
+        'music_api_service.dart:_searchJioSaavn',
+      );
     }
+    return [];
+  }
 
-    // Fallback 1: Jamendo (legal, full-length tracks) when configured
-    final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
-    if (jamendo.isNotEmpty) {
-      final fullJamendo = jamendo
-          .where((s) => s.duration.inSeconds >= 45)
-          .toList();
-      if (fullJamendo.isNotEmpty) {
-        _cacheSearch(cleanQuery, fullJamendo);
-        return fullJamendo;
+  /// Merges JioSaavn and YouTube Music search results using query token relevance scoring
+  static List<Song> _rankAndDeduplicateResults(
+    String query,
+    List<Song> jioSongs,
+    List<Song> ytSongs, {
+    int limit = 30,
+  }) {
+    if (jioSongs.isEmpty && ytSongs.isEmpty) return [];
+    if (jioSongs.isEmpty) return ytSongs.take(limit).toList();
+    if (ytSongs.isEmpty) return jioSongs.take(limit).toList();
+
+    final allCandidates = [...ytSongs, ...jioSongs];
+    final queryLower = query.toLowerCase().trim();
+
+    // Query tokens minus common search stop words
+    const stopWords = {
+      'by',
+      'song',
+      'songs',
+      'track',
+      'audio',
+      'video',
+      'official',
+      'full',
+      'mp3',
+      'feat',
+      'ft',
+      'the',
+      'a',
+      'an',
+      'of',
+      'in',
+      'on',
+      'new',
+      'latest',
+      'ka',
+      'ki',
+      'ke',
+      'ko',
+      'se',
+      'me',
+      'mein',
+      'with',
+    };
+
+    final rawTokens = queryLower
+        .replaceAll(RegExp(r'[^\w\s]'), ' ')
+        .split(RegExp(r'\s+'))
+        .where((t) => t.isNotEmpty)
+        .toList();
+
+    final filteredTokens = rawTokens
+        .where((t) => !stopWords.contains(t))
+        .toList();
+    final searchTokens = filteredTokens.isNotEmpty ? filteredTokens : rawTokens;
+
+    double scoreSong(Song s) {
+      final title = s.title.toLowerCase();
+      final artist = s.artist.toLowerCase();
+      final combined = '$title $artist';
+      double score = 0.0;
+
+      // 1. Exact full query matches
+      if (title == queryLower) {
+        score += 150.0;
+      } else if (title.contains(queryLower)) {
+        score += 80.0;
+      } else if (combined.contains(queryLower)) {
+        score += 70.0;
       }
+
+      // 2. Individual token matches
+      int matchedTokens = 0;
+      for (final token in searchTokens) {
+        bool matched = false;
+        if (title.contains(token)) {
+          score += 30.0;
+          matched = true;
+          if (title.startsWith(token)) score += 10.0;
+        }
+        if (artist.contains(token)) {
+          score += 45.0; // Artist match is extremely high signal (e.g. Afusic)
+          matched = true;
+        }
+        if (matched) matchedTokens++;
+      }
+
+      // 3. Completeness bonus: All query tokens present in track title/artist!
+      if (searchTokens.isNotEmpty && matchedTokens == searchTokens.length) {
+        score += 120.0;
+      } else if (searchTokens.length > 1 && matchedTokens >= 2) {
+        score += 40.0;
+      }
+
+      // 4. Source preference / Quality tie-breaker
+      // If relevance is equal, prefer high bitrate 320kbps JioSaavn stream
+      if (!s.id.startsWith('yt_') &&
+          s.audioUrl.isNotEmpty &&
+          !s.audioUrl.contains('youtube.com')) {
+        score += 5.0;
+      }
+
+      return score;
     }
 
-    // Fallback 2: iTunes live search
-    final itunes = await searchOnlineSongsFallback(cleanQuery, limit: limit);
-    if (itunes.isNotEmpty) {
-      _cacheSearch(cleanQuery, itunes);
+    allCandidates.sort((a, b) => scoreSong(b).compareTo(scoreSong(a)));
+
+    final seenKeys = <String>{};
+    final List<Song> ranked = [];
+
+    for (final s in allCandidates) {
+      final cleanTitle = SongParserUtils.normalizeSongTitle(s.title);
+      final cleanArt = s.artist
+          .toLowerCase()
+          .split(RegExp(r'[,&/]'))
+          .first
+          .replaceAll(RegExp(r'[^\w\s]'), '')
+          .trim();
+      final compositeKey = '$cleanTitle---$cleanArt';
+
+      if (compositeKey.isNotEmpty && seenKeys.contains(compositeKey)) {
+        continue;
+      }
+      seenKeys.add(compositeKey);
+      ranked.add(s);
+      if (ranked.length >= limit) break;
     }
-    return itunes;
+
+    return ranked;
+  }
+
+  /// Search YouTube Music directly using the InnerTube API and key
+  static Future<List<Song>> searchYouTubeSongs(
+    String query, {
+    int limit = 20,
+  }) async {
+    return YouTubeSearchService.search(query, limit: limit);
   }
 
   /// Fetch playlist songs by ID

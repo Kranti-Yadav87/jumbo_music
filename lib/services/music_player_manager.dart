@@ -16,6 +16,7 @@ import 'crash_reporting_service.dart';
 import 'battery_optimization_service.dart';
 import 'notification_permission_service.dart';
 import 'player/web_dsp_bridge.dart';
+import 'player/youtube_web_player.dart';
 import 'recommendation/ai_recommendation_engine.dart';
 
 part 'player/music_player_sleep_timer.dart';
@@ -79,6 +80,8 @@ class MusicPlayerManager extends ChangeNotifier {
 
   @visibleForTesting
   void resetStateForTesting() {
+    _isYouTubeWebPlaying = false;
+    _stopYouTubeProgressTimer();
     _currentSong = null;
     _queue = [];
     _currentIndex = -1;
@@ -188,6 +191,41 @@ class MusicPlayerManager extends ChangeNotifier {
   StreamSubscription? _bufferedPositionSubscription;
   StreamSubscription? _currentIndexSubscription;
   ConcatenatingAudioSource? _playlistSource;
+  bool _isYouTubeWebPlaying = false;
+  bool get isYouTubeWebPlaying => _isYouTubeWebPlaying;
+  Timer? _youtubeProgressTimer;
+
+  void _startYouTubeProgressTimer() {
+    _youtubeProgressTimer?.cancel();
+    _youtubeProgressTimer = Timer.periodic(
+      const Duration(milliseconds: 300),
+      (_) {
+        if (!_isYouTubeWebPlaying || !_isPlaying) return;
+        final curSec = YouTubeWebPlayer.getCurrentTime();
+        final durSec = YouTubeWebPlayer.getDuration();
+        if (durSec > 0) {
+          _duration = Duration(milliseconds: (durSec * 1000).toInt());
+        }
+        _position = Duration(milliseconds: (curSec * 1000).toInt());
+        if (_isBuffering && (_isPlaying || _position.inMilliseconds > 0)) {
+          _isBuffering = false;
+        }
+        MediaSessionService.updatePositionState(
+          durationSeconds: _duration.inSeconds > 0
+              ? _duration.inSeconds.toDouble()
+              : 240.0,
+          positionSeconds: _position.inSeconds.toDouble(),
+          playbackRate: _playbackSpeed,
+        );
+        notifyListeners();
+      },
+    );
+  }
+
+  void _stopYouTubeProgressTimer() {
+    _youtubeProgressTimer?.cancel();
+    _youtubeProgressTimer = null;
+  }
 
   MusicPlayerManager._internal() {
     _init();
@@ -316,9 +354,57 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     });
 
+    // Register YouTube Web Player Callbacks (Web only)
+    if (kIsWeb) {
+      YouTubeWebPlayer.registerCallbacks(
+        onStateChange: (state) {
+          if (!_isYouTubeWebPlaying) return;
+          if (state == 0) {
+            // Ended
+            if (!_isTransitioning) {
+              _handleSongCompletion();
+            }
+          } else if (state == 1) {
+            // Playing
+            _isPlaying = true;
+            _isBuffering = false;
+            MediaSessionService.updatePlaybackState(isPlaying: true);
+            PresenceService.instance.updateListeningStatus(
+              song: currentSong,
+              isPlaying: true,
+            );
+            notifyListeners();
+          } else if (state == 2) {
+            // Paused
+            _isPlaying = false;
+            MediaSessionService.updatePlaybackState(isPlaying: false);
+            PresenceService.instance.updateListeningStatus(
+              song: currentSong,
+              isPlaying: false,
+            );
+            notifyListeners();
+          } else if (state == 3) {
+            // Buffering
+            _isBuffering = true;
+            notifyListeners();
+          }
+        },
+        onError: (err) {
+          debugPrint('[YouTubeWebPlayer] Error code: $err');
+          if (_isYouTubeWebPlaying) {
+            _errorMessage = 'YouTube playback error ($err)';
+            _isPlaying = false;
+            _isBuffering = false;
+            notifyListeners();
+          }
+        },
+      );
+    }
+
     // Listen to player state
     _playerStateSubscription = _audioPlayer.playerStateStream.listen(
       (state) {
+        if (kIsWeb && _isYouTubeWebPlaying) return;
         _isPlaying = state.playing;
         _isBuffering =
             (state.processingState == ProcessingState.buffering ||
@@ -348,6 +434,7 @@ class MusicPlayerManager extends ChangeNotifier {
         notifyListeners();
       },
       onError: (Object e) {
+        if (kIsWeb && _isYouTubeWebPlaying) return;
         _errorMessage = "Playback error: $e";
         _isBuffering = false;
         _isPlaying = false;
@@ -362,6 +449,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
+      if (kIsWeb && _isYouTubeWebPlaying) return;
       _position = pos;
       if (_isBuffering && (_isPlaying || pos.inMilliseconds > 0)) {
         _isBuffering = false;
@@ -381,6 +469,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
     // Listen to duration
     _durationSubscription = _audioPlayer.durationStream.listen((dur) {
+      if (kIsWeb && _isYouTubeWebPlaying) return;
       if (dur != null && dur > Duration.zero) {
         _duration = dur;
         final posSec = _position.inSeconds.toDouble();
@@ -397,6 +486,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _bufferedPositionSubscription = _audioPlayer.bufferedPositionStream.listen((
       buf,
     ) {
+      if (kIsWeb && _isYouTubeWebPlaying) return;
       _bufferedPosition = buf;
       notifyListeners();
     });
@@ -788,6 +878,15 @@ class MusicPlayerManager extends ChangeNotifier {
     Song song, {
     List<Song>? searchResults,
   }) async {
+    // 1. Immediately update track metadata and buffering state so UI never displays 'No song playing'
+    _currentSong = song;
+    _isPlaying = true;
+    _isBuffering = true;
+    _position = Duration.zero;
+    _duration = song.duration;
+    _syncCurrentSongAndIndex();
+    notifyListeners();
+
     final seedLang = MusicApiService.detectSongLanguage(song);
     final seedEra = MusicTagClassifier.detectSongEra(song);
     final immediateCandidates = <Song>[];
@@ -805,9 +904,11 @@ class MusicPlayerManager extends ChangeNotifier {
           candidate.duration.inSeconds < 75) {
         return;
       }
-      // Strict language match
-      if (MusicApiService.detectSongLanguage(candidate) != seedLang) {
-        return;
+      final candLang = MusicApiService.detectSongLanguage(candidate);
+      if (candLang != seedLang) {
+        final bool indicOk = MusicTagClassifier.isIndicLanguage(seedLang) &&
+            MusicTagClassifier.isIndicLanguage(candLang);
+        if (!indicOk) return;
       }
       if (seedLang != 'English' &&
           MusicTagClassifier.isEnglishSong(candidate)) {
@@ -817,9 +918,12 @@ class MusicPlayerManager extends ChangeNotifier {
           !MusicTagClassifier.isEnglishSong(candidate)) {
         return;
       }
-      // Strict era match
-      if (MusicTagClassifier.detectSongEra(candidate) != seedEra) {
-        return;
+      // Era match (allow compatible eras)
+      final candEra = MusicTagClassifier.detectSongEra(candidate);
+      if (candEra != seedEra) {
+        if (!MusicTagClassifier.isEraCompatible(seedEra, candEra)) {
+          return;
+        }
       }
 
       final key = SongParserUtils.songDeduplicationKey(candidate);
@@ -834,38 +938,6 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    // Proactively fetch smart recommendations tailored for this exact seed song & artist
-    try {
-      final liveRecs = await MusicApiService.fetchSmartRecommendations(
-        song,
-        limit: 30,
-      );
-      for (final r in liveRecs) {
-        tryAddCandidate(r);
-      }
-    } catch (_) {}
-
-    // If candidate pool has few tracks, proactively fetch live era-matching songs
-    if (immediateCandidates.length < 15) {
-      final targeted = AiRecommendationEngine.getEraTargetedQueries(
-        seedLang,
-        seedEra,
-        song,
-      );
-      for (final q in targeted) {
-        if (immediateCandidates.length >= 25) break;
-        try {
-          final liveMatches = await MusicApiService.searchLiveSongs(
-            q,
-            limit: 10,
-          );
-          for (final lm in liveMatches) {
-            tryAddCandidate(lm);
-          }
-        } catch (_) {}
-      }
-    }
-
     immediateCandidates.sort((a, b) {
       final scoreA = AiRecommendationEngine.instance.scoreCandidate(song, a);
       final scoreB = AiRecommendationEngine.instance.scoreCandidate(song, b);
@@ -876,7 +948,7 @@ class MusicPlayerManager extends ChangeNotifier {
     await playSong(song, newQueue: initialQueue);
 
     unawaited(BatteryOptimizationService.instance.promptOptimizationIfNeeded());
-    _infillSmartQueue(song, targetQueueSize: 60);
+    unawaited(_infillSmartQueue(song, targetQueueSize: 60));
   }
 
   Future<void> playSong(
@@ -894,6 +966,15 @@ class MusicPlayerManager extends ChangeNotifier {
       } catch (_) {}
     }
 
+    // Immediately display track metadata and show buffering spinner so UI never shows "No song playing"
+    _currentSong = song;
+    _isPlaying = true;
+    _isBuffering = true;
+    _position = Duration.zero;
+    _duration = song.duration;
+    _syncCurrentSongAndIndex();
+    notifyListeners();
+
     // 1. Pre-resolve full live streaming URL if empty, Apple preview (30s), or short clip (< 90s)
     Song resolvedSong = song;
     final isDl = DownloadService().isDownloaded(resolvedSong.id);
@@ -901,6 +982,32 @@ class MusicPlayerManager extends ChangeNotifier {
       resolvedSong.id,
       title: resolvedSong.title,
     );
+
+    final bool isYouTube =
+        resolvedSong.id.startsWith('yt_') ||
+        resolvedSong.audioUrl.contains('youtube.com');
+
+    // 1. If it's a YouTube track on native, resolve its direct stream URL (.googlevideo.com)
+    if (isYouTube && !kIsWeb) {
+      final videoId = resolvedSong.id.startsWith('yt_')
+          ? resolvedSong.id.substring(3)
+          : (Uri.tryParse(resolvedSong.audioUrl)?.queryParameters['v'] ?? '');
+      if (videoId.isNotEmpty) {
+        try {
+          debugPrint(
+            '[Playback] Resolving direct stream for YouTube video: $videoId',
+          );
+          final streamUrl = await YouTubeSearchService.resolveAudioStream(
+            videoId,
+          );
+          if (streamUrl != null && streamUrl.isNotEmpty) {
+            resolvedSong = resolvedSong.copyWith(audioUrl: streamUrl);
+          }
+        } catch (e) {
+          debugPrint('[Playback] YouTube audio stream resolution failed: $e');
+        }
+      }
+    }
 
     final bool isApplePreview =
         resolvedSong.audioUrl.contains('apple.com') ||
@@ -910,8 +1017,10 @@ class MusicPlayerManager extends ChangeNotifier {
         resolvedSong.duration.inSeconds > 0 &&
         resolvedSong.duration.inSeconds < 90;
 
+    // 2. Only search replacement if track is NOT YouTube and has empty/preview/short audio
     if (offlineUri == null &&
         !isDl &&
+        !isYouTube &&
         (resolvedSong.audioUrl.trim().isEmpty ||
             isApplePreview ||
             isShortClip) &&
@@ -943,6 +1052,7 @@ class MusicPlayerManager extends ChangeNotifier {
               m.audioUrl.isNotEmpty &&
               !m.audioUrl.contains('apple.com') &&
               !m.audioUrl.contains('mzstatic.com') &&
+              !m.audioUrl.contains('youtube.com') &&
               (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
         );
         if (!hasGenuineInFresh && cleanTitle.isNotEmpty) {
@@ -963,15 +1073,16 @@ class MusicPlayerManager extends ChangeNotifier {
           );
         }
 
-        // Prioritize full-length (>= 90s), non-preview stream
+        // Prioritize full-length (>= 90s), non-preview, non-watch stream
         final genuineMatch = freshMatches.firstWhere(
           (m) =>
               m.audioUrl.isNotEmpty &&
               !m.audioUrl.contains('apple.com') &&
               !m.audioUrl.contains('mzstatic.com') &&
+              !m.audioUrl.contains('youtube.com') &&
               (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
           orElse: () => freshMatches.firstWhere(
-            (m) => m.audioUrl.isNotEmpty,
+            (m) => m.audioUrl.isNotEmpty && !m.audioUrl.contains('youtube.com'),
             orElse: () => resolvedSong,
           ),
         );
@@ -1168,6 +1279,38 @@ class MusicPlayerManager extends ChangeNotifier {
         playbackRate: _playbackSpeed,
       );
 
+      if (kIsWeb && isYouTube) {
+        final videoId = resolvedSong.id.startsWith('yt_')
+            ? resolvedSong.id.substring(3)
+            : (Uri.tryParse(resolvedSong.audioUrl)?.queryParameters['v'] ?? '');
+        if (videoId.isNotEmpty) {
+          debugPrint(
+            '[Playback] Playing YouTube track on Web via IFrame API: $videoId',
+          );
+          _isYouTubeWebPlaying = true;
+          try {
+            await _audioPlayer.stop();
+          } catch (_) {}
+          YouTubeWebPlayer.play(videoId);
+          YouTubeWebPlayer.setVolume(_volume);
+          _startYouTubeProgressTimer();
+          _isPlaying = true;
+          _isBuffering = false;
+          _isTransitioning = false;
+          notifyListeners();
+          if (_autoplay && _queue.length < 30) {
+            unawaited(_infillSmartQueue(resolvedSong, targetQueueSize: 50));
+          }
+          return;
+        }
+      }
+
+      if (kIsWeb) {
+        _isYouTubeWebPlaying = false;
+        _stopYouTubeProgressTimer();
+        YouTubeWebPlayer.stop();
+      }
+
       final Uri sourceUri;
       if (offlineUri != null) {
         sourceUri = offlineUri;
@@ -1180,7 +1323,12 @@ class MusicPlayerManager extends ChangeNotifier {
             '[Playback] NOTICE: "${resolvedSong.title}" is in downloaded list but local file not found. Falling back to stream URI.',
           );
         }
-        sourceUri = Uri.parse(resolvedSong.audioUrl);
+        final rawUrl = resolvedSong.audioUrl.trim();
+        if (kIsWeb && rawUrl.startsWith('/')) {
+          sourceUri = Uri.base.resolve(rawUrl);
+        } else {
+          sourceUri = Uri.parse(rawUrl);
+        }
         debugPrint('[Playback] CHOSEN SOURCE URI: $sourceUri (network stream)');
       }
 
@@ -1244,13 +1392,16 @@ class MusicPlayerManager extends ChangeNotifier {
                   title: qSong.title,
                 )
               : null;
-          qUri =
-              offlineQUri ??
-              Uri.parse(
-                qSong.audioUrl.isNotEmpty
-                    ? qSong.audioUrl
-                    : sourceUri.toString(),
-              );
+          final rawQUrl = qSong.audioUrl.trim();
+          final Uri parsedQUri;
+          if (kIsWeb && rawQUrl.startsWith('/')) {
+            parsedQUri = Uri.base.resolve(rawQUrl);
+          } else {
+            parsedQUri = Uri.parse(
+              rawQUrl.isNotEmpty ? rawQUrl : sourceUri.toString(),
+            );
+          }
+          qUri = offlineQUri ?? parsedQUri;
         }
 
         audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));
@@ -1316,7 +1467,19 @@ class MusicPlayerManager extends ChangeNotifier {
             resolvedSong.title,
           );
           List<Song> healedSongs = [];
-          if (cleanTitle.isNotEmpty) {
+
+          // For YouTube tracks, refresh direct audio stream directly
+          if (resolvedSong.id.startsWith('yt_')) {
+            final vid = resolvedSong.id.substring(3);
+            final freshStream = await YouTubeSearchService.resolveAudioStream(
+              vid,
+            );
+            if (freshStream != null && freshStream.isNotEmpty) {
+              healedSongs = [resolvedSong.copyWith(audioUrl: freshStream)];
+            }
+          }
+
+          if (healedSongs.isEmpty && cleanTitle.isNotEmpty) {
             healedSongs = await MusicApiService.searchLiveSongs(
               cleanTitle,
               limit: 5,
@@ -1385,14 +1548,13 @@ class MusicPlayerManager extends ChangeNotifier {
               if (i == _currentIndex) {
                 healedCurrentItem = mItem;
               }
-              healedSources.add(
-                AudioSource.uri(
-                  Uri.parse(
-                    s.audioUrl.isNotEmpty ? s.audioUrl : freshTrack.audioUrl,
-                  ),
-                  tag: mItem,
-                ),
-              );
+              final rawSUri = s.audioUrl.isNotEmpty
+                  ? s.audioUrl
+                  : freshTrack.audioUrl;
+              final parsedSUri = (kIsWeb && rawSUri.startsWith('/'))
+                  ? Uri.base.resolve(rawSUri)
+                  : Uri.parse(rawSUri);
+              healedSources.add(AudioSource.uri(parsedSUri, tag: mItem));
             }
 
             if (kIsWeb) {
@@ -1400,11 +1562,12 @@ class MusicPlayerManager extends ChangeNotifier {
               try {
                 await _audioPlayer.stop();
               } catch (_) {}
+              final rawFreshUrl = freshTrack.audioUrl.trim();
+              final freshUri = (kIsWeb && rawFreshUrl.startsWith('/'))
+                  ? Uri.base.resolve(rawFreshUrl)
+                  : Uri.parse(rawFreshUrl);
               await _audioPlayer.setAudioSource(
-                AudioSource.uri(
-                  Uri.parse(freshTrack.audioUrl),
-                  tag: healedCurrentItem,
-                ),
+                AudioSource.uri(freshUri, tag: healedCurrentItem),
                 initialPosition: Duration.zero,
                 preload: true,
               );
@@ -1480,6 +1643,11 @@ class MusicPlayerManager extends ChangeNotifier {
     final targetSong = _queue[index];
 
     if (prevSong != null && targetSong.id != prevSong.id) {
+      if (_position.inSeconds < 30) {
+        AiRecommendationEngine.instance.recordSkip(prevSong.id);
+      } else {
+        AiRecommendationEngine.instance.recordCompletedListen(prevSong.id);
+      }
       AiRecommendationEngine.instance.recordTransition(
         prevSong.id,
         targetSong.id,
@@ -1515,7 +1683,11 @@ class MusicPlayerManager extends ChangeNotifier {
     notifyListeners();
     MediaSessionService.updatePlaybackState(isPlaying: false);
     unawaited(BatteryOptimizationService.releaseWakeLock());
-    await _audioPlayer.pause();
+    if (kIsWeb && _isYouTubeWebPlaying) {
+      YouTubeWebPlayer.pause();
+    } else {
+      await _audioPlayer.pause();
+    }
     if (_currentSong != null) {
       unawaited(
         DatabaseService.instance.saveLastPlayedTrack(
@@ -1542,14 +1714,18 @@ class MusicPlayerManager extends ChangeNotifier {
       }
       return;
     }
-    if (_audioPlayer.audioSource == null) {
-      await playSong(currentSong!, newQueue: _queue.isNotEmpty ? _queue : null);
-      return;
-    }
     _isPlaying = true;
     notifyListeners();
     MediaSessionService.updatePlaybackState(isPlaying: true);
     unawaited(BatteryOptimizationService.acquireWakeLock());
+    if (kIsWeb && _isYouTubeWebPlaying) {
+      YouTubeWebPlayer.resume();
+      return;
+    }
+    if (_audioPlayer.audioSource == null) {
+      await playSong(currentSong!, newQueue: _queue.isNotEmpty ? _queue : null);
+      return;
+    }
     await _audioPlayer.play();
   }
 
@@ -1567,30 +1743,14 @@ class MusicPlayerManager extends ChangeNotifier {
     }
 
     try {
-      if (_isPlaying || _audioPlayer.playing) {
-        _isPlaying = false;
-        notifyListeners();
-        MediaSessionService.updatePlaybackState(isPlaying: false);
-        await _audioPlayer.pause();
+      if (_isPlaying || (!kIsWeb && _audioPlayer.playing)) {
+        await pause();
       } else {
-        if (_audioPlayer.audioSource == null) {
-          await playSong(
-            currentSong!,
-            newQueue: _queue.isNotEmpty ? _queue : null,
-          );
-          return;
-        }
-        _isPlaying = true;
-        notifyListeners();
-        MediaSessionService.updatePlaybackState(isPlaying: true);
-        if (_position >= _duration && _duration > Duration.zero) {
-          await _audioPlayer.seek(Duration.zero);
-        }
-        _startPlayback();
+        await play();
       }
     } catch (e) {
       _errorMessage = "Playback toggle error: $e";
-      _isPlaying = _audioPlayer.playing;
+      _isPlaying = (kIsWeb && _isYouTubeWebPlaying) ? false : _audioPlayer.playing;
       notifyListeners();
     }
   }
@@ -1673,7 +1833,7 @@ class MusicPlayerManager extends ChangeNotifier {
     try {
       final prevSong = currentSong;
       if (prevSong != null) {
-        if (_position.inSeconds < 25 && !fromCompletion) {
+        if (_position.inSeconds < 30 && !fromCompletion) {
           AiRecommendationEngine.instance.recordSkip(prevSong.id);
         } else if (_position.inSeconds >= 30 || fromCompletion) {
           AiRecommendationEngine.instance.recordCompletedListen(prevSong.id);
@@ -2001,7 +2161,11 @@ class MusicPlayerManager extends ChangeNotifier {
     );
     notifyListeners();
     try {
-      await _audioPlayer.seek(newPosition);
+      if (kIsWeb && _isYouTubeWebPlaying) {
+        YouTubeWebPlayer.seek(newPosition.inMilliseconds / 1000.0);
+      } else {
+        await _audioPlayer.seek(newPosition);
+      }
     } catch (e) {
       debugPrint('[Playback] seek error ignored: $e');
     }
@@ -2027,8 +2191,13 @@ class MusicPlayerManager extends ChangeNotifier {
             currentSong!.id,
           );
         }
-        await _audioPlayer.seek(Duration.zero);
-        _startPlayback();
+        if (kIsWeb && _isYouTubeWebPlaying) {
+          YouTubeWebPlayer.seek(0);
+          YouTubeWebPlayer.resume();
+        } else {
+          await _audioPlayer.seek(Duration.zero);
+          _startPlayback();
+        }
         return;
       }
 
@@ -2125,6 +2294,11 @@ class MusicPlayerManager extends ChangeNotifier {
       _queue.clear();
       _currentSong = null;
       unawaited(BatteryOptimizationService.releaseWakeLock());
+      if (kIsWeb) {
+        _isYouTubeWebPlaying = false;
+        _stopYouTubeProgressTimer();
+        YouTubeWebPlayer.stop();
+      }
       await _audioPlayer.stop();
       MediaSessionService.updatePlaybackState(isPlaying: false);
       PresenceService.instance.updateListeningStatus(

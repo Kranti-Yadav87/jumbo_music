@@ -284,13 +284,21 @@ class SongParserUtils {
     return clean.split(' ').first; // Use primary artist first name
   }
 
-  /// Returns a canonical identity string for a song to prevent duplicate suggestions
+  /// Returns a canonical identity string for a song to prevent duplicate suggestions in queue
   static String songDeduplicationKey(Song song) {
     final t = normalizeSongTitle(song.title);
-    if (t.isNotEmpty) {
-      return t;
-    }
+    if (t.isNotEmpty) return t;
     return song.id.toLowerCase().trim();
+  }
+
+  /// Returns a composite key (title + artist) for search result deduplication so distinct songs with same title are preserved
+  static String searchDeduplicationKey(Song song) {
+    final t = normalizeSongTitle(song.title);
+    final a = normalizeArtist(song.artist);
+    if (t.isNotEmpty && a.isNotEmpty) {
+      return '$t---$a';
+    }
+    return songDeduplicationKey(song);
   }
 
   /// Deduplicates a list of songs by ID and by canonical title identity

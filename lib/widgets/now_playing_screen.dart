@@ -14,7 +14,8 @@ import 'now_playing/now_playing_queue_sheet.dart';
 import 'now_playing/ai_song_insights_sheet.dart';
 
 class NowPlayingScreen extends StatefulWidget {
-  const NowPlayingScreen({super.key});
+  final Song? initialSong;
+  const NowPlayingScreen({super.key, this.initialSong});
 
   @override
   State<NowPlayingScreen> createState() => _NowPlayingScreenState();
@@ -58,15 +59,30 @@ class _NowPlayingScreenState extends State<NowPlayingScreen> {
     return AnimatedBuilder(
       animation: Listenable.merge([manager, downloadService]),
       builder: (context, _) {
-        final song = manager.currentSong;
+        final song = manager.currentSong ?? widget.initialSong;
 
         if (song == null) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF081220),
-            body: Center(
-              child: Text(
-                'No song playing',
-                style: TextStyle(color: Colors.white54),
+          return Scaffold(
+            backgroundColor: const Color(0xFF081220),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 30),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            body: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF6C5CE7)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading song...',
+                    style: TextStyle(color: Colors.white54, fontSize: 14),
+                  ),
+                ],
               ),
             ),
           );

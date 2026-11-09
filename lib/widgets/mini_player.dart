@@ -56,7 +56,7 @@ class MiniPlayer extends StatelessWidget {
                       Navigator.of(context).push(
                         PageRouteBuilder(
                           pageBuilder: (context, anim1, anim2) =>
-                              const NowPlayingScreen(),
+                              NowPlayingScreen(initialSong: manager.currentSong),
                           transitionsBuilder: (context, anim1, anim2, child) {
                             const begin = Offset(0.0, 1.0);
                             const end = Offset.zero;

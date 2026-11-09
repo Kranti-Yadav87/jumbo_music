@@ -39,6 +39,7 @@ class AppConfig {
   static String? mockJamendoClientId;
   static String? mockGeminiApiKey;
   static String? mockSupabaseAnonKey;
+  static String? mockYoutubeApiKey;
 
   /// Effective catalog flag (respects mock override in tests)
   static bool get isUnofficialCatalogEnabled =>
@@ -94,6 +95,24 @@ class AppConfig {
       if (fromDb.isNotEmpty) return fromDb;
     } catch (_) {}
     return '';
+  }
+
+  /// YouTube Music InnerTube API Key extracted from ytmusicapi.
+  /// Injected via --dart-define=YOUTUBE_API_KEY=xxx or configured in App Settings.
+  static String get youtubeApiKey {
+    if (mockYoutubeApiKey != null) return mockYoutubeApiKey!;
+    const envKey = String.fromEnvironment(
+      'YOUTUBE_API_KEY',
+      defaultValue: 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
+    );
+    if (envKey.isNotEmpty) return envKey;
+    try {
+      final fromDb =
+          DatabaseService.instance.getSetting('youtube_api_key')?.toString() ??
+          '';
+      if (fromDb.isNotEmpty) return fromDb;
+    } catch (_) {}
+    return 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
   }
 
   /// Headers map for music API calls. Only adds auth headers if a key is provided.

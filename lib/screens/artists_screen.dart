@@ -97,7 +97,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
 
     try {
       final songs = await MusicApiService.searchLiveSongs(
-        '$cleanQuery hits',
+        cleanQuery,
         limit: 35,
       );
       if (songs.isNotEmpty && context.mounted) {

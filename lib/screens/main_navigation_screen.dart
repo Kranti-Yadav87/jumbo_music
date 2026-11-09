@@ -44,7 +44,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (context, anim1, anim2) => const NowPlayingScreen(),
+        pageBuilder: (context, anim1, anim2) => NowPlayingScreen(
+          initialSong: manager.currentSong ?? (manager.allSongs.isNotEmpty ? manager.allSongs.first : null),
+        ),
         transitionsBuilder: (context, anim1, anim2, child) {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;

@@ -575,6 +575,155 @@
         }
       }
     };
+
+    // === Official Google YouTube IFrame Player Engine (api-samples-master) ===
+    window.jumboYtPlayer = null;
+    window.jumboYtReady = false;
+    window.jumboYtQueuedVideoId = null;
+    window.jumboYtStateCallback = null;
+    window.jumboYtErrorCallback = null;
+
+    window.onYouTubeIframeAPIReady = function() {
+      try {
+        window.jumboYtPlayer = new YT.Player('jumbo-yt-player', {
+          height: '200',
+          width: '200',
+          playerVars: {
+            'autoplay': 1,
+            'controls': 0,
+            'disablekb': 1,
+            'fs': 0,
+            'modestbranding': 1,
+            'playsinline': 1,
+            'rel': 0,
+            'origin': window.location.origin
+          },
+          events: {
+            'onReady': function(event) {
+              window.jumboYtReady = true;
+              console.log('Jumbo Music: YouTube IFrame Player Ready');
+              if (window.jumboYtQueuedVideoId) {
+                var vid = window.jumboYtQueuedVideoId;
+                window.jumboYtQueuedVideoId = null;
+                window.jumboPlayYouTube(vid);
+              }
+            },
+            'onStateChange': function(event) {
+              if (typeof window.jumboYtStateCallback === 'function') {
+                try {
+                  window.jumboYtStateCallback(event.data);
+                } catch(e) {
+                  console.warn('Error in jumboYtStateCallback:', e);
+                }
+              }
+            },
+            'onError': function(event) {
+              console.warn('YouTube Player error code:', event.data);
+              if (typeof window.jumboYtErrorCallback === 'function') {
+                try {
+                  window.jumboYtErrorCallback(event.data);
+                } catch(e) {
+                  console.warn('Error in jumboYtErrorCallback:', e);
+                }
+              }
+            }
+          }
+        });
+      } catch(e) {
+        console.error('Failed to init YT.Player:', e);
+      }
+    };
+
+    window.jumboPlayYouTube = function(videoId) {
+      if (!videoId) return;
+      if (window.jumboYtPlayer && window.jumboYtReady && typeof window.jumboYtPlayer.loadVideoById === 'function') {
+        try {
+          window.jumboYtPlayer.loadVideoById(videoId);
+          window.jumboYtPlayer.playVideo();
+        } catch(e) {
+          console.warn('Error in jumboPlayYouTube loadVideoById:', e);
+        }
+      } else {
+        window.jumboYtQueuedVideoId = videoId;
+        if (window.YT && window.YT.Player && !window.jumboYtPlayer) {
+          window.onYouTubeIframeAPIReady();
+        }
+      }
+    };
+
+    window.jumboPauseYouTube = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.pauseVideo === 'function') {
+        try { window.jumboYtPlayer.pauseVideo(); } catch(e) {}
+      }
+    };
+
+    window.jumboResumeYouTube = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.playVideo === 'function') {
+        try { window.jumboYtPlayer.playVideo(); } catch(e) {}
+      }
+    };
+
+    window.jumboStopYouTube = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.stopVideo === 'function') {
+        try { window.jumboYtPlayer.stopVideo(); } catch(e) {}
+      }
+    };
+
+    window.jumboSeekYouTube = function(seconds) {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.seekTo === 'function') {
+        try { window.jumboYtPlayer.seekTo(seconds, true); } catch(e) {}
+      }
+    };
+
+    window.jumboSetYouTubeVolume = function(volume) {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.setVolume === 'function') {
+        try { window.jumboYtPlayer.setVolume(Math.round(volume * 100)); } catch(e) {}
+      }
+    };
+
+    window.jumboGetYouTubeCurrentTime = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.getCurrentTime === 'function') {
+        try { return window.jumboYtPlayer.getCurrentTime() || 0; } catch(e) { return 0; }
+      }
+      return 0;
+    };
+
+    window.jumboGetYouTubeDuration = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.getDuration === 'function') {
+        try { return window.jumboYtPlayer.getDuration() || 0; } catch(e) { return 0; }
+      }
+      return 0;
+    };
+
+    window.jumboGetYouTubePlayerState = function() {
+      if (window.jumboYtPlayer && typeof window.jumboYtPlayer.getPlayerState === 'function') {
+        try { return window.jumboYtPlayer.getPlayerState(); } catch(e) { return -1; }
+      }
+      return -1;
+    };
+
+    window.jumboRegisterYtCallbacks = function(onState, onError) {
+      window.jumboYtStateCallback = onState;
+      window.jumboYtErrorCallback = onError;
+    };
+  </script>
+
+  <!-- Hidden YouTube Player for Seamless Web Audio (api-samples-master) -->
+  <div id="jumbo-yt-player-container" style="position:fixed;bottom:0;right:0;width:200px;height:200px;opacity:0.001;pointer-events:none;z-index:-1;">
+    <div id="jumbo-yt-player"></div>
+  </div>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    // Ensure localhost always loads fresh code without stale service worker caching
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (var i = 0; i < registrations.length; i++) {
+            registrations[i].unregister();
+          }
+        });
+      }
+    }
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>

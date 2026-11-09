@@ -98,19 +98,21 @@ class _SearchTabState extends State<SearchTab> {
       }
     });
 
-    _debounceTimer = Timer(const Duration(milliseconds: 250), () async {
+    _debounceTimer = Timer(const Duration(milliseconds: 350), () async {
       // 2. Fetch live online 320 kbps matches from JioSaavn API
       final onlineMatches = await MusicApiService.searchLiveSongs(
         trimmed,
         limit: 25,
       );
 
-      final Set<String> seenUrls = {};
+      final Set<String> seenIds = {};
+      final Set<String> seenKeys = {};
       final List<Song> combined = [];
 
-      for (final song in [...localMatches, ...onlineMatches]) {
-        if (!seenUrls.contains(song.audioUrl)) {
-          seenUrls.add(song.audioUrl);
+      // Prioritize online ranked results (#1 token match) while preserving unique local library tracks
+      for (final song in [...onlineMatches, ...localMatches]) {
+        final key = SongParserUtils.searchDeduplicationKey(song);
+        if (seenIds.add(song.id) && (key.isEmpty || seenKeys.add(key))) {
           combined.add(song);
         }
       }
@@ -228,10 +230,11 @@ class _SearchTabState extends State<SearchTab> {
                             cursorColor: const Color(0xFF6366F1),
                             onChanged: _onSearchChanged,
                             onSubmitted: (val) {
-                              if (val.trim().isNotEmpty) {
-                                DatabaseService.instance.addSearchQuery(
-                                  val.trim(),
-                                );
+                              final trimmed = val.trim();
+                              if (trimmed.isNotEmpty) {
+                                DatabaseService.instance.addSearchQuery(trimmed);
+                                _debounceTimer?.cancel();
+                                _triggerSearch(trimmed);
                               }
                             },
                             decoration: InputDecoration(
@@ -514,9 +517,10 @@ class _SearchTabState extends State<SearchTab> {
                         ),
                       ],
 
-                      // B. When Query is Typed -> Dynamic Suggestions
+                      // B. When Query is Typed -> Dynamic Suggestions (shown only when results are not yet loaded)
                       if (_searchQuery.isNotEmpty &&
-                          _suggestions.isNotEmpty) ...[
+                          _suggestions.isNotEmpty &&
+                          _searchResults.isEmpty) ...[
                         ..._suggestions.map((suggestion) {
                           return InkWell(
                             onTap: () {
@@ -693,7 +697,7 @@ class _SearchTabState extends State<SearchTab> {
                                 Navigator.of(context).push(
                                   PageRouteBuilder(
                                     pageBuilder: (context, anim1, anim2) =>
-                                        const NowPlayingScreen(),
+                                        NowPlayingScreen(initialSong: song),
                                     transitionsBuilder:
                                         (context, anim1, anim2, child) {
                                           const begin = Offset(0.0, 1.0);
