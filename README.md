@@ -73,7 +73,7 @@ A cross-platform (Android APK + Web PWA / Desktop) high-fidelity music streaming
 
 ### Prerequisites
 - [Flutter SDK](https://flutter.dev/docs/get-started/install) (3.12.0+ recommended)
-- Java 17+ (for Android builds)
+- Java 25+ (for Android builds)
 - [Firebase CLI](https://firebase.google.com/docs/cli) (for deployment)
 
 ### CLI Commands
