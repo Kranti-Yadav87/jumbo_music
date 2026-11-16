@@ -108,11 +108,6 @@ void main() {
       () {
         expect(AppConfig.appName, equals('Jumbo Music'));
         expect(AppConfig.appVersion, equals('2.0.0'));
-        expect(
-          AppConfig.apiHeaders,
-          containsPair('Content-Type', 'application/json'),
-        );
-
         // Verify mock override functionality
         AppConfig.mockUseUnofficialCatalog = false;
         expect(AppConfig.isUnofficialCatalogEnabled, isFalse);

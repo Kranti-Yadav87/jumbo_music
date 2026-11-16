@@ -5,19 +5,6 @@ import '../services/database_service.dart';
 class AppConfig {
   AppConfig._();
 
-  /// Supabase endpoint URL for music catalog search and streaming functions
-  static const String supabaseEndpoint = String.fromEnvironment(
-    'SPOTIFY_ENDPOINT',
-    defaultValue:
-        'https://uwvsyladvvvjqlgnqppq.supabase.co/functions/v1/spotify',
-  );
-
-  /// Supabase anon public key (can be injected via --dart-define=SPOTIFY_ANON_KEY=xxx if required)
-  static const String supabaseAnonKey = String.fromEnvironment(
-    'SPOTIFY_ANON_KEY',
-    defaultValue: '',
-  );
-
   /// Jamendo client id (free at https://devportal.jamendo.com). When set,
   /// search falls back to Jamendo's legal FULL-length tracks before the
   /// 30-second iTunes previews. Pass with --dart-define=JAMENDO_CLIENT_ID=xxx
@@ -26,8 +13,8 @@ class AppConfig {
     defaultValue: '',
   );
 
-  /// Flag indicating whether the unofficial music catalog (Supabase/JioSaavn & iTunes)
-  /// is enabled. When false, only the official Jamendo catalog is used.
+  /// Controls whether YouTube and iTunes catalog search is enabled.
+  /// When false, search uses only the Jamendo catalog.
   /// Pass with --dart-define=USE_UNOFFICIAL_CATALOG=false
   static const bool useUnofficialCatalog = bool.fromEnvironment(
     'USE_UNOFFICIAL_CATALOG',
@@ -38,8 +25,6 @@ class AppConfig {
   static bool? mockUseUnofficialCatalog;
   static String? mockJamendoClientId;
   static String? mockGeminiApiKey;
-  static String? mockSupabaseAnonKey;
-  static String? mockYoutubeApiKey;
 
   /// Effective catalog flag (respects mock override in tests)
   static bool get isUnofficialCatalogEnabled =>
@@ -48,10 +33,6 @@ class AppConfig {
   /// Effective Jamendo client ID (respects mock override in tests)
   static String get activeJamendoClientId =>
       mockJamendoClientId ?? jamendoClientId;
-
-  /// Effective Supabase anon key (respects mock override in tests)
-  static String get activeSupabaseAnonKey =>
-      mockSupabaseAnonKey ?? supabaseAnonKey;
 
   /// App name & version metadata
   static const String appName = 'Jumbo Music';
@@ -82,12 +63,9 @@ class AppConfig {
         '375294688779-on4vsckpke482km54jl3vsraj0s9ulkt.apps.googleusercontent.com',
   );
 
-  /// Google Gemini AI API key for AI DJ, playlist generation & song insights.
-  /// Injected via --dart-define=GEMINI_API_KEY=xxx or configured in App Settings.
+  /// Optional user-provided Gemini API key. Do not inject private keys into client builds.
   static String get geminiApiKey {
     if (mockGeminiApiKey != null) return mockGeminiApiKey!;
-    const envKey = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
-    if (envKey.isNotEmpty) return envKey;
     try {
       final fromDb =
           DatabaseService.instance.getSetting('gemini_api_key')?.toString() ??
@@ -97,32 +75,6 @@ class AppConfig {
     return '';
   }
 
-  /// YouTube Music InnerTube API Key extracted from ytmusicapi.
-  /// Injected via --dart-define=YOUTUBE_API_KEY=xxx or configured in App Settings.
-  static String get youtubeApiKey {
-    if (mockYoutubeApiKey != null) return mockYoutubeApiKey!;
-    const envKey = String.fromEnvironment(
-      'YOUTUBE_API_KEY',
-      defaultValue: 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30',
-    );
-    if (envKey.isNotEmpty) return envKey;
-    try {
-      final fromDb =
-          DatabaseService.instance.getSetting('youtube_api_key')?.toString() ??
-          '';
-      if (fromDb.isNotEmpty) return fromDb;
-    } catch (_) {}
-    return 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30';
-  }
-
-  /// Headers map for music API calls. Only adds auth headers if a key is provided.
-  static Map<String, String> get apiHeaders {
-    final key = activeSupabaseAnonKey;
-    final headers = <String, String>{'Content-Type': 'application/json'};
-    if (key.isNotEmpty) {
-      headers['apikey'] = key;
-      headers['Authorization'] = 'Bearer $key';
-    }
-    return headers;
-  }
+  /// Optional user-provided YouTube Music key for native clients.
+  /// Web requests use the same-origin API proxy; never compile a private key into a client.
 }
