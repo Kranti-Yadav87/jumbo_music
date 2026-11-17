@@ -30,6 +30,7 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
   );
   bool _ready = false;
   bool _listening = false;
+  bool _starting = false;
 
   static const _hindiSetting = 'voice_search_hindi';
 
@@ -44,10 +45,18 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
   }
 
   Future<void> _toggleLanguage() async {
+    if (_starting) return;
+
     if (_listening) {
-      await _speech.cancel();
-      _setListening(false);
+      try {
+        await _speech.cancel();
+      } catch (_) {
+        _ready = false;
+      } finally {
+        _setListening(false);
+      }
     }
+
     await DatabaseService.instance.updateSetting(_hindiSetting, !_hindi);
     if (!mounted) return;
     setState(() {});
@@ -80,13 +89,25 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
   }
 
   Future<void> _toggle() async {
+    if (_starting) return;
+
     if (_listening) {
-      await _speech.stop();
-      _setListening(false);
+      _starting = true;
+      try {
+        await _speech.stop();
+      } catch (_) {
+        _ready = false;
+        _toast('Could not stop voice search. Please try again.');
+      } finally {
+        _setListening(false);
+        _starting = false;
+      }
       return;
     }
-    if (!_ready) {
-      try {
+
+    _starting = true;
+    try {
+      if (!_ready) {
         _ready = await _speech.initialize(
           onStatus: (status) {
             if (status == SpeechToText.doneStatus ||
@@ -95,6 +116,7 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
             }
           },
           onError: (error) {
+            _ready = false;
             _setListening(false);
             _toast(
               error.permanent
@@ -103,31 +125,40 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
             );
           },
         );
-      } catch (_) {
-        _ready = false;
       }
+
       if (!_ready) {
         _toast('Voice search is not available on this device or browser.');
         return;
       }
+
+      HapticFeedback.selectionClick();
+      _setListening(true);
+
+      await _speech.listen(
+        onResult: (result) {
+          final words = result.recognizedWords.trim();
+          if (words.isNotEmpty) widget.onWords(words, result.finalResult);
+          if (result.finalResult) _setListening(false);
+        },
+        listenOptions: SpeechListenOptions(
+          listenMode: ListenMode.search,
+          partialResults: true,
+          cancelOnError: true,
+          listenFor: const Duration(seconds: 12),
+          pauseFor: const Duration(seconds: 3),
+          localeId: _localeId,
+        ),
+      );
+    } catch (_) {
+      _ready = false;
+      _setListening(false);
+      _toast(
+        'Voice search could not start. Check microphone access and try again.',
+      );
+    } finally {
+      _starting = false;
     }
-    HapticFeedback.selectionClick();
-    _setListening(true);
-    await _speech.listen(
-      onResult: (result) {
-        final words = result.recognizedWords.trim();
-        if (words.isNotEmpty) widget.onWords(words, result.finalResult);
-        if (result.finalResult) _setListening(false);
-      },
-      listenOptions: SpeechListenOptions(
-        listenMode: ListenMode.search,
-        partialResults: true,
-        cancelOnError: true,
-        listenFor: const Duration(seconds: 12),
-        pauseFor: const Duration(seconds: 3),
-        localeId: _localeId,
-      ),
-    );
   }
 
   @override
@@ -173,7 +204,7 @@ class _VoiceSearchButtonState extends State<VoiceSearchButton>
       child: IconButton(
         key: const ValueKey('voice-search-button'),
         tooltip: _listening ? 'Stop listening' : 'Search by voice',
-        onPressed: _toggle,
+        onPressed: _starting ? null : _toggle,
         icon: AnimatedBuilder(
           animation: _pulse,
           builder: (context, child) {

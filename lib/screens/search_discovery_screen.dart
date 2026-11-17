@@ -273,13 +273,15 @@ class _SearchDiscoveryScreenState extends State<SearchDiscoveryScreen> {
                         _triggerSearch(words);
                         _focusNode.unfocus();
                       } else {
+                        // Show interim speech without firing repeated
+                        // network searches. Search once when speech is final.
+                        _debounceTimer?.cancel();
                         _searchController.value = TextEditingValue(
                           text: words,
                           selection: TextSelection.collapsed(
                             offset: words.length,
                           ),
                         );
-                        _onSearchChanged(words);
                       }
                     },
                   ),
