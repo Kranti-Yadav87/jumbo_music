@@ -5,7 +5,7 @@ import '../services/connectivity_service.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/now_playing_screen.dart';
 import 'home_tab.dart';
-import 'search_tab.dart';
+import 'search_discovery_screen.dart';
 import 'library_tab.dart';
 import 'profile_screen.dart';
 import '../services/update_checker_service.dart';
@@ -28,7 +28,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     super.initState();
     _tabs = [
       HomeTab(onProfileTap: () => setState(() => _currentIndex = 3)),
-      SearchTab(onBack: () => setState(() => _currentIndex = 0)),
+      SearchDiscoveryScreen(onBack: () => setState(() => _currentIndex = 0)),
       const LibraryTab(),
       const ProfileScreen(showHeader: false),
     ];
@@ -217,35 +217,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
 
                   // 3. CENTER BUTTON: CONTINUE PLAY (Headphones / Play Glowing Button) - Screenshot 1
-                  GestureDetector(
-                    onTap: () => _openNowPlaying(context),
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF38BDF8).withOpacity(0.55),
-                            blurRadius: 12,
-                            spreadRadius: 2,
-                            offset: const Offset(0, 2),
+                  Semantics(
+                    button: true,
+                    label: 'Continue playing',
+                    child: GestureDetector(
+                      key: const ValueKey('continue-playing-button'),
+                      onTap: () => _openNowPlaying(context),
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF38BDF8).withOpacity(0.55),
+                              blurRadius: 12,
+                              spreadRadius: 2,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Center(
+                          child: Icon(
+                            manager.isPlaying
+                                ? Icons.headphones_rounded
+                                : Icons.play_arrow_rounded,
+                            color: const Color(0xFF081220),
+                            size: 26,
                           ),
-                        ],
-                      ),
-                      child: Center(
-                        child: Icon(
-                          manager.isPlaying
-                              ? Icons.headphones_rounded
-                              : Icons.play_arrow_rounded,
-                          color: const Color(0xFF081220),
-                          size: 26,
                         ),
                       ),
                     ),
                   ),
-
                   // 4. Library (Active when _currentIndex == 2)
                   _buildNavItem(
                     tabIndex: 2,
@@ -284,29 +288,35 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         : const Color(0xFF0284C7);
     final inactiveColor = isDark ? Colors.white60 : const Color(0xFF94A3B8);
 
-    return InkWell(
-      onTap: () => setState(() => _currentIndex = tabIndex),
-      borderRadius: BorderRadius.circular(16),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected ? activeColor : inactiveColor,
-              size: 23,
-            ),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: label,
+      child: InkWell(
+        key: ValueKey('main-navigation-${label.toLowerCase()}'),
+        onTap: () => setState(() => _currentIndex = tabIndex),
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
                 color: isSelected ? activeColor : inactiveColor,
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                size: 23,
               ),
-            ),
-          ],
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? activeColor : inactiveColor,
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

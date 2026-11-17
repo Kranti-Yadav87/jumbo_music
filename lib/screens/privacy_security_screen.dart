@@ -51,7 +51,7 @@ class PrivacySecurityScreen extends StatelessWidget {
                 children: [
                   Text(
                     isGuest
-                        ? 'This will permanently wipe all your local guest favorites, playlists, downloads, and listening history.'
+                        ? 'This will permanently delete your locally stored favorites, playlists, downloads, and listening history.'
                         : 'This will permanently delete your Jumbo Music cloud account, your Firestore profile, all synchronized playlists, favorites, history, and local downloads. This action cannot be undone.',
                     style: const TextStyle(
                       color: Colors.white70,

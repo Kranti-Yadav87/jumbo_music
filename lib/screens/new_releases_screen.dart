@@ -116,7 +116,7 @@ class NewReleasesScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Text(
-                                  '🔥 Fresh Drops',
+                                  'Fresh Drops',
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,

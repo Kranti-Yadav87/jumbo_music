@@ -27,46 +27,69 @@ class _AiDjSheetState extends State<AiDjSheet> {
 
   static const List<Map<String, String>> _quickVibes = [
     {
-      'emoji': '🌧️',
+      'icon': 'rainy',
       'label': 'Monsoon Chai',
       'prompt': 'Rainy monsoon acoustic emotional bollywood vibes',
     },
     {
-      'emoji': '🔥',
+      'icon': 'fire',
       'label': 'Gym Beast Mode',
       'prompt': 'High energy gym workout motivational pump trap rap',
     },
     {
-      'emoji': '🌙',
+      'icon': 'night',
       'label': 'Late Night Drive',
       'prompt': 'Late night cruising lo-fi chill hindi melodies',
     },
     {
-      'emoji': '💔',
+      'icon': 'heartbreak',
       'label': 'Heartbreak Pain',
       'prompt': 'Deep sad heartbreak acoustic soulful hindi songs',
     },
     {
-      'emoji': '✨',
+      'icon': 'stars',
       'label': '90s Golden Era',
       'prompt': 'Best nostalgic 90s and 2000s bollywood evergreen hits',
     },
     {
-      'emoji': '⚡',
+      'icon': 'bolt',
       'label': 'Party Anthem',
       'prompt': 'High octane club party dance bangers upbeat',
     },
     {
-      'emoji': '☕',
+      'icon': 'coffee',
       'label': 'Study & Focus',
       'prompt': 'Relaxing calm acoustic instrumental focus study music',
     },
     {
-      'emoji': '🎸',
+      'icon': 'guitar',
       'label': 'Indie Gems',
       'prompt': 'Underrated modern indian indie acoustic folk pop',
     },
   ];
+
+  static IconData _vibeIcon(String name) {
+    switch (name) {
+      case 'rainy':
+        return Icons.water_drop_rounded;
+      case 'fire':
+        return Icons.local_fire_department_rounded;
+      case 'night':
+        return Icons.nightlight_round;
+      case 'heartbreak':
+        return Icons.heart_broken_rounded;
+      case 'stars':
+        return Icons.auto_awesome_rounded;
+      case 'bolt':
+        return Icons.bolt_rounded;
+      case 'coffee':
+        return Icons.coffee_rounded;
+      case 'guitar':
+        return Icons.music_note_rounded;
+      default:
+        return Icons.music_note_rounded;
+    }
+  }
 
   @override
   void initState() {
@@ -312,9 +335,10 @@ class _AiDjSheetState extends State<AiDjSheet> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        item['emoji']!,
-                        style: const TextStyle(fontSize: 13),
+                      Icon(
+                        _vibeIcon(item['icon']!),
+                        size: 15,
+                        color: Colors.white70,
                       ),
                       const SizedBox(width: 6),
                       Text(

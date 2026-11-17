@@ -107,7 +107,7 @@ class AddFriendDialog {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
-                                'Friend request sent to $email! 📨',
+                                'Friend request sent to $email!',
                               ),
                               behavior: SnackBarBehavior.floating,
                             ),

@@ -54,7 +54,7 @@ class _BtsSectionState extends State<BtsSection> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const HomeSectionHeader(
-          title: 'BTS Hits 💜',
+          title: 'BTS Hits',
           subtitle: 'Dynamite, Butter, Boy With Luv & Bangtan Army anthems',
         ),
         if (_isLoading)

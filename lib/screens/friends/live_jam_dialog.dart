@@ -114,7 +114,7 @@ class LiveJamDialog {
                 SnackBar(
                   content: Text(
                     newState
-                        ? '🎧 Live Jam Room $roomCode is ACTIVE! Both devices will play together.'
+                        ? 'Live Jam Room $roomCode is ACTIVE! Both devices will play together.'
                         : 'Left Live Jam room.',
                   ),
                   backgroundColor: const Color(0xFFFF5E3A),

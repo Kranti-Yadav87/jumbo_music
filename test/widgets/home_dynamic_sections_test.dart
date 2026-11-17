@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:jumbo_music/data/music_repository.dart';
@@ -9,6 +10,7 @@ import 'package:jumbo_music/widgets/home/search_inspired_section.dart';
 import 'package:jumbo_music/widgets/home/featured_playlists_section.dart';
 import 'package:jumbo_music/widgets/home/bts_section.dart';
 import 'package:jumbo_music/widgets/home/continue_playing_section.dart';
+import 'package:jumbo_music/widgets/home/youtube_home_feed.dart';
 
 import 'package:jumbo_music/services/storage/storage_engine.dart';
 
@@ -80,7 +82,7 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.text('BTS Hits 💜'), findsOneWidget);
+      expect(find.text('BTS Hits'), findsOneWidget);
     });
 
     testWidgets(
@@ -232,5 +234,203 @@ void main() {
         expect(db.lastPlayedSong, isNull);
       },
     );
+
+    testWidgets('Home feed does not duplicate an in-flight category request', (
+      tester,
+    ) async {
+      final bollywoodRequest = Completer<List<Song>>();
+      final chillRequest = Completer<List<Song>>();
+      final requestCounts = <String, int>{};
+
+      MusicApiService.mockSearchLiveSongs = (query, {int limit = 30}) {
+        requestCounts[query] = (requestCounts[query] ?? 0) + 1;
+        if (query == 'bollywood hits') return bollywoodRequest.future;
+        if (query == 'lofi chill music') return chillRequest.future;
+        return Future.value([mockSong]);
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: YouTubeHomeFeed())),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-category-bollywood')),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('home-feed-category-chill')));
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-category-bollywood')),
+      );
+      await tester.pump();
+
+      expect(requestCounts['bollywood hits'], 1);
+      expect(requestCounts['lofi chill music'], 1);
+
+      bollywoodRequest.complete([mockSong]);
+      chillRequest.complete([mockSong]);
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+    });
+
+    testWidgets('Home feed ignores stale category failures', (tester) async {
+      final bollywoodRequest = Completer<List<Song>>();
+      final chillRequest = Completer<List<Song>>();
+
+      MusicApiService.mockSearchLiveSongs = (query, {int limit = 30}) {
+        if (query == 'bollywood hits') return bollywoodRequest.future;
+        if (query == 'lofi chill music') return chillRequest.future;
+        return Future.value([mockSong]);
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: YouTubeHomeFeed())),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-category-bollywood')),
+      );
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('home-feed-category-chill')));
+      await tester.pump();
+
+      chillRequest.completeError(Exception('Chill request failed'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Could not load Chill right now.'), findsOneWidget);
+
+      bollywoodRequest.completeError(
+        Exception('Stale Bollywood request failed'),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('Could not load Chill right now.'), findsOneWidget);
+    });
+
+    testWidgets('Home feed Show more reveals 8, 16, then 24 cards', (
+      tester,
+    ) async {
+      final songs = List.generate(
+        24,
+        (index) => Song(
+          id: 'feed_$index',
+          title: 'Feed Track $index',
+          artist: 'Feed Artist $index',
+          album: 'Feed Album $index',
+          duration: const Duration(seconds: 180),
+          coverUrl: '',
+          audioUrl: 'https://example.com/feed_$index.mp3',
+        ),
+      );
+
+      MusicApiService.mockSearchLiveSongs = (query, {int limit = 30}) async {
+        return songs.take(limit).toList();
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: YouTubeHomeFeed())),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-category-bollywood')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-feed_7')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-feed_8')),
+        findsNothing,
+      );
+
+      final showMore = find.byKey(
+        const ValueKey('home-feed-show-more-button'),
+      );
+
+      await tester.ensureVisible(showMore);
+      await tester.tap(showMore);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-feed_15')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-feed_16')),
+        findsNothing,
+      );
+
+      final secondShowMore = find.byKey(
+        const ValueKey('home-feed-show-more-button'),
+      );
+      await tester.ensureVisible(secondShowMore);
+      await tester.tap(secondShowMore);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-feed_23')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('home-feed-show-more-button')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('Home feed Retry reloads a failed category', (tester) async {
+      var requestCount = 0;
+
+      MusicApiService.mockSearchLiveSongs = (query, {int limit = 30}) {
+        requestCount++;
+        if (requestCount == 1) {
+          return Future.error(Exception('Temporary network failure'));
+        }
+        return Future.value([mockSong]);
+      };
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: YouTubeHomeFeed())),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-category-bollywood')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestCount, 1);
+      expect(find.text('Could not load Bollywood right now.'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('home-feed-retry-button')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('home-feed-retry-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(requestCount, 2);
+      expect(find.text('Could not load Bollywood right now.'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('video-thumbnail-card-test_mock_1')),
+        findsOneWidget,
+      );
+    });
   });
 }

@@ -1,45 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
-import '../../services/database_service.dart';
 import '../../services/music_player_manager.dart';
 import '../../screens/auth_gate.dart';
 import '../../screens/playlist_detail_screen.dart';
 
 /// Informational banner shown when in guest mode.
-class GuestModeBanner extends StatelessWidget {
-  const GuestModeBanner({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withOpacity(0.15),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.5)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.info_outline_rounded, color: Color(0xFF818CF8), size: 20),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Guest mode - data stays on this device and is cleared on logout. Log out and sign in to sync.',
-              style: TextStyle(
-                color: Color(0xFFC7D2FE),
-                fontSize: 12.5,
-                height: 1.35,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Confirmation dialog for logging out.
 void showProfileLogoutDialog(BuildContext context) {
   showDialog(
     context: context,
@@ -51,9 +16,7 @@ void showProfileLogoutDialog(BuildContext context) {
         style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
       content: Text(
-        DatabaseService.instance.isGuest
-            ? 'You are in guest mode. Logging out will clear your guest favorites, playlists and downloads from this device.'
-            : 'Are you sure you want to sign out? Your offline cached songs and playlists will remain saved on this device.',
+        'Are you sure you want to sign out? Your offline cached songs and playlists will remain saved on this device.',
         style: const TextStyle(color: Colors.white70),
       ),
       actions: [

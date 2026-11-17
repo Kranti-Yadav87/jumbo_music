@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen>
         final name = DatabaseService.instance.userName;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome back, $name! 🎵 Connected to Cloud'),
+            content: Text('Welcome back, $name! Connected to Cloud'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Welcome, ${DatabaseService.instance.userName}! 🎉'),
+            content: Text('Welcome, ${DatabaseService.instance.userName}!'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Account created! Verification link sent to $email ✉️',
+              'Account created! Verification link sent to $email',
             ),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
@@ -184,23 +184,6 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _continueAsGuest() async {
-    setState(() => _isLoading = true);
-    await DatabaseService.instance.loginAsGuest();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Guest mode: your data stays on this device only and is cleared when you log out. Sign in to keep and sync it ✨',
-          ),
-          backgroundColor: Color(0xFF6366F1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      _proceedToApp();
     }
   }
 
@@ -278,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                        'Reset link sent to $email! Check inbox/spam folder ✉️',
+                        'Reset link sent to $email! Check inbox/spam folder',
                       ),
                       backgroundColor: const Color(0xFF10B981),
                     ),
@@ -844,28 +827,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  // Continue as Guest Button
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white60,
-                      size: 16,
-                    ),
-                    label: const Text(
-                      'Continue as Guest / Explore Music 🎧',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: _isLoading ? null : _continueAsGuest,
-                  ),
-                  const SizedBox(height: 16),
 
                   // 4. Working App Download Card & Action
                   Container(

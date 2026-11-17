@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/database_service.dart';
 import '../services/music_player_manager.dart';
 import '../services/theme_service.dart';
-import '../screens/search_tab.dart';
+import '../screens/search_discovery_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/privacy_security_screen.dart';
 import '../screens/feedback_screen.dart';
@@ -962,7 +962,9 @@ class AppTopHeader extends StatelessWidget {
                     } else {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const SearchTab()),
+                        MaterialPageRoute(
+                          builder: (_) => const SearchDiscoveryScreen(),
+                        ),
                       );
                     }
                   },

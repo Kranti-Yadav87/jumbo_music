@@ -434,7 +434,11 @@ class AppFooter extends StatelessWidget {
                             : const Color(0xFF64748B),
                       ),
                     ),
-                    const Text('❤️', style: TextStyle(fontSize: 13)),
+                    const Icon(
+                      Icons.favorite_rounded,
+                      size: 14,
+                      color: Color(0xFFE25565),
+                    ),
                     Text(
                       ' by ',
                       style: TextStyle(

@@ -117,7 +117,7 @@ class FriendListeningTile extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     friend.isListening && friend.currentSongTitle.isNotEmpty
-                        ? '🎵 ${friend.currentSongTitle} • ${friend.currentSongArtist}'
+                        ? '${friend.currentSongTitle} • ${friend.currentSongArtist}'
                         : (friend.isOnline ? 'Online' : 'Offline'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

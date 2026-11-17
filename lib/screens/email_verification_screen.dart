@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
-import '../services/database_service.dart';
 import 'main_navigation_screen.dart';
 import 'login_screen.dart';
 
@@ -119,19 +118,6 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       }
     } finally {
       if (mounted) setState(() => _isResending = false);
-    }
-  }
-
-  Future<void> _continueAsGuest() async {
-    final randomId =
-        'JM-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-    await DatabaseService.instance.login(
-      email: 'guest.listener@jumbomusic.app',
-      name: 'Guest Explorer',
-      userId: randomId,
-    );
-    if (mounted) {
-      _proceed();
     }
   }
 
@@ -359,44 +345,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  Row(
-                    children: const [
-                      Expanded(child: Divider(color: Colors.white12)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
-                        child: Text(
-                          'OR',
-                          style: TextStyle(
-                            color: Colors.white38,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Expanded(child: Divider(color: Colors.white12)),
-                    ],
-                  ),
                   const SizedBox(height: 14),
-
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                    ),
-                    icon: const Icon(
-                      Icons.arrow_forward_rounded,
-                      color: Colors.white60,
-                      size: 16,
-                    ),
-                    label: const Text(
-                      'Continue as Guest for now',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    onPressed: _continueAsGuest,
-                  ),
 
                   TextButton.icon(
                     style: TextButton.styleFrom(

@@ -113,7 +113,7 @@ class UpdateCheckerService {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                      '📥 Download link copied to clipboard! Open in browser to install.',
+                      'Download link copied to clipboard! Open in browser to install.',
                     ),
                     backgroundColor: Color(0xFF6366F1),
                     behavior: SnackBarBehavior.floating,

@@ -1,5 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/services/api/youtube_search_service.dart';
+
+Song _testSong(String id, String title, String artist) {
+  return Song(
+    id: id,
+    title: title,
+    artist: artist,
+    duration: const Duration(minutes: 3),
+    audioUrl: '',
+    coverUrl: '',
+  );
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -252,6 +264,57 @@ void main() {
       expect(
         songs.first.duration,
         equals(const Duration(minutes: 3, seconds: 17)),
+      );
+    });
+
+    test('rankSearchResults prioritizes matching title and artist', () {
+      final songs = [
+        _testSong('1', 'Random Track', 'Unknown Artist'),
+        _testSong('2', 'Heer', 'Afusic'),
+        _testSong('3', 'Heer Acoustic', 'Another Singer'),
+      ];
+
+      final ranked = YouTubeSearchService.rankSearchResults(
+        songs,
+        'Heer by Afusic',
+      );
+
+      expect(ranked.first.id, '2');
+    });
+
+    test('rankSearchResults preserves original order for equal scores', () {
+      final songs = [
+        _testSong('first', 'Heer Remix', 'Singer One'),
+        _testSong('second', 'Heer Version', 'Singer Two'),
+      ];
+
+      final ranked = YouTubeSearchService.rankSearchResults(songs, 'Heer');
+
+      expect(ranked.map((song) => song.id).toList(), ['first', 'second']);
+    });
+
+    test('rankSearchResults respects result limit', () {
+      final songs = [
+        _testSong('1', 'Heer', 'Afusic'),
+        _testSong('2', 'Heer Remix', 'Afusic'),
+        _testSong('3', 'Heer Live', 'Afusic'),
+      ];
+
+      final ranked = YouTubeSearchService.rankSearchResults(
+        songs,
+        'Heer Afusic',
+        limit: 2,
+      );
+
+      expect(ranked, hasLength(2));
+    });
+
+    test('rankSearchResults returns empty for non-positive limit', () {
+      final songs = [_testSong('1', 'Heer', 'Afusic')];
+
+      expect(
+        YouTubeSearchService.rankSearchResults(songs, 'Heer', limit: 0),
+        isEmpty,
       );
     });
   });

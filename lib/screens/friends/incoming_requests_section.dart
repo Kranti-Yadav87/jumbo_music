@@ -160,7 +160,7 @@ class IncomingRequestsSection extends StatelessWidget {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Accepted request from ${req.fromName.isNotEmpty ? req.fromName : req.fromEmail}! 🎉',
+                              'Accepted request from ${req.fromName.isNotEmpty ? req.fromName : req.fromEmail}!',
                             ),
                             behavior: SnackBarBehavior.floating,
                           ),

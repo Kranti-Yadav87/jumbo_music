@@ -35,32 +35,70 @@ class YouTubeSearchService {
     return q.isNotEmpty ? q : query.trim();
   }
 
-  /// Performs a live search on YouTube Music for songs matching [query].
+  /// Ranks merged search results by title and artist relevance.
+  static List<Song> rankSearchResults(
+    List<Song> songs,
+    String query, {
+    int limit = 20,
+  }) {
+    if (songs.isEmpty || limit <= 0) return [];
+
+    final normalizedQuery = normalizeQuery(query).toLowerCase();
+    final tokens = normalizedQuery
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((token) => token.length > 1)
+        .toSet();
+
+    if (tokens.isEmpty) return songs.take(limit).toList();
+
+    int scoreFor(Song song) {
+      final title = song.title.toLowerCase();
+      final artist = song.artist.toLowerCase();
+      var score = 0;
+
+      for (final token in tokens) {
+        if (title.contains(token)) score += 4;
+        if (artist.contains(token)) score += 3;
+      }
+
+      if (title.contains(normalizedQuery)) score += 5;
+      if (artist.contains(normalizedQuery)) score += 5;
+
+      return score;
+    }
+
+    final ranked = songs.asMap().entries.toList();
+    ranked.sort((a, b) {
+      final comparison = scoreFor(b.value).compareTo(scoreFor(a.value));
+      return comparison != 0 ? comparison : a.key.compareTo(b.key);
+    });
+
+    return ranked.take(limit).map((entry) => entry.value).toList();
+  }
+
+  /// Searches both original and normalized wording, merges unique songs,
+  /// and ranks the combined results before applying the requested limit.
   static Future<List<Song>> search(String query, {int limit = 20}) async {
     final cleanQuery = query.trim();
-    if (cleanQuery.isEmpty) return [];
+    if (cleanQuery.isEmpty || limit <= 0) return [];
 
-    // 1. Initial primary query search
-    List<Song> results = await _executeSearch(cleanQuery, limit: limit);
-
-    // 2. Dual-pass normalization: If primary query contains conversational connectors
-    // (e.g. "heer by afusic", "kesariya by arijit") and returned 0 or few results,
-    // retry with the normalized query ("heer afusic").
     final normalized = normalizeQuery(cleanQuery);
-    if (normalized != cleanQuery && (results.isEmpty || results.length < 3)) {
+    final results = <Song>[];
+    final existingIds = <String>{};
+
+    final primaryResults = await _executeSearch(cleanQuery, limit: limit);
+    for (final song in primaryResults) {
+      if (existingIds.add(song.id)) results.add(song);
+    }
+
+    if (normalized.toLowerCase() != cleanQuery.toLowerCase()) {
       final fallbackResults = await _executeSearch(normalized, limit: limit);
-      if (fallbackResults.isNotEmpty) {
-        final existingIds = results.map((s) => s.id).toSet();
-        for (final s in fallbackResults) {
-          if (existingIds.add(s.id)) {
-            results.add(s);
-          }
-          if (results.length >= limit) break;
-        }
+      for (final song in fallbackResults) {
+        if (existingIds.add(song.id)) results.add(song);
       }
     }
 
-    return results;
+    return rankSearchResults(results, normalized, limit: limit);
   }
 
   static Future<List<Song>> _executeSearch(

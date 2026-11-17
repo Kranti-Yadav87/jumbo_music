@@ -5,7 +5,6 @@ import '../widgets/app_top_header.dart';
 import '../widgets/profile/profile_avatar_header.dart';
 import '../widgets/profile/profile_stats_row.dart';
 import '../widgets/profile/profile_account_section.dart';
-import '../widgets/profile/profile_dialogs.dart';
 
 class ProfileScreen extends StatelessWidget {
   final bool showHeader;
@@ -68,10 +67,6 @@ class ProfileScreen extends StatelessWidget {
                           const SliverToBoxAdapter(
                             child: AppTopHeader(title: 'Jumbo Music'),
                           ),
-
-                        // Guest mode banner
-                        if (db.isGuest)
-                          const SliverToBoxAdapter(child: GuestModeBanner()),
 
                         const SliverToBoxAdapter(child: SizedBox(height: 20)),
 

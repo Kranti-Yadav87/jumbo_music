@@ -340,24 +340,24 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
 
             // Platform Instruction Cards (matching REC MedAssist style)
             _buildPlatformCard(
-              icon: '📱',
+              icon: Icons.phone_android_rounded,
               title: 'Android (Chrome / Edge / Samsung)',
               instructions:
-                  'Tap the ⋮ menu at top right → select "Install app" or "Add to Home screen".',
+                  'Tap the three-dot menu at top right → select "Install app" or "Add to Home screen".',
             ),
             const SizedBox(height: 9),
             _buildPlatformCard(
-              icon: '🍎',
+              icon: Icons.phone_iphone_rounded,
               title: 'iPhone / iPad (iOS Safari)',
               instructions:
-                  'Tap the Share button (⎋) at the bottom → select "Add to Home Screen" (➕).',
+                  'Tap the Share button at the bottom → select "Add to Home Screen".',
             ),
             const SizedBox(height: 9),
             _buildPlatformCard(
-              icon: '💻',
+              icon: Icons.desktop_windows_rounded,
               title: 'Desktop (Chrome, Edge, Brave, Mac)',
               instructions:
-                  'Click the Install icon (⊕) in the browser address bar for desktop app access.',
+                  'Click the Install icon in the browser address bar for desktop app access.',
             ),
           ],
         ),
@@ -366,7 +366,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
   }
 
   Widget _buildPlatformCard({
-    required String icon,
+    required IconData icon,
     required String title,
     required String instructions,
   }) {
@@ -380,7 +380,7 @@ class _DownloadAppContentState extends State<_DownloadAppContent> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 20, height: 1.2)),
+          Icon(icon, size: 22, color: Colors.white70),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

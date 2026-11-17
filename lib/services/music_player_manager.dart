@@ -938,6 +938,42 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
+    // Fetch recommendations immediately so Up Next is populated early.
+    try {
+      final liveRecs = await MusicApiService.fetchSmartRecommendations(
+        song,
+        limit: 30,
+      );
+      for (final recommendation in liveRecs) {
+        tryAddCandidate(recommendation);
+      }
+    } catch (error) {
+      debugPrint('[Queue] Smart recommendation fetch failed: $error');
+    }
+
+    // Use targeted era/language searches if the initial candidate pool is small.
+    if (immediateCandidates.length < 15) {
+      final targetedQueries = AiRecommendationEngine.getEraTargetedQueries(
+        seedLang,
+        seedEra,
+        song,
+      );
+      for (final query in targetedQueries) {
+        if (immediateCandidates.length >= 25) break;
+        try {
+          final matches = await MusicApiService.searchLiveSongs(
+            query,
+            limit: 10,
+          );
+          for (final match in matches) {
+            tryAddCandidate(match);
+          }
+        } catch (error) {
+          debugPrint('[Queue] Targeted recommendation fetch failed: $error');
+        }
+      }
+    }
+
     immediateCandidates.sort((a, b) {
       final scoreA = AiRecommendationEngine.instance.scoreCandidate(song, a);
       final scoreB = AiRecommendationEngine.instance.scoreCandidate(song, b);

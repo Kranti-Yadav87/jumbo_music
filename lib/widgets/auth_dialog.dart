@@ -87,8 +87,8 @@ class _AuthDialogState extends State<AuthDialog> {
           SnackBar(
             content: Text(
               _isSignUp
-                  ? 'Account created! Check inbox to verify your email 🎉'
-                  : 'Welcome back, ${db.userName}! 🎉',
+                  ? 'Account created! Check inbox to verify your email'
+                  : 'Welcome back, ${db.userName}!',
             ),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
@@ -122,7 +122,7 @@ class _AuthDialogState extends State<AuthDialog> {
         final db = DatabaseService.instance;
         messenger.showSnackBar(
           SnackBar(
-            content: Text('Signed in with Google as ${db.userName}! 🚀'),
+            content: Text('Signed in with Google as ${db.userName}!'),
             backgroundColor: const Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),
@@ -138,30 +138,6 @@ class _AuthDialogState extends State<AuthDialog> {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-    }
-  }
-
-  Future<void> _quickGuestLogin() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 300));
-    final randomId =
-        'JM-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-    final db = DatabaseService.instance;
-    await db.login(
-      email: 'guest.listener@jumbomusic.app',
-      name: 'Guest Explorer',
-      userId: randomId,
-    );
-    if (mounted) {
-      final messenger = ScaffoldMessenger.of(context);
-      Navigator.of(context).pop();
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Exploring in Guest Mode! (ID: $randomId) ✨'),
-          backgroundColor: const Color(0xFF6366F1),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
     }
   }
 
@@ -425,32 +401,6 @@ class _AuthDialogState extends State<AuthDialog> {
               ),
               const SizedBox(height: 10),
 
-              // Quick 1-Tap Guest Login
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 11),
-                  side: BorderSide(
-                    color: isDark ? Colors.white12 : Colors.black12,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                icon: const Icon(
-                  Icons.bolt_rounded,
-                  color: Color(0xFFF59E0B),
-                  size: 18,
-                ),
-                label: Text(
-                  'Continue as Guest',
-                  style: TextStyle(
-                    color: isDark ? Colors.white70 : const Color(0xFF64748B),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                onPressed: _isLoading ? null : _quickGuestLogin,
-              ),
               const SizedBox(height: 14),
 
               // Toggle between Log In and Sign Up

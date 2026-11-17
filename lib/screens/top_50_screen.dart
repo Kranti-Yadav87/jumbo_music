@@ -119,7 +119,7 @@ class Top50Screen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Text(
-                                      '🔥 OFFICIAL RANKINGS',
+                                      'OFFICIAL RANKINGS',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,

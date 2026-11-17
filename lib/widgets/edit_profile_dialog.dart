@@ -95,7 +95,7 @@ class _EditProfileDialogState extends State<EditProfileDialog> {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile updated successfully! ✨'),
+            content: Text('Profile updated successfully!'),
             backgroundColor: Color(0xFF10B981),
             behavior: SnackBarBehavior.floating,
           ),

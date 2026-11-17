@@ -76,7 +76,11 @@ class LyricsService {
     if (cleanTitle.isEmpty) return null;
 
     final artistCandidates = _getArtistCandidates(artist);
-    const headers = {'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)'};
+    final headers = kIsWeb
+        ? const <String, String>{}
+        : const <String, String>{
+            'User-Agent': 'JumboMusic/2.0.0 (https://jumbomusic.app)',
+          };
 
     // -------------------------------------------------------------
     // Tier 1 & 2: LRCLIB Exact GET for each candidate (duration & no-duration)
@@ -153,9 +157,7 @@ class LyricsService {
     // Tier 4: LRCLIB Search with title only (strict match)
     // -------------------------------------------------------------
     try {
-      final uri4 = Uri.https('lrclib.net', '/api/search', {
-        'track_name': cleanTitle,
-      });
+      final uri4 = Uri.https('lrclib.net', '/api/search', {'q': cleanTitle});
       final res4 = await _client
           .get(uri4, headers: headers)
           .timeout(const Duration(seconds: 5));
