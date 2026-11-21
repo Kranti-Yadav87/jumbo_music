@@ -13,6 +13,9 @@ class Song {
   final String releaseYear;
   final String quality;
   final bool isLiveStream;
+  final String downloadUrl;
+  final bool downloadAllowed;
+  final String licenseUrl;
 
   const Song({
     required this.id,
@@ -29,6 +32,9 @@ class Song {
     this.releaseYear = '2026',
     this.quality = '320 kbps HD',
     this.isLiveStream = false,
+    this.downloadUrl = '',
+    this.downloadAllowed = false,
+    this.licenseUrl = '',
   });
 
   Song copyWith({
@@ -46,6 +52,9 @@ class Song {
     String? releaseYear,
     String? quality,
     bool? isLiveStream,
+    String? downloadUrl,
+    bool? downloadAllowed,
+    String? licenseUrl,
   }) {
     return Song(
       id: id ?? this.id,
@@ -62,6 +71,9 @@ class Song {
       releaseYear: releaseYear ?? this.releaseYear,
       quality: quality ?? this.quality,
       isLiveStream: isLiveStream ?? this.isLiveStream,
+      downloadUrl: downloadUrl ?? this.downloadUrl,
+      downloadAllowed: downloadAllowed ?? this.downloadAllowed,
+      licenseUrl: licenseUrl ?? this.licenseUrl,
     );
   }
 
@@ -88,6 +100,9 @@ class Song {
       'releaseYear': releaseYear,
       'quality': quality,
       'isLiveStream': isLiveStream,
+      'downloadUrl': downloadUrl,
+      'downloadAllowed': downloadAllowed,
+      'licenseUrl': licenseUrl,
     };
   }
 
@@ -107,6 +122,9 @@ class Song {
       releaseYear: json['releaseYear'] as String? ?? '2026',
       quality: json['quality'] as String? ?? '320 kbps HD',
       isLiveStream: json['isLiveStream'] as bool? ?? false,
+      downloadUrl: json['downloadUrl'] as String? ?? '',
+      downloadAllowed: json['downloadAllowed'] as bool? ?? false,
+      licenseUrl: json['licenseUrl'] as String? ?? '',
     );
   }
 }

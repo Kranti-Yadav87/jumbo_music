@@ -95,7 +95,7 @@ class LyricsService {
             'duration': durationSeconds.toString(),
           });
           final res1 = await _client
-              .get(uri1, headers: headers)
+              .get(_proxyUri(uri1), headers: headers)
               .timeout(const Duration(seconds: 4));
           if (res1.statusCode == 200) {
             final data = jsonDecode(utf8.decode(res1.bodyBytes));
@@ -114,7 +114,7 @@ class LyricsService {
           if (cand.isNotEmpty) 'artist_name': cand,
         });
         final res2 = await _client
-            .get(uri2, headers: headers)
+            .get(_proxyUri(uri2), headers: headers)
             .timeout(const Duration(seconds: 4));
         if (res2.statusCode == 200) {
           final data = jsonDecode(utf8.decode(res2.bodyBytes));
@@ -136,7 +136,7 @@ class LyricsService {
           'q': '$cleanTitle $cand',
         });
         final res3 = await _client
-            .get(uri3, headers: headers)
+            .get(_proxyUri(uri3), headers: headers)
             .timeout(const Duration(seconds: 5));
         if (res3.statusCode == 200) {
           final list = jsonDecode(utf8.decode(res3.bodyBytes));
@@ -159,7 +159,7 @@ class LyricsService {
     try {
       final uri4 = Uri.https('lrclib.net', '/api/search', {'q': cleanTitle});
       final res4 = await _client
-          .get(uri4, headers: headers)
+          .get(_proxyUri(uri4), headers: headers)
           .timeout(const Duration(seconds: 5));
       if (res4.statusCode == 200) {
         final list = jsonDecode(utf8.decode(res4.bodyBytes));
@@ -217,7 +217,8 @@ class LyricsService {
     if (songId != null &&
         songId.isNotEmpty &&
         !songId.startsWith('song_') &&
-        !songId.startsWith('track_')) {
+        !songId.startsWith('track_') &&
+        !songId.startsWith('yt_')) {
       try {
         final uri = Uri.https('www.jiosaavn.com', '/api.php', {
           '__call': 'lyrics.getLyrics',
@@ -227,7 +228,9 @@ class LyricsService {
           '_format': 'json',
           '_marker': '0',
         });
-        final res = await _client.get(uri).timeout(const Duration(seconds: 4));
+        final res = await _client
+            .get(_proxyUri(uri))
+            .timeout(const Duration(seconds: 4));
         if (res.statusCode == 200) {
           final data = jsonDecode(utf8.decode(res.bodyBytes));
           if (data is Map && data['lyrics'] is String) {
@@ -250,7 +253,7 @@ class LyricsService {
         '_marker': '0',
       });
       final searchRes = await _client
-          .get(searchUri)
+          .get(_proxyUri(searchUri))
           .timeout(const Duration(seconds: 4));
       if (searchRes.statusCode == 200) {
         final data = jsonDecode(utf8.decode(searchRes.bodyBytes));
@@ -271,7 +274,7 @@ class LyricsService {
                   '_marker': '0',
                 });
                 final lrcRes = await _client
-                    .get(lyricsUri)
+                    .get(_proxyUri(lyricsUri))
                     .timeout(const Duration(seconds: 4));
                 if (lrcRes.statusCode == 200) {
                   final lrcData = jsonDecode(utf8.decode(lrcRes.bodyBytes));
@@ -290,6 +293,38 @@ class LyricsService {
     } catch (_) {}
 
     return null;
+  }
+
+  /// Routes browser requests through the same-origin Vercel API.
+  /// Native platforms continue using the original provider URLs.
+  Uri _proxyUri(Uri uri) {
+    if (!kIsWeb) return uri;
+
+    if (uri.host == 'lrclib.net') {
+      return Uri.base
+          .resolve('/api/lyrics')
+          .replace(
+            queryParameters: {
+              'provider': 'lrclib',
+              'endpoint': uri.pathSegments.last,
+              ...uri.queryParameters,
+            },
+          );
+    }
+
+    if (uri.host == 'www.jiosaavn.com') {
+      final params = Map<String, String>.from(uri.queryParameters);
+      final call = params.remove('__call');
+      if (call == null) return uri;
+
+      return Uri.base
+          .resolve('/api/lyrics')
+          .replace(
+            queryParameters: {'provider': 'jiosaavn', 'call': call, ...params},
+          );
+    }
+
+    return uri;
   }
 
   /// Extracts LRC text from LRCLIB response

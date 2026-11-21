@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+
 import '../../models/song.dart';
 import '../../services/download_service.dart';
 
-/// Prominent 320kbps Download action tile with progress and delete option.
+/// Source-aware offline download action tile.
 class TrackDownloadTile extends StatelessWidget {
   final Song song;
   final DownloadService downloadService;
@@ -17,7 +18,24 @@ class TrackDownloadTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDownloaded = downloadService.isDownloaded(song.id);
     final isDownloading = downloadService.isDownloading(song.id);
-    final fileSize = downloadService.getFileSize(song.id) ?? '10.2 MB';
+    final canDownload = downloadService.canDownloadSong(song);
+    final fileSize = downloadService.getFileSize(song.id);
+
+    final title = isDownloaded
+        ? (fileSize == null || fileSize.isEmpty
+              ? 'Downloaded'
+              : 'Downloaded ($fileSize)')
+        : isDownloading
+        ? 'Downloading...'
+        : canDownload
+        ? 'Download'
+        : 'Download unavailable';
+
+    final subtitle = isDownloaded
+        ? 'Saved to Library > Downloaded • Offline Ready'
+        : canDownload
+        ? 'Save this track for offline listening'
+        : 'Offline download is not available for this source';
 
     return Material(
       color: isDownloaded ? const Color(0xFF0F2E22) : const Color(0xFF1C1C1E),
@@ -41,16 +59,18 @@ class TrackDownloadTile extends StatelessWidget {
             : Icon(
                 isDownloaded
                     ? Icons.download_done_rounded
-                    : Icons.download_rounded,
-                color: isDownloaded ? const Color(0xFF10B981) : Colors.white,
+                    : canDownload
+                    ? Icons.download_rounded
+                    : Icons.block_rounded,
+                color: isDownloaded
+                    ? const Color(0xFF10B981)
+                    : canDownload
+                    ? Colors.white
+                    : const Color(0xFF8E8E93),
                 size: 24,
               ),
         title: Text(
-          isDownloaded
-              ? 'Downloaded ($fileSize)'
-              : isDownloading
-              ? 'Downloading (320 kbps)...'
-              : 'Download',
+          title,
           style: TextStyle(
             color: isDownloaded ? const Color(0xFF10B981) : Colors.white,
             fontSize: 15,
@@ -58,9 +78,7 @@ class TrackDownloadTile extends StatelessWidget {
           ),
         ),
         subtitle: Text(
-          isDownloaded
-              ? 'Saved to Library > Downloaded • Offline Ready'
-              : 'Save high-quality 320 kbps MP3 to device',
+          subtitle,
           style: TextStyle(
             color: isDownloaded ? Colors.white70 : const Color(0xFF8E8E93),
             fontSize: 11,
@@ -78,11 +96,11 @@ class TrackDownloadTile extends StatelessWidget {
                 },
               )
             : null,
-        onTap: () {
-          if (!isDownloading) {
-            downloadService.downloadSong(song, context: context);
-          }
-        },
+        onTap: !isDownloading && !isDownloaded && canDownload
+            ? () {
+                downloadService.downloadSong(song, context: context);
+              }
+            : null,
       ),
     );
   }

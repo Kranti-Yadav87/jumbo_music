@@ -29,3 +29,11 @@ linux
 test
 docs
 scripts
+
+# Flutter SDK is downloaded by vercel-build.sh when absent
+flutter
+
+# Local Vercel cache and backup files
+.vercel
+*.bak
+*.before-accessibility

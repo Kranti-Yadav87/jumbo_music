@@ -56,6 +56,14 @@ class JamendoSearchService {
       final name = item['name']?.toString();
       final artist = item['artist_name']?.toString();
       final audio = item['audio']?.toString();
+      final rawDownloadAllowed = item['audiodownload_allowed'];
+      final downloadAllowed =
+          rawDownloadAllowed == true ||
+          rawDownloadAllowed == 1 ||
+          rawDownloadAllowed?.toString().toLowerCase() == 'true';
+      final downloadUrl = item['audiodownload']?.toString() ?? '';
+      final licenseUrl = item['license_ccurl']?.toString() ?? '';
+
       if (id == null ||
           id.isEmpty ||
           name == null ||
@@ -85,6 +93,9 @@ class JamendoSearchService {
           language: 'English',
           releaseYear: year.isEmpty ? '2026' : year,
           quality: 'MP3 (full track)',
+          downloadUrl: downloadUrl,
+          downloadAllowed: downloadAllowed,
+          licenseUrl: licenseUrl,
         ),
       );
     }

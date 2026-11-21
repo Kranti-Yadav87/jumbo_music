@@ -79,7 +79,7 @@ Tujhse Juda Agar Ho Jayenge
       await tester.pumpAndSettle();
 
       expect(find.text('Test Song Title'), findsOneWidget);
-      expect(find.text('LIVE SYNC 🎵'), findsOneWidget);
+      expect(find.text('LIVE SYNC'), findsOneWidget);
       expect(find.text('First intro line'), findsOneWidget);
       expect(find.text('Second line of verse'), findsOneWidget);
       expect(find.text('Chorus line playing'), findsOneWidget);
@@ -122,7 +122,7 @@ Tujhse Juda Agar Ho Jayenge
       await tester.pumpAndSettle();
 
       expect(find.text('Plain Lyrics Song'), findsOneWidget);
-      expect(find.text('FULL LYRICS 📄'), findsOneWidget);
+      expect(find.text('FULL LYRICS'), findsOneWidget);
       expect(find.text('Hum Tere Bin Ab Reh Nahi Sakte'), findsOneWidget);
       expect(find.text('Tere Bina Kya Wajood Mera'), findsOneWidget);
       expect(find.byIcon(Icons.copy_rounded), findsOneWidget);

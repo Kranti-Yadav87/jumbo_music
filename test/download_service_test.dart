@@ -49,11 +49,13 @@ void main() {
     late FakeFileDownloader fakeDownloader;
 
     const testSong = Song(
-      id: 'song_test_dl_1',
+      id: 'jamendo_test_dl_1',
       title: 'Offline Test Track',
       artist: 'Studio Artist',
       duration: Duration(seconds: 210),
       audioUrl: 'https://example.com/audio/test1.mp3',
+      downloadUrl: 'https://example.com/audio/test1-download.mp3',
+      downloadAllowed: true,
       coverUrl: 'https://example.com/art.jpg',
     );
 
@@ -73,6 +75,25 @@ void main() {
 
     tearDown(() {
       DownloadService.delegate = const DefaultFileDownloaderDelegate();
+    });
+
+    test('rejects non-Jamendo downloads even when a URL is present', () async {
+      const restrictedSong = Song(
+        id: 'youtube_restricted_1',
+        title: 'Restricted Stream',
+        artist: 'Test Artist',
+        duration: Duration(seconds: 180),
+        audioUrl: 'https://example.com/stream.mp3',
+        downloadUrl: 'https://example.com/download.mp3',
+        downloadAllowed: true,
+              coverUrl: '',
+);
+
+      expect(downloadService.canDownloadSong(restrictedSong), isFalse);
+      await downloadService.downloadSong(restrictedSong);
+
+      expect(downloadService.downloadedSongs, isEmpty);
+      expect(fakeDownloader.downloadedUrls, isEmpty);
     });
 
     test(
@@ -97,7 +118,7 @@ void main() {
         expect(downloadService.isDownloaded(testSong.id), isTrue);
         expect(
           downloadService.downloadedItems.first.localPath,
-          contains('offline_song_test_dl_1.mp3'),
+          contains('offline_jamendo_test_dl_1.mp3'),
         );
         expect(downloadService.downloadedItems.first.fileSize, contains('MB'));
       },
@@ -146,7 +167,7 @@ void main() {
 
       expect(uri, isNotNull);
       expect(uri!.isScheme('file'), isTrue);
-      expect(uri.path, contains('offline_song_test_dl_1.mp3'));
+      expect(uri.path, contains('offline_jamendo_test_dl_1.mp3'));
     });
   });
 }
