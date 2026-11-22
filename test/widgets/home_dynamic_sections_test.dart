@@ -357,9 +357,7 @@ void main() {
         findsNothing,
       );
 
-      final showMore = find.byKey(
-        const ValueKey('home-feed-show-more-button'),
-      );
+      final showMore = find.byKey(const ValueKey('home-feed-show-more-button'));
 
       await tester.ensureVisible(showMore);
       await tester.tap(showMore);
@@ -420,9 +418,7 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.tap(
-        find.byKey(const ValueKey('home-feed-retry-button')),
-      );
+      await tester.tap(find.byKey(const ValueKey('home-feed-retry-button')));
       await tester.pumpAndSettle();
 
       expect(requestCount, 2);

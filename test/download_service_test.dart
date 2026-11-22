@@ -86,8 +86,8 @@ void main() {
         audioUrl: 'https://example.com/stream.mp3',
         downloadUrl: 'https://example.com/download.mp3',
         downloadAllowed: true,
-              coverUrl: '',
-);
+        coverUrl: '',
+      );
 
       expect(downloadService.canDownloadSong(restrictedSong), isFalse);
       await downloadService.downloadSong(restrictedSong);
