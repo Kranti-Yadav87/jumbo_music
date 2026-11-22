@@ -68,9 +68,28 @@ jobs:
             -alias "$K_ALIAS" \
             >/dev/null
 
-          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
-            "$K_PASS" "$KEY_PASS" "$K_ALIAS" > android/key.properties
+          cat > /tmp/WriteKeyProperties.java <<'JAVA'
+          import java.io.OutputStream;
+          import java.nio.file.Files;
+          import java.nio.file.Path;
+          import java.util.Properties;
 
+          public class WriteKeyProperties {
+              public static void main(String[] args) throws Exception {
+                  Properties properties = new Properties();
+                  properties.setProperty("storePassword", System.getenv("K_PASS"));
+                  properties.setProperty("keyPassword", System.getenv("KEY_PASS"));
+                  properties.setProperty("keyAlias", System.getenv("K_ALIAS"));
+                  properties.setProperty("storeFile", "upload-keystore.jks");
+
+                  try (OutputStream output = Files.newOutputStream(Path.of(args[0]))) {
+                      properties.store(output, null);
+                  }
+              }
+          }
+          JAVA
+          javac /tmp/WriteKeyProperties.java
+          java -cp /tmp WriteKeyProperties android/key.properties
           chmod 600 android/key.properties
 
           echo "Release keystore decoded and validated successfully."
