@@ -4,6 +4,10 @@ on: pull_request
 jobs:
   build_and_preview:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     env:
       HAS_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUMBO_MUSIC_FF58C }}
     steps:
