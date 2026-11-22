@@ -91,7 +91,8 @@ class YouTubeSearchService {
       if (existingIds.add(song.id)) results.add(song);
     }
 
-    if (normalized.toLowerCase() != cleanQuery.toLowerCase()) {
+    if (normalized.toLowerCase() != cleanQuery.toLowerCase() &&
+        primaryResults.length < limit) {
       final fallbackResults = await _executeSearch(normalized, limit: limit);
       for (final song in fallbackResults) {
         if (existingIds.add(song.id)) results.add(song);
