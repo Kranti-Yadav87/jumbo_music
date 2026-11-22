@@ -13,10 +13,10 @@ class ShareService {
   static String get appUrl => kIsWeb ? Uri.base.origin : AppConfig.webAppUrl;
 
   static String songMessage(Song song) =>
-      '🎵 "${song.title}" by ${song.artist}\nListen on Jumbo Music: $appUrl';
+      '"${song.title}" by ${song.artist}\nListen on Jumbo Music: $appUrl';
 
   static String appMessage() =>
-      '🎧 Jumbo Music - free music streaming for every language!\n$appUrl';
+      'Jumbo Music - free music streaming for every language!\n$appUrl';
 
   static Future<void> shareSong(BuildContext context, Song song) =>
       _share(context, songMessage(song), '${song.title} • Jumbo Music');

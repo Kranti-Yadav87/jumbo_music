@@ -2,19 +2,15 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import '../../config/app_config.dart';
 import '../../models/song.dart';
 import '../crash_reporting_service.dart';
 import 'music_tag_classifier.dart';
 
 /// Service for YouTube Music catalog search using YouTube Music's InnerTube API
 /// and youtube_explode_dart.
-/// Uses the API Key from ytmusicapi: `AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30`.
+/// Uses the configured search provider; credentials are not stored in source.
 class YouTubeSearchService {
   YouTubeSearchService._();
-
-  static const String _ytmBaseUrl =
-      'https://music.youtube.com/youtubei/v1/search?alt=json&key=';
 
   /// Normalizes user queries by removing conversational connectors like "by",
   /// "song", "audio", "video", "official", "mp3" that are not part of song metadata.
@@ -39,32 +35,71 @@ class YouTubeSearchService {
     return q.isNotEmpty ? q : query.trim();
   }
 
-  /// Performs a live search on YouTube Music for songs matching [query].
+  /// Ranks merged search results by title and artist relevance.
+  static List<Song> rankSearchResults(
+    List<Song> songs,
+    String query, {
+    int limit = 20,
+  }) {
+    if (songs.isEmpty || limit <= 0) return [];
+
+    final normalizedQuery = normalizeQuery(query).toLowerCase();
+    final tokens = normalizedQuery
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((token) => token.length > 1)
+        .toSet();
+
+    if (tokens.isEmpty) return songs.take(limit).toList();
+
+    int scoreFor(Song song) {
+      final title = song.title.toLowerCase();
+      final artist = song.artist.toLowerCase();
+      var score = 0;
+
+      for (final token in tokens) {
+        if (title.contains(token)) score += 4;
+        if (artist.contains(token)) score += 3;
+      }
+
+      if (title.contains(normalizedQuery)) score += 5;
+      if (artist.contains(normalizedQuery)) score += 5;
+
+      return score;
+    }
+
+    final ranked = songs.asMap().entries.toList();
+    ranked.sort((a, b) {
+      final comparison = scoreFor(b.value).compareTo(scoreFor(a.value));
+      return comparison != 0 ? comparison : a.key.compareTo(b.key);
+    });
+
+    return ranked.take(limit).map((entry) => entry.value).toList();
+  }
+
+  /// Searches both original and normalized wording, merges unique songs,
+  /// and ranks the combined results before applying the requested limit.
   static Future<List<Song>> search(String query, {int limit = 20}) async {
     final cleanQuery = query.trim();
-    if (cleanQuery.isEmpty) return [];
+    if (cleanQuery.isEmpty || limit <= 0) return [];
 
-    // 1. Initial primary query search
-    List<Song> results = await _executeSearch(cleanQuery, limit: limit);
-
-    // 2. Dual-pass normalization: If primary query contains conversational connectors
-    // (e.g. "heer by afusic", "kesariya by arijit") and returned 0 or few results,
-    // retry with the normalized query ("heer afusic").
     final normalized = normalizeQuery(cleanQuery);
-    if (normalized != cleanQuery && (results.isEmpty || results.length < 3)) {
+    final results = <Song>[];
+    final existingIds = <String>{};
+
+    final primaryResults = await _executeSearch(cleanQuery, limit: limit);
+    for (final song in primaryResults) {
+      if (existingIds.add(song.id)) results.add(song);
+    }
+
+    if (normalized.toLowerCase() != cleanQuery.toLowerCase() &&
+        primaryResults.length < limit) {
       final fallbackResults = await _executeSearch(normalized, limit: limit);
-      if (fallbackResults.isNotEmpty) {
-        final existingIds = results.map((s) => s.id).toSet();
-        for (final s in fallbackResults) {
-          if (existingIds.add(s.id)) {
-            results.add(s);
-          }
-          if (results.length >= limit) break;
-        }
+      for (final song in fallbackResults) {
+        if (existingIds.add(song.id)) results.add(song);
       }
     }
 
-    return results;
+    return rankSearchResults(results, normalized, limit: limit);
   }
 
   static Future<List<Song>> _executeSearch(
@@ -73,54 +108,39 @@ class YouTubeSearchService {
   }) async {
     for (int attempt = 0; attempt < 2; attempt++) {
       try {
+        final Uri uri;
+
         if (kIsWeb) {
-          // In browser (Flutter Web / localhost / PWA), use proxy endpoint to avoid browser CORS block
-          final webUrl = Uri.base.resolve(
-            '/api/youtube-search?q=${Uri.encodeComponent(query)}',
-          );
-          final response = await http
-              .get(webUrl)
-              .timeout(const Duration(seconds: 14));
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            if (data is Map<String, dynamic>) {
-              return parseSearchResults(data, limit: limit);
-            }
-          }
+          uri = Uri.base
+              .resolve('/api/youtube-search')
+              .replace(
+                queryParameters: {
+                  'q': query,
+                  'limit': limit.clamp(1, 25).toString(),
+                },
+              );
         } else {
-          // On native platforms (Android APK, iOS, macOS, Windows, Linux)
-          final apiKey = AppConfig.youtubeApiKey;
-          final uri = Uri.parse('$_ytmBaseUrl$apiKey');
+          uri = Uri.https(
+            'jumbo-music-kappa.vercel.app',
+            '/api/youtube-search',
+            {'q': query, 'limit': limit.clamp(1, 25).toString()},
+          );
+        }
 
-          final headers = <String, String>{
-            'Content-Type': 'application/json',
-            'Origin': 'https://music.youtube.com',
-            'User-Agent':
-                'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
-          };
+        final response = await http
+            .get(uri, headers: const {'Accept': 'application/json'})
+            .timeout(const Duration(seconds: 14));
 
-          final body = jsonEncode({
-            'context': {
-              'client': {
-                'clientName': 'WEB_REMIX',
-                'clientVersion': '1.20261024.01.00',
-              },
-              'user': {},
-            },
-            'query': query,
-            'params': 'EgWKAQIIAWoMEA4QChADEAQQCRAF', // Songs filter param
-          });
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
 
-          final response = await http
-              .post(uri, headers: headers, body: body)
-              .timeout(const Duration(seconds: 14));
-
-          if (response.statusCode == 200) {
-            final data = jsonDecode(response.body);
-            if (data is Map<String, dynamic>) {
-              return parseSearchResults(data, limit: limit);
-            }
+          if (data is Map<String, dynamic>) {
+            return parseDataApiSearchResults(data, limit: limit);
           }
+        }
+
+        if (response.statusCode == 400 || response.statusCode == 503) {
+          return [];
         }
       } catch (error) {
         if (attempt == 1) {
@@ -133,51 +153,32 @@ class YouTubeSearchService {
         }
       }
     }
+
     return [];
   }
 
-  /// Fetches official YouTube Music Radio recommendations for a [videoId].
-  /// Uses YouTube Music's InnerTube /v1/next endpoint with RDAMVM playlist.
   static Future<List<Song>> fetchRadioRecommendations(
     String videoId, {
     int limit = 50,
   }) async {
     final cleanId = videoId.trim();
-    if (cleanId.isEmpty) return [];
+    if (!RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(cleanId)) return [];
 
     try {
-      final apiKey = AppConfig.youtubeApiKey;
-      final Uri uri;
-      if (kIsWeb) {
-        uri = Uri.base.resolve('/api/yt/v1/next?alt=json&key=$apiKey');
-      } else {
-        uri = Uri.parse(
-          'https://music.youtube.com/youtubei/v1/next?alt=json&key=$apiKey',
-        );
-      }
-
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-        'Origin': 'https://music.youtube.com',
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
-      };
-
-      final body = jsonEncode({
-        'context': {
-          'client': {
-            'clientName': 'WEB_REMIX',
-            'clientVersion': '1.20261024.01.00',
-          },
-          'user': {},
-        },
-        'playlistId': 'RDAMVM$cleanId',
-        'videoId': cleanId,
-      });
+      final uri = kIsWeb
+          ? Uri.base.resolve('/api/yt/v1/next')
+          : Uri.parse('https://jumbo-music-kappa.vercel.app/api/yt/v1/next');
 
       final response = await http
-          .post(uri, headers: headers, body: body)
-          .timeout(const Duration(seconds: 10));
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({'videoId': cleanId}),
+          )
+          .timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -218,6 +219,61 @@ class YouTubeSearchService {
   }
 
   /// Parses YouTube Music InnerTube search response into structured [Song] objects.
+  /// Parses the normalized response from our YouTube Data API v3 proxy.
+  static List<Song> parseDataApiSearchResults(
+    Map<String, dynamic> data, {
+    int limit = 20,
+  }) {
+    final songs = <Song>[];
+    final items = data['items'];
+
+    if (items is! List || limit <= 0) return songs;
+
+    final seenIds = <String>{};
+
+    for (final item in items) {
+      if (songs.length >= limit) break;
+      if (item is! Map) continue;
+
+      final videoId = item['videoId']?.toString().trim() ?? '';
+      final title = item['title']?.toString().trim() ?? '';
+      final artist = item['channelTitle']?.toString().trim() ?? '';
+
+      if (!RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(videoId)) {
+        continue;
+      }
+      if (title.isEmpty || !seenIds.add(videoId)) continue;
+
+      final seconds = item['durationSeconds'];
+      final durationSeconds = seconds is num
+          ? seconds.toInt()
+          : int.tryParse(seconds?.toString() ?? '') ?? 0;
+
+      final thumbnail = item['thumbnail']?.toString().trim() ?? '';
+      final publishedAt = item['publishedAt']?.toString() ?? '';
+      final yearMatch = RegExp(r'^(19|20)\d{2}').firstMatch(publishedAt);
+      final releaseYear = yearMatch?.group(0) ?? '';
+
+      songs.add(
+        _buildSong(
+          videoId: videoId,
+          title: title,
+          artist: artist.isEmpty ? 'YouTube' : artist,
+          album: 'YouTube',
+          duration: Duration(
+            seconds: durationSeconds < 0 ? 0 : durationSeconds,
+          ),
+          coverUrl: thumbnail.isNotEmpty
+              ? thumbnail
+              : 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
+          releaseYear: releaseYear,
+        ),
+      );
+    }
+
+    return songs;
+  }
+
   static List<Song> parseSearchResults(
     Map<String, dynamic> data, {
     int limit = 20,
@@ -316,8 +372,9 @@ class YouTubeSearchService {
                     continue;
                   }
                   if (seg.toLowerCase() == 'song' ||
-                      seg.toLowerCase() == 'video')
+                      seg.toLowerCase() == 'video') {
                     continue;
+                  }
                   if (cardArtist == 'Various Artists') {
                     cardArtist = seg;
                   } else if (cardAlbum == 'Single') {

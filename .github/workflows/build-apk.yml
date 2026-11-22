@@ -2,7 +2,7 @@ name: Build & Publish Android APK
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,64 +10,111 @@ permissions:
 
 jobs:
   build_apk:
-    name: Build release APK and publish to GitHub Releases
+    name: Build signed release APK and publish
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
           cache: true
 
-      - run: flutter pub get
+      - name: Install dependencies
+        run: flutter pub get
 
-      # Optional release signing: add these repository secrets to sign the APK
-      #   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
-      - name: Prepare signing key
+      - name: Prepare and validate release signing key
         env:
           KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           K_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           K_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
         run: |
-          if [ -n "$KS" ]; then
-            echo "$KS" | base64 -d > android/app/upload-keystore.jks
-            echo "$KS" | base64 -d > android/upload-keystore.jks
-            printf "storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n" "$K_PASS" "$KEY_PASS" "$K_ALIAS" > android/key.properties
-          elif [ -f "android/app/debug.keystore" ]; then
-            printf "storePassword=android\nkeyPassword=android\nkeyAlias=androiddebugkey\nstoreFile=debug.keystore\n" > android/key.properties
-          else
-            echo "No keystore found - APK will be debug-signed with runner default key."
+          set -euo pipefail
+
+          missing=0
+
+          for name in KS K_PASS K_ALIAS KEY_PASS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Required Android signing secret is missing: $name"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
           fi
+
+          mkdir -p android/app
+
+          printf '%s' "$KS" | base64 --decode > android/app/upload-keystore.jks
+          chmod 600 android/app/upload-keystore.jks
+
+          if [ ! -s android/app/upload-keystore.jks ]; then
+            echo "::error::Decoded keystore is empty."
+            exit 1
+          fi
+
+          keytool -list \
+            -keystore android/app/upload-keystore.jks \
+            -storepass "$K_PASS" \
+            -alias "$K_ALIAS" \
+            >/dev/null
+
+          cat > /tmp/WriteKeyProperties.java <<'JAVA'
+          import java.io.OutputStream;
+          import java.nio.file.Files;
+          import java.nio.file.Path;
+          import java.util.Properties;
+
+          public class WriteKeyProperties {
+              public static void main(String[] args) throws Exception {
+                  Properties properties = new Properties();
+                  properties.setProperty("storePassword", System.getenv("K_PASS"));
+                  properties.setProperty("keyPassword", System.getenv("KEY_PASS"));
+                  properties.setProperty("keyAlias", System.getenv("K_ALIAS"));
+                  properties.setProperty("storeFile", "upload-keystore.jks");
+
+                  try (OutputStream output = Files.newOutputStream(Path.of(args[0]))) {
+                      properties.store(output, null);
+                  }
+              }
+          }
+          JAVA
+          javac /tmp/WriteKeyProperties.java
+          java -cp /tmp WriteKeyProperties android/key.properties
+          chmod 600 android/key.properties
+
+          echo "Release keystore decoded and validated successfully."
 
       - name: Build release APK
         env:
           JAMENDO_CLIENT_ID: ${{ secrets.JAMENDO_CLIENT_ID }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-        run: flutter build apk --release --dart-define=JAMENDO_CLIENT_ID=$JAMENDO_CLIENT_ID --dart-define=GEMINI_API_KEY=$GEMINI_API_KEY --dart-define=YOUTUBE_API_KEY=$YOUTUBE_API_KEY
+        run: |
+          flutter build apk --release \
+            --dart-define=JAMENDO_CLIENT_ID="$JAMENDO_CLIENT_ID"
 
       - name: Rename APK
         run: cp build/app/outputs/flutter-apk/app-release.apk app-release.apk
 
       - name: Upload APK as Workflow Artifact
         uses: actions/upload-artifact@v4
-        continue-on-error: true
         with:
           name: jumbo-music-release-apk
           path: app-release.apk
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 7
 
-      - name: Publish GitHub Release (this makes the in-app APK link work)
-        uses: softprops/action-gh-release@v2
+      - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/heads/main') || startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:

@@ -25,11 +25,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   ];
 
   final Map<int, String> _ratingLabels = const {
-    1: 'Needs Major Work 😞',
-    2: 'Below Expectations 😐',
-    3: 'Good Experience 🙂',
-    4: 'Great & Smooth! 😃',
-    5: 'Outstanding / Loved It! 🌟🔥',
+    1: 'Needs Major Work',
+    2: 'Below Expectations',
+    3: 'Good Experience',
+    4: 'Great & Smooth!',
+    5: 'Outstanding / Loved It!',
   };
 
   @override

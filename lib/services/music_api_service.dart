@@ -17,9 +17,6 @@ export 'api/itunes_search_service.dart';
 export 'api/youtube_search_service.dart';
 
 class MusicApiService {
-  static String get _endpoint => AppConfig.supabaseEndpoint;
-  static Map<String, String> get _headers => AppConfig.apiHeaders;
-
   // Delegates to SongParserUtils for internal / backward compatibility
   static String unescape(String? input) => SongParserUtils.unescape(input);
   static String extractImage(dynamic imageObj) =>
@@ -98,14 +95,17 @@ class MusicApiService {
       return jRes;
     }
 
-    // 1. Run JioSaavn and YouTube Music search in parallel simultaneously!
+    // Run JioSaavn and YouTube Music in parallel.
     final searchFutures = await Future.wait([
-      _searchJioSaavn(cleanQuery, limit: limit).catchError((e) {
-        CrashReportingService.swallow(e, 'music_api_service.dart:jioSearch');
+      _searchJioSaavn(cleanQuery, limit: limit).catchError((error) {
+        CrashReportingService.swallow(
+          error,
+          'music_api_service.dart:jioSearch',
+        );
         return <Song>[];
       }),
-      YouTubeSearchService.search(cleanQuery, limit: limit).catchError((e) {
-        CrashReportingService.swallow(e, 'music_api_service.dart:ytSearch');
+      YouTubeSearchService.search(cleanQuery, limit: limit).catchError((error) {
+        CrashReportingService.swallow(error, 'music_api_service.dart:ytSearch');
         return <Song>[];
       }),
     ]);
@@ -146,84 +146,65 @@ class MusicApiService {
     return itunes;
   }
 
-  /// Internal JioSaavn search with raw and normalized title fallback
+  /// JioSaavn search. Web requests use the same-origin Vercel proxy.
+  static Uri _jioSaavnSearchUri(String query, int limit) {
+    if (kIsWeb) {
+      return Uri.base
+          .resolve('/api/jiosaavn-search')
+          .replace(queryParameters: {'q': query, 'limit': '$limit'});
+    }
+
+    return Uri.https('saavn.bycomsolutions.com', '/api/search/songs', {
+      'query': query,
+      'limit': '$limit',
+    });
+  }
+
   static Future<List<Song>> _searchJioSaavn(
     String cleanQuery, {
     int limit = 20,
   }) async {
-    try {
-      final uri = Uri.parse(
-        '$_endpoint?action=jiosaavn-search&q=${Uri.encodeComponent(cleanQuery)}&limit=$limit',
-      );
-
+    Future<List<Song>> fetch(String query) async {
       final response = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 3));
+          .get(
+            _jioSaavnSearchUri(query, limit),
+            headers: const {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 9));
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final innerData = data['data'];
+      if (response.statusCode != 200) return [];
 
-        List<dynamic> results = [];
-        if (innerData is Map && innerData['results'] is List) {
-          results = innerData['results'] as List<dynamic>;
-        } else if (data['results'] is List) {
-          results = data['results'] as List<dynamic>;
-        }
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) return [];
 
-        final List<Song> songs = [];
-        for (final item in results) {
-          if (item is Map<String, dynamic>) {
-            final song = SongParserUtils.parseSong(item);
-            if (song != null &&
-                (song.duration.inSeconds == 0 ||
-                    song.duration.inSeconds >= 45)) {
-              songs.add(song);
-            }
+      final innerData = decoded['data'];
+      final dynamic rawResults = innerData is Map
+          ? innerData['results']
+          : decoded['results'];
+
+      if (rawResults is! List) return [];
+
+      final songs = <Song>[];
+      for (final item in rawResults) {
+        if (item is Map<String, dynamic>) {
+          final song = SongParserUtils.parseSong(item);
+          if (song != null &&
+              (song.duration.inSeconds == 0 || song.duration.inSeconds >= 45)) {
+            songs.add(song);
           }
         }
-        if (songs.isNotEmpty) {
-          return songs;
-        }
       }
+      return songs;
+    }
 
-      // If initial search with raw query returned empty, retry with normalized title
+    try {
+      final songs = await fetch(cleanQuery);
+      if (songs.isNotEmpty) return songs;
+
       final normalizedQuery = SongParserUtils.normalizeSongTitle(cleanQuery);
       if (normalizedQuery.isNotEmpty &&
           normalizedQuery != cleanQuery.toLowerCase()) {
-        final normUri = Uri.parse(
-          '$_endpoint?action=jiosaavn-search&q=${Uri.encodeComponent(normalizedQuery)}&limit=$limit',
-        );
-        final normResponse = await http
-            .get(normUri, headers: _headers)
-            .timeout(const Duration(seconds: 3));
-
-        if (normResponse.statusCode == 200) {
-          final data = jsonDecode(normResponse.body) as Map<String, dynamic>;
-          final innerData = data['data'];
-
-          List<dynamic> results = [];
-          if (innerData is Map && innerData['results'] is List) {
-            results = innerData['results'] as List<dynamic>;
-          } else if (data['results'] is List) {
-            results = data['results'] as List<dynamic>;
-          }
-
-          final List<Song> songs = [];
-          for (final item in results) {
-            if (item is Map<String, dynamic>) {
-              final song = SongParserUtils.parseSong(item);
-              if (song != null &&
-                  (song.duration.inSeconds == 0 ||
-                      song.duration.inSeconds >= 45)) {
-                songs.add(song);
-              }
-            }
-          }
-          if (songs.isNotEmpty) {
-            return songs;
-          }
-        }
+        return await fetch(normalizedQuery);
       }
     } catch (error) {
       CrashReportingService.swallow(
@@ -231,10 +212,11 @@ class MusicApiService {
         'music_api_service.dart:_searchJioSaavn',
       );
     }
+
     return [];
   }
 
-  /// Merges JioSaavn and YouTube Music search results using query token relevance scoring
+  /// Ranks and deduplicates music search results using query relevance scoring
   static List<Song> _rankAndDeduplicateResults(
     String query,
     List<Song> jioSongs,
@@ -242,9 +224,6 @@ class MusicApiService {
     int limit = 30,
   }) {
     if (jioSongs.isEmpty && ytSongs.isEmpty) return [];
-    if (jioSongs.isEmpty) return ytSongs.take(limit).toList();
-    if (ytSongs.isEmpty) return jioSongs.take(limit).toList();
-
     final allCandidates = [...ytSongs, ...jioSongs];
     final queryLower = query.toLowerCase().trim();
 
@@ -329,7 +308,7 @@ class MusicApiService {
       }
 
       // 4. Source preference / Quality tie-breaker
-      // If relevance is equal, prefer high bitrate 320kbps JioSaavn stream
+      // Prefer a direct non-YouTube audio source when available.
       if (!s.id.startsWith('yt_') &&
           s.audioUrl.isNotEmpty &&
           !s.audioUrl.contains('youtube.com')) {
@@ -373,72 +352,87 @@ class MusicApiService {
     return YouTubeSearchService.search(query, limit: limit);
   }
 
-  /// Fetch playlist songs by ID
+  /// Fetches a JioSaavn playlist by its original playlist ID.
+  static Uri _jioSaavnPlaylistUri(String playlistId) {
+    if (kIsWeb) {
+      return Uri.base
+          .resolve('/api/jiosaavn-playlist')
+          .replace(queryParameters: {'id': playlistId});
+    }
+
+    return Uri.https('saavn.bycomsolutions.com', '/api/playlists', {
+      'id': playlistId,
+    });
+  }
+
   static Future<Map<String, dynamic>> fetchPlaylist(String playlistId) async {
-    if (!AppConfig.isUnofficialCatalogEnabled) {
-      return {
-        'id': playlistId,
-        'name': 'Playlist',
-        'coverUrl': '',
-        'songs': <Song>[],
-      };
-    }
-
-    try {
-      final uri = Uri.parse(
-        '$_endpoint?action=jiosaavn-playlist&id=$playlistId',
-      );
-
-      final response = await http
-          .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode == 200) {
-        final body = response.body;
-        final data = jsonDecode(body) as Map<String, dynamic>;
-        final pData = data['data'] as Map<String, dynamic>? ?? {};
-
-        final name = SongParserUtils.unescape(
-          pData['name'] ?? pData['title'] ?? 'Playlist',
-        );
-        final coverUrl = SongParserUtils.extractImage(pData['image']);
-        final songList = pData['songs'] ?? pData['list'] ?? [];
-
-        final List<Song> songs = [];
-        if (songList is List) {
-          for (final item in songList) {
-            if (item is Map<String, dynamic>) {
-              final song = SongParserUtils.parseSong(item);
-              if (song != null) songs.add(song);
-            }
-          }
-        }
-
-        return {
-          'id': playlistId,
-          'name': name,
-          'coverUrl': coverUrl,
-          'songs': songs,
-        };
-      }
-    } catch (error) {
-      CrashReportingService.swallow(error, 'music_api_service.dart:128');
-    }
-    return {
+    Map<String, dynamic> emptyPlaylist() => {
       'id': playlistId,
       'name': 'Playlist',
       'coverUrl': '',
       'songs': <Song>[],
     };
+
+    if (!AppConfig.isUnofficialCatalogEnabled) {
+      return emptyPlaylist();
+    }
+
+    try {
+      final response = await http
+          .get(
+            _jioSaavnPlaylistUri(playlistId),
+            headers: const {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) return emptyPlaylist();
+
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic> || decoded['success'] != true) {
+        return emptyPlaylist();
+      }
+
+      final pData = decoded['data'];
+      if (pData is! Map) return emptyPlaylist();
+
+      final name = SongParserUtils.unescape(
+        pData['name'] ?? pData['title'] ?? 'Playlist',
+      );
+      final coverUrl = SongParserUtils.extractImage(pData['image']);
+      final songList = pData['songs'] ?? pData['list'] ?? [];
+
+      final songs = <Song>[];
+      if (songList is List) {
+        for (final item in songList) {
+          if (item is Map<String, dynamic>) {
+            final song = SongParserUtils.parseSong(item);
+            if (song != null) songs.add(song);
+          }
+        }
+      }
+
+      return {
+        'id': playlistId,
+        'name': name,
+        'coverUrl': coverUrl,
+        'songs': songs,
+      };
+    } catch (error) {
+      CrashReportingService.swallow(
+        error,
+        'music_api_service.dart:fetchPlaylist',
+      );
+      return emptyPlaylist();
+    }
   }
 
-  /// Curated featured playlists identical to Aura Stream
+  /// Curated featured sections: original JioSaavn playlists with Jamendo fallback.
   static Future<List<Song>> fetchIndiaTop50() async {
     if (!AppConfig.isUnofficialCatalogEnabled) {
       return JamendoSearchService.search('top hits', limit: 25);
     }
     final result = await fetchPlaylist('1134543272');
-    return (result['songs'] as List<Song>?) ?? [];
+    return (result['songs'] as List<Song>?) ?? <Song>[];
   }
 
   static Future<List<Song>> fetchTrendingToday() async {
@@ -446,7 +440,7 @@ class MusicApiService {
       return JamendoSearchService.search('trending', limit: 25);
     }
     final result = await fetchPlaylist('110858205');
-    return (result['songs'] as List<Song>?) ?? [];
+    return (result['songs'] as List<Song>?) ?? <Song>[];
   }
 
   static Future<List<Song>> fetchBestOfIndie() async {
@@ -454,7 +448,7 @@ class MusicApiService {
       return JamendoSearchService.search('indie', limit: 25);
     }
     final result = await fetchPlaylist('82914609');
-    return (result['songs'] as List<Song>?) ?? [];
+    return (result['songs'] as List<Song>?) ?? <Song>[];
   }
 
   static Future<List<Song>> fetch90sDuets() async {
@@ -462,7 +456,7 @@ class MusicApiService {
       return JamendoSearchService.search('acoustic duet', limit: 25);
     }
     final result = await fetchPlaylist('159470188');
-    return (result['songs'] as List<Song>?) ?? [];
+    return (result['songs'] as List<Song>?) ?? <Song>[];
   }
 
   /// Languages shown on the home screen (label -> search phrase).

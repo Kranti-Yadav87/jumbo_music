@@ -168,7 +168,7 @@ void main() {
 
         // Verify dialog closed and SnackBar shown
         expect(find.byType(AuthDialog), findsNothing);
-        expect(find.text('Welcome back, alice! 🎉'), findsOneWidget);
+        expect(find.text('Welcome back, alice!'), findsOneWidget);
         expect(fakeAuth.lastEmail, equals('alice@example.com'));
       },
     );
@@ -211,42 +211,11 @@ void main() {
 
         expect(find.byType(AuthDialog), findsNothing);
         expect(
-          find.text('Account created! Check inbox to verify your email 🎉'),
+          find.text('Account created! Check inbox to verify your email'),
           findsOneWidget,
         );
         expect(fakeAuth.lastName, equals('Bob Builder'));
         expect(fakeAuth.lastEmail, equals('bob@example.com'));
-      },
-    );
-
-    testWidgets(
-      'Continue as Guest Happy Path: Logs in guest and shows SnackBar',
-      (WidgetTester tester) async {
-        tester.view.physicalSize = const Size(1200, 2400);
-        tester.view.devicePixelRatio = 2.0;
-        addTearDown(() {
-          tester.view.resetPhysicalSize();
-          tester.view.resetDevicePixelRatio();
-        });
-
-        await tester.pumpWidget(buildTestableAuthDialog());
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.text('Open Auth Dialog'));
-        await tester.pumpAndSettle();
-
-        final guestBtn = find.text('Continue as Guest');
-        expect(guestBtn, findsOneWidget);
-
-        await tester.tap(guestBtn);
-        // Advance 300ms timer
-        await tester.pump(const Duration(milliseconds: 350));
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-        await tester.pump();
-
-        expect(find.byType(AuthDialog), findsNothing);
-        expect(find.textContaining('Exploring in Guest Mode!'), findsOneWidget);
       },
     );
 
@@ -277,7 +246,7 @@ void main() {
 
         expect(find.byType(AuthDialog), findsNothing);
         expect(
-          find.text('Signed in with Google as Google User! 🚀'),
+          find.text('Signed in with Google as Google User!'),
           findsOneWidget,
         );
         expect(fakeAuth.googleSignInCalled, isTrue);

@@ -38,7 +38,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
   ) async {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Loading ${artist['name']} essentials... 🎵'),
+        content: Text('Loading ${artist['name']} essentials...'),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
       ),
@@ -89,7 +89,7 @@ class _ArtistsScreenState extends State<ArtistsScreen> {
     setState(() => _isSearchingLive = true);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Searching "$cleanQuery" on Music Cloud... 🔍'),
+        content: Text('Searching "$cleanQuery" on Music Cloud...'),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
       ),

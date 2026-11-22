@@ -318,7 +318,7 @@ class SharedPlaylistDialog {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Added "${song.title}" to ${playlist.title}! 🎵',
+                                            'Added "${song.title}" to ${playlist.title}!',
                                           ),
                                           behavior: SnackBarBehavior.floating,
                                         ),

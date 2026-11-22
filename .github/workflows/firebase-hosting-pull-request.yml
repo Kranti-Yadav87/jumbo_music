@@ -4,6 +4,10 @@ on: pull_request
 jobs:
   build_and_preview:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
     env:
       HAS_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUMBO_MUSIC_FF58C }}
     steps:
@@ -22,10 +26,34 @@ jobs:
       - name: Build Web App
         run: flutter build web --release --base-href /
 
+      - name: Normalize Firebase service account secret
+        if: env.HAS_SECRET != ''
+        env:
+          FIREBASE_SERVICE_ACCOUNT_INPUT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUMBO_MUSIC_FF58C }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if printf '%s' "$FIREBASE_SERVICE_ACCOUNT_INPUT" | jq -e 'type == "object" and .type == "service_account" and .private_key and .client_email' >/dev/null 2>&1; then
+            credentials="$FIREBASE_SERVICE_ACCOUNT_INPUT"
+            echo "Firebase secret format: raw JSON"
+          else
+            credentials="$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT_INPUT" | base64 --decode)"
+            printf '%s' "$credentials" | jq -e 'type == "object" and .type == "service_account" and .private_key and .client_email' >/dev/null
+            echo "Firebase secret format: Base64 JSON (decoded successfully)"
+          fi
+
+          delimiter="$(openssl rand -hex 16)"
+          {
+            echo "FIREBASE_SERVICE_ACCOUNT_JSON<<$delimiter"
+            printf '%s\n' "$credentials"
+            echo "$delimiter"
+          } >> "$GITHUB_ENV"
+
       - name: Deploy Preview to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         if: env.HAS_SECRET != ''
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JUMBO_MUSIC_FF58C }}
+          firebaseServiceAccount: ${{ env.FIREBASE_SERVICE_ACCOUNT_JSON }}
           projectId: jumbo-music-ff58c

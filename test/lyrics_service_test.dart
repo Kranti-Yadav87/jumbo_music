@@ -170,6 +170,45 @@ void main() {
     );
 
     test(
+      'LRCLIB title-only fallback uses the documented q search parameter',
+      () async {
+        var titleOnlySearchUsed = false;
+
+        LyricsService.mockHttpClient = MockClient((request) async {
+          if (request.url.host == 'lrclib.net' &&
+              request.url.path == '/api/search') {
+            if (request.url.queryParameters['q'] == 'Heer' &&
+                !request.url.queryParameters.containsKey('track_name')) {
+              titleOnlySearchUsed = true;
+              return http.Response(
+                jsonEncode([
+                  {
+                    'id': 303,
+                    'trackName': 'Heer',
+                    'artistName': 'Unknown Artist',
+                    'instrumental': false,
+                    'syncedLyrics': '[00:10.00]Heer',
+                  },
+                ]),
+                200,
+                headers: {'content-type': 'application/json'},
+              );
+            }
+          }
+          return http.Response('Not found', 404);
+        });
+
+        final lyrics = await service.fetchLyricsByQuery(
+          title: 'Heer',
+          artist: '',
+        );
+
+        expect(titleOnlySearchUsed, isTrue);
+        expect(lyrics, contains('[00:10.00]Heer'));
+      },
+    );
+
+    test(
       'Falls back to JioSaavn official lyrics when LRCLIB has no match',
       () async {
         LyricsService.mockHttpClient = MockClient((request) async {

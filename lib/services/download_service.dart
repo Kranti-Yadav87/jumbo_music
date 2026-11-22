@@ -125,6 +125,17 @@ class DownloadService extends ChangeNotifier {
 
   bool isDownloading(String songId) => _downloadingIds.contains(songId);
 
+  bool canDownloadSong(Song song) {
+    if (!song.id.startsWith('jamendo_') || !song.downloadAllowed) {
+      return false;
+    }
+
+    final uri = Uri.tryParse(song.downloadUrl.trim());
+    return uri != null &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
   String? getFileSize(String songId) {
     if (_downloadedItems.containsKey(songId)) {
       return _downloadedItems[songId]?.fileSize;
@@ -194,39 +205,13 @@ class DownloadService extends ChangeNotifier {
       _toast(context, 'Offline downloads are not supported on this device.');
       return;
     }
-    if (song.audioUrl.trim().isEmpty ||
-        (!song.audioUrl.startsWith('http://') &&
-            !song.audioUrl.startsWith('https://'))) {
-      if (context != null && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF262630),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.info_outline_rounded,
-                  color: Colors.amberAccent,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Offline download is not available for "${song.title}" due to licensing or source stream restrictions.',
-                    style: const TextStyle(color: Colors.white, fontSize: 12.5),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
+    if (!canDownloadSong(song)) {
+      _toast(
+        context,
+        'Offline download is unavailable for this track or its licence.',
+      );
       return;
     }
-
     if (isDownloaded(song.id) || isDownloading(song.id)) {
       if (isDownloaded(song.id) && context != null && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -261,7 +246,7 @@ class DownloadService extends ChangeNotifier {
     _downloadingIds.add(song.id);
     notifyListeners();
     debugPrint(
-      '[Download] START: Downloading "${song.title}" (${song.id}) from ${song.audioUrl}',
+      '[Download] START: Downloading "${song.title}" (${song.id}) from ${song.downloadUrl}',
     );
 
     if (context != null && context.mounted) {
@@ -298,7 +283,7 @@ class DownloadService extends ChangeNotifier {
 
     final DownloadedFile file;
     try {
-      file = await delegate.download(song.audioUrl, song.id);
+      file = await delegate.download(song.downloadUrl, song.id);
       debugPrint(
         '[Download] BYTES: Received ${file.bytes} bytes for "${song.title}" (${song.id})',
       );

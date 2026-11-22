@@ -551,7 +551,7 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
           ),
         ),
         child: const Text(
-          'LIVE SYNC 🎵',
+          'LIVE SYNC',
           style: TextStyle(
             color: Color(0xFF38BDF8),
             fontSize: 9.5,
@@ -569,7 +569,7 @@ class _LyricsSheetContentState extends State<_LyricsSheetContent> {
         border: Border.all(color: Colors.white24, width: 0.8),
       ),
       child: const Text(
-        'FULL LYRICS 📄',
+        'FULL LYRICS',
         style: TextStyle(
           color: Colors.white70,
           fontSize: 9.5,

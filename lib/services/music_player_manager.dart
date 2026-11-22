@@ -938,6 +938,42 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
+    // Fetch recommendations immediately so Up Next is populated early.
+    try {
+      final liveRecs = await MusicApiService.fetchSmartRecommendations(
+        song,
+        limit: 30,
+      );
+      for (final recommendation in liveRecs) {
+        tryAddCandidate(recommendation);
+      }
+    } catch (error) {
+      debugPrint('[Queue] Smart recommendation fetch failed: $error');
+    }
+
+    // Use targeted era/language searches if the initial candidate pool is small.
+    if (immediateCandidates.length < 15) {
+      final targetedQueries = AiRecommendationEngine.getEraTargetedQueries(
+        seedLang,
+        seedEra,
+        song,
+      );
+      for (final query in targetedQueries) {
+        if (immediateCandidates.length >= 25) break;
+        try {
+          final matches = await MusicApiService.searchLiveSongs(
+            query,
+            limit: 10,
+          );
+          for (final match in matches) {
+            tryAddCandidate(match);
+          }
+        } catch (error) {
+          debugPrint('[Queue] Targeted recommendation fetch failed: $error');
+        }
+      }
+    }
+
     immediateCandidates.sort((a, b) {
       final scoreA = AiRecommendationEngine.instance.scoreCandidate(song, a);
       final scoreB = AiRecommendationEngine.instance.scoreCandidate(song, b);
@@ -1013,22 +1049,18 @@ class MusicPlayerManager extends ChangeNotifier {
         resolvedSong.audioUrl.contains('apple.com') ||
         resolvedSong.audioUrl.contains('mzstatic.com') ||
         resolvedSong.audioUrl.contains('preview');
-    final bool isShortClip =
-        resolvedSong.duration.inSeconds > 0 &&
-        resolvedSong.duration.inSeconds < 90;
-
-    // 2. Only search replacement if track is NOT YouTube and has empty/preview/short audio
+    // 2. Resolve missing/preview audio with one strictly bounded search.
+    // Do not search merely because duration metadata is shorter than 90 seconds.
     if (offlineUri == null &&
         !isDl &&
         !isYouTube &&
-        (resolvedSong.audioUrl.trim().isEmpty ||
-            isApplePreview ||
-            isShortClip) &&
+        (resolvedSong.audioUrl.trim().isEmpty || isApplePreview) &&
         resolvedSong.title.isNotEmpty) {
       try {
         debugPrint(
-          '[Playback] Pre-resolving full live audioUrl for "${resolvedSong.title}"...',
+          '[Playback] Trying one bounded full-track lookup for "${resolvedSong.title}"...',
         );
+
         final cleanTitle = SongParserUtils.normalizeSongTitle(
           resolvedSong.title,
         );
@@ -1037,71 +1069,58 @@ class MusicPlayerManager extends ChangeNotifier {
             .first
             .trim();
 
-        List<Song> freshMatches = [];
-        // Strategy 1: Normalized clean title + primary artist
-        if (cleanTitle.isNotEmpty && primaryArtist.isNotEmpty) {
-          freshMatches = await MusicApiService.searchLiveSongs(
-            '$cleanTitle $primaryArtist',
-            limit: 6,
-          );
-        }
+        final query = [
+          cleanTitle.isNotEmpty ? cleanTitle : resolvedSong.title,
+          if (primaryArtist.isNotEmpty) primaryArtist,
+        ].join(' ').trim();
 
-        // Strategy 2: Clean title alone if Strategy 1 found no full track
-        final bool hasGenuineInFresh = freshMatches.any(
-          (m) =>
-              m.audioUrl.isNotEmpty &&
-              !m.audioUrl.contains('apple.com') &&
-              !m.audioUrl.contains('mzstatic.com') &&
-              !m.audioUrl.contains('youtube.com') &&
-              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
-        );
-        if (!hasGenuineInFresh && cleanTitle.isNotEmpty) {
-          final titleMatches = await MusicApiService.searchLiveSongs(
-            cleanTitle,
-            limit: 6,
-          );
-          if (titleMatches.isNotEmpty) {
-            freshMatches = [...titleMatches, ...freshMatches];
+        final freshMatches =
+            await MusicApiService.searchLiveSongs(query, limit: 8).timeout(
+              const Duration(seconds: 5),
+              onTimeout: () {
+                debugPrint(
+                  '[Playback] Full-track lookup timed out after 5 seconds.',
+                );
+                return <Song>[];
+              },
+            );
+
+        Song? genuineMatch;
+        for (final match in freshMatches) {
+          final url = match.audioUrl.trim().toLowerCase();
+          final duration = match.duration.inSeconds;
+
+          final isUsableFullTrack =
+              url.isNotEmpty &&
+              !url.contains('apple.com') &&
+              !url.contains('mzstatic.com') &&
+              !url.contains('preview') &&
+              !url.contains('youtube.com') &&
+              (duration == 0 || duration >= 90);
+
+          if (isUsableFullTrack) {
+            genuineMatch = match;
+            break;
           }
         }
 
-        // Strategy 3: Original raw query if still needed
-        if (freshMatches.isEmpty) {
-          freshMatches = await MusicApiService.searchLiveSongs(
-            '${resolvedSong.title} ${resolvedSong.artist}',
-            limit: 5,
-          );
-        }
-
-        // Prioritize full-length (>= 90s), non-preview, non-watch stream
-        final genuineMatch = freshMatches.firstWhere(
-          (m) =>
-              m.audioUrl.isNotEmpty &&
-              !m.audioUrl.contains('apple.com') &&
-              !m.audioUrl.contains('mzstatic.com') &&
-              !m.audioUrl.contains('youtube.com') &&
-              (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
-          orElse: () => freshMatches.firstWhere(
-            (m) => m.audioUrl.isNotEmpty && !m.audioUrl.contains('youtube.com'),
-            orElse: () => resolvedSong,
-          ),
-        );
-
-        if (genuineMatch.audioUrl.isNotEmpty) {
+        if (genuineMatch != null) {
           resolvedSong = resolvedSong.copyWith(
             audioUrl: genuineMatch.audioUrl,
             duration: genuineMatch.duration.inSeconds >= 90
                 ? genuineMatch.duration
-                : (resolvedSong.duration.inSeconds >= 90
-                      ? resolvedSong.duration
-                      : genuineMatch.duration),
+                : resolvedSong.duration,
+          );
+          debugPrint('[Playback] Full-track replacement found.');
+        } else {
+          debugPrint(
+            '[Playback] No verified full-track replacement found; retaining original source.',
           );
         }
       } catch (e) {
-        debugPrint('[Playback] Pre-resolve error: $e');
+        debugPrint('[Playback] Bounded pre-resolve error: $e');
       }
     }
-
     final prevSong = _currentSong;
     _currentSong = resolvedSong;
 

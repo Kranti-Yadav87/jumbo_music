@@ -6,20 +6,21 @@ import subprocess
 import os
 import sys
 import time
-import re
 import shutil
 import threading
 
-PORT = 8080
+HOST = os.environ.get('HOST', '127.0.0.1')
+PORT = int(os.environ.get('PORT', '8080'))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DIRECTORY = os.path.join(BASE_DIR, 'build', 'web')
-DART_BIN = shutil.which('dart') or '/Users/suraj/development/flutter/bin/dart' or 'dart'
+DART_BIN = shutil.which('dart') or 'dart'
 RESOLVER_SCRIPT = os.path.join(BASE_DIR, 'scripts', 'resolve_yt_audio.dart')
 
 STREAM_CACHE = {}
 YT_SEARCH_CACHE = {}
 CACHE_LOCK = threading.Lock()
-YT_KEY = 'AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX30'
+# Supply this only through the local process environment; never commit API keys.
+YT_KEY = os.environ.get('YOUTUBE_API_KEY', '').strip()
 YT_HEADERS = {
     'Content-Type': 'application/json',
     'Origin': 'https://music.youtube.com',
@@ -27,6 +28,8 @@ YT_HEADERS = {
 }
 
 def query_innertube(query_str, timeout=15):
+    if not YT_KEY:
+        raise RuntimeError('YOUTUBE_API_KEY is not configured in the server environment')
     url = f'https://music.youtube.com/youtubei/v1/search?alt=json&key={YT_KEY}'
     body = json.dumps({
         'context': {'client': {'clientName': 'WEB_REMIX', 'clientVersion': '1.20261024.01.00'}, 'user': {}},
@@ -131,8 +134,12 @@ class JumboHandler(http.server.SimpleHTTPRequestHandler):
             for attempt in range(2):
                 try:
                     data = query_innertube(q)
-                    if not has_search_items(data) and re.search(r'\s+by\s+', q, flags=re.I):
-                        cleaned_q = re.sub(r'\s+by\s+', ' ', q, flags=re.I).strip()
+                    query_words = q.split()
+                    has_by_token = any(word.casefold() == "by" for word in query_words)
+                    if not has_search_items(data) and has_by_token:
+                        cleaned_q = " ".join(
+                            word for word in query_words if word.casefold() != "by"
+                        ).strip()
                         if cleaned_q and cleaned_q.lower() != q.lower():
                             fallback = query_innertube(cleaned_q)
                             if has_search_items(fallback):
@@ -273,6 +280,6 @@ class JumboHandler(http.server.SimpleHTTPRequestHandler):
         return super().do_POST()
 
 if __name__ == '__main__':
-    with http.server.ThreadingHTTPServer(('', PORT), JumboHandler) as httpd:
-        print(f"Jumbo Music local server running at http://localhost:{PORT}")
+    with http.server.ThreadingHTTPServer((HOST, PORT), JumboHandler) as httpd:
+        print(f"Jumbo Music local server running at http://{HOST}:{PORT}")
         httpd.serve_forever()

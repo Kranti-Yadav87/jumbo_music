@@ -178,7 +178,7 @@ class FriendListeningSheet {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              '🎧 Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"',
+                              'Live Synced with ${friend.name}! Playing "${friend.currentSongTitle}"',
                             ),
                             backgroundColor: const Color(0xFFFF5E3A),
                             behavior: SnackBarBehavior.floating,
@@ -262,7 +262,7 @@ class FriendListeningSheet {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Sent "${manager.currentSong!.title}" to ${friend.name} 🎵',
+                            'Sent "${manager.currentSong!.title}" to ${friend.name}',
                           ),
                           behavior: SnackBarBehavior.floating,
                         ),
