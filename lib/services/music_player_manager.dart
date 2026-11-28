@@ -17,6 +17,7 @@ import 'battery_optimization_service.dart';
 import 'notification_permission_service.dart';
 import 'player/web_dsp_bridge.dart';
 import 'player/youtube_web_player.dart';
+import 'player/serialized_player_command_queue.dart';
 import 'recommendation/ai_recommendation_engine.dart';
 
 part 'player/music_player_sleep_timer.dart';
@@ -80,6 +81,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   @visibleForTesting
   void resetStateForTesting() {
+    ++_playbackRequestId;
     _isYouTubeWebPlaying = false;
     _stopYouTubeProgressTimer();
     _currentSong = null;
@@ -99,6 +101,8 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   late final AudioPlayer _audioPlayer = AudioPlayer();
+  final SerializedPlayerCommandQueue _playerCommandQueue =
+      SerializedPlayerCommandQueue();
   bool get equalizerSupported => true;
 
   List<Song> _allSongs = [];
@@ -123,7 +127,9 @@ class MusicPlayerManager extends ChangeNotifier {
         _currentIndex = 0;
       }
       // Guarantee queue is 100% duplicate-free
-      _queue = SongParserUtils.deduplicateSongs(_queue);
+      _queue = SongParserUtils.deduplicateSongs(
+        _queue.where((s) => !_isPreviewAudio(s)).toList(),
+      );
       _currentIndex = _queue.indexWhere((s) => s.id == _currentSong!.id);
       if (_currentIndex == -1) {
         _currentIndex = _queue.indexWhere(
@@ -175,6 +181,11 @@ class MusicPlayerManager extends ChangeNotifier {
   bool _isTransitioning = false;
   String? _lastInfilledSongId;
   Completer<void>? _infillCompleter;
+  // Prevent stale recommendation responses from modifying a newer queue.
+  int _recommendationRequestId = 0;
+  // Discards stale asynchronous playback requests.
+  int _playbackRequestId = 0;
+  int _youtubeStreamRecoveryRequestId = -1;
 
   final Set<String> _favoriteIds = {'1', '2'};
   final List<Song> _recentlyPlayed = [];
@@ -186,6 +197,7 @@ class MusicPlayerManager extends ChangeNotifier {
   String? _errorMessage;
 
   StreamSubscription? _playerStateSubscription;
+  StreamSubscription? _playerErrorSubscription;
   StreamSubscription? _positionSubscription;
   StreamSubscription? _durationSubscription;
   StreamSubscription? _bufferedPositionSubscription;
@@ -446,6 +458,18 @@ class MusicPlayerManager extends ChangeNotifier {
       },
     );
 
+    // Recover one failed native YouTube stream per playback request.
+    _playerErrorSubscription = _audioPlayer.errorStream.listen((error) {
+      if (kIsWeb || _isYouTubeWebPlaying) return;
+      if (_currentSong?.id.startsWith('yt_') != true) return;
+
+      debugPrint(
+        '[Playback] YouTube player error; attempting one stream refresh: '
+        '${error.message ?? error.toString()}',
+      );
+      unawaited(_recoverYouTubeStreamAfterError());
+    });
+
     // Listen to position
     _positionSubscription = _audioPlayer.positionStream.listen((pos) {
       if (kIsWeb && _isYouTubeWebPlaying) return;
@@ -553,16 +577,14 @@ class MusicPlayerManager extends ChangeNotifier {
         // In-place resolution without recursive playSong loops
         if (_currentSong != null &&
             (_currentSong!.audioUrl.trim().isEmpty ||
-                _currentSong!.audioUrl.contains('preview') ||
-                _currentSong!.audioUrl.contains('apple.com') ||
-                (_currentSong!.duration.inSeconds > 0 &&
-                    _currentSong!.duration.inSeconds < 90))) {
+                _isPreviewAudio(_currentSong!))) {
           unawaited(() async {
             try {
+              final original = _currentSong!;
               final cleanTitle = SongParserUtils.normalizeSongTitle(
-                _currentSong!.title,
+                original.title,
               );
-              final primaryArtist = _currentSong!.artist
+              final primaryArtist = original.artist
                   .split(RegExp(r'[,&/]'))
                   .first
                   .trim();
@@ -572,24 +594,23 @@ class MusicPlayerManager extends ChangeNotifier {
                     : cleanTitle,
                 limit: 5,
               );
-              final genuine = matches.firstWhere(
-                (m) =>
-                    m.audioUrl.isNotEmpty &&
-                    !m.audioUrl.contains('apple.com') &&
-                    !m.audioUrl.contains('mzstatic.com') &&
-                    (m.duration.inSeconds == 0 || m.duration.inSeconds >= 90),
-                orElse: () => matches.firstWhere(
-                  (m) => m.audioUrl.isNotEmpty,
-                  orElse: () => _currentSong!,
-                ),
-              );
-              if (genuine.audioUrl.isNotEmpty &&
-                  genuine.audioUrl != _currentSong?.audioUrl) {
-                final updated = _currentSong!.copyWith(
+
+              Song? genuine;
+              for (final match in matches) {
+                if (_isVerifiedFullTrackReplacement(original, match)) {
+                  genuine = match;
+                  break;
+                }
+              }
+
+              if (genuine != null &&
+                  genuine.audioUrl != original.audioUrl &&
+                  _currentSong?.id == original.id) {
+                final updated = original.copyWith(
                   audioUrl: genuine.audioUrl,
-                  duration: genuine.duration.inSeconds >= 90
+                  duration: genuine.duration.inSeconds > 0
                       ? genuine.duration
-                      : _currentSong!.duration,
+                      : original.duration,
                 );
                 final qIdx = _queue.indexWhere((s) => s.id == updated.id);
                 if (qIdx != -1) _queue[qIdx] = updated;
@@ -621,7 +642,7 @@ class MusicPlayerManager extends ChangeNotifier {
         if (event.begin) {
           switch (event.type) {
             case AudioInterruptionType.duck:
-              _audioPlayer.setVolume(_volume * 0.5);
+              unawaited(_setVolumeForRequest(_volume * 0.5));
               break;
             case AudioInterruptionType.pause:
             case AudioInterruptionType.unknown:
@@ -633,7 +654,7 @@ class MusicPlayerManager extends ChangeNotifier {
         } else {
           switch (event.type) {
             case AudioInterruptionType.duck:
-              _audioPlayer.setVolume(_volume);
+              unawaited(_setVolumeForRequest(_volume));
               break;
             case AudioInterruptionType.pause:
               break;
@@ -899,10 +920,6 @@ class MusicPlayerManager extends ChangeNotifier {
           candidate.audioUrl.contains('preview')) {
         return;
       }
-      if (candidate.duration.inSeconds > 0 &&
-          candidate.duration.inSeconds < 75) {
-        return;
-      }
       final candLang = MusicApiService.detectSongLanguage(candidate);
       if (candLang != seedLang) {
         final bool indicOk =
@@ -987,21 +1004,68 @@ class MusicPlayerManager extends ChangeNotifier {
     unawaited(_infillSmartQueue(song, targetQueueSize: 60));
   }
 
+  bool _isPreviewAudio(Song song) {
+    final id = song.id.trim().toLowerCase();
+    final url = song.audioUrl.trim().toLowerCase();
+
+    if (id.startsWith('itunes_') || id.startsWith('preview_')) {
+      return true;
+    }
+
+    return url.contains('apple.com') ||
+        url.contains('mzstatic.com') ||
+        url.contains('preview');
+  }
+
+  bool _isVerifiedFullTrackReplacement(Song original, Song candidate) {
+    final url = candidate.audioUrl.trim().toLowerCase();
+    if (url.isEmpty || _isPreviewAudio(candidate)) return false;
+    if (url.contains('youtube.com') || url.contains('youtu.be')) {
+      return false;
+    }
+
+    final originalTitle = SongParserUtils.normalizeSongTitle(original.title);
+    final candidateTitle = SongParserUtils.normalizeSongTitle(candidate.title);
+
+    if (originalTitle.isEmpty || originalTitle != candidateTitle) {
+      return false;
+    }
+
+    String knownArtist(String artist) {
+      final normalized = SongParserUtils.normalizeArtist(artist);
+      const unknown = {'', 'unknown', 'various', 'music', 'artist'};
+      return unknown.contains(normalized) ? '' : normalized;
+    }
+
+    final expectedArtist = knownArtist(original.artist);
+    final actualArtist = knownArtist(candidate.artist);
+
+    if (expectedArtist.isNotEmpty &&
+        (actualArtist.isEmpty || expectedArtist != actualArtist)) {
+      return false;
+    }
+
+    return true;
+  }
+
   Future<void> playSong(
     Song song, {
     List<Song>? newQueue,
     List<Song>? playlistContext,
   }) async {
+    final requestId = ++_playbackRequestId;
+    final previousSong = _currentSong;
     _isTransitioning = true;
     _errorMessage = null;
 
     // Immediately pause/silence previous audio to prevent ghost playback and overlap
     if (_audioPlayer.playing || _isPlaying) {
       try {
-        await _audioPlayer.pause();
+        await _pausePlayer(requestId: requestId);
       } catch (_) {}
     }
 
+    if (requestId != _playbackRequestId) return;
     // Immediately display track metadata and show buffering spinner so UI never shows "No song playing"
     _currentSong = song;
     _isPlaying = true;
@@ -1019,6 +1083,7 @@ class MusicPlayerManager extends ChangeNotifier {
       title: resolvedSong.title,
     );
 
+    if (requestId != _playbackRequestId) return;
     final bool isYouTube =
         resolvedSong.id.startsWith('yt_') ||
         resolvedSong.audioUrl.contains('youtube.com');
@@ -1045,14 +1110,11 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     }
 
-    final bool isApplePreview =
-        resolvedSong.audioUrl.contains('apple.com') ||
-        resolvedSong.audioUrl.contains('mzstatic.com') ||
-        resolvedSong.audioUrl.contains('preview');
+    if (requestId != _playbackRequestId) return;
+    final bool isApplePreview = _isPreviewAudio(resolvedSong);
     // 2. Resolve missing/preview audio with one strictly bounded search.
     // Do not search merely because duration metadata is shorter than 90 seconds.
     if (offlineUri == null &&
-        !isDl &&
         !isYouTube &&
         (resolvedSong.audioUrl.trim().isEmpty || isApplePreview) &&
         resolvedSong.title.isNotEmpty) {
@@ -1085,20 +1147,10 @@ class MusicPlayerManager extends ChangeNotifier {
               },
             );
 
+        if (requestId != _playbackRequestId) return;
         Song? genuineMatch;
         for (final match in freshMatches) {
-          final url = match.audioUrl.trim().toLowerCase();
-          final duration = match.duration.inSeconds;
-
-          final isUsableFullTrack =
-              url.isNotEmpty &&
-              !url.contains('apple.com') &&
-              !url.contains('mzstatic.com') &&
-              !url.contains('preview') &&
-              !url.contains('youtube.com') &&
-              (duration == 0 || duration >= 90);
-
-          if (isUsableFullTrack) {
+          if (_isVerifiedFullTrackReplacement(resolvedSong, match)) {
             genuineMatch = match;
             break;
           }
@@ -1107,21 +1159,52 @@ class MusicPlayerManager extends ChangeNotifier {
         if (genuineMatch != null) {
           resolvedSong = resolvedSong.copyWith(
             audioUrl: genuineMatch.audioUrl,
-            duration: genuineMatch.duration.inSeconds >= 90
+            duration: genuineMatch.duration.inSeconds > 0
                 ? genuineMatch.duration
                 : resolvedSong.duration,
           );
           debugPrint('[Playback] Full-track replacement found.');
         } else {
           debugPrint(
-            '[Playback] No verified full-track replacement found; retaining original source.',
+            '[Playback] No verified full-track replacement found; refusing preview playback.',
           );
+          if (_isPreviewAudio(resolvedSong)) {
+            if (requestId != _playbackRequestId) return;
+            try {
+              await _stopPlayer(requestId: requestId);
+            } catch (_) {}
+            if (requestId != _playbackRequestId) return;
+            _errorMessage = 'Full version is unavailable for this track.';
+            _isPlaying = false;
+            _isBuffering = false;
+            MediaSessionService.updatePlaybackState(isPlaying: false);
+            notifyListeners();
+            return;
+          }
         }
       } catch (e) {
         debugPrint('[Playback] Bounded pre-resolve error: $e');
+
+        // Fail closed: never continue into playback with a preview URL
+        // when the full-track lookup itself fails.
+        if (requestId != _playbackRequestId) return;
+        if (_isPreviewAudio(resolvedSong)) {
+          try {
+            await _stopPlayer(requestId: requestId);
+          } catch (_) {}
+
+          if (requestId != _playbackRequestId) return;
+          _errorMessage = 'Full version is unavailable for this track.';
+          _isPlaying = false;
+          _isBuffering = false;
+          MediaSessionService.updatePlaybackState(isPlaying: false);
+          notifyListeners();
+          return;
+        }
       }
     }
-    final prevSong = _currentSong;
+    if (requestId != _playbackRequestId) return;
+    final prevSong = previousSong;
     _currentSong = resolvedSong;
 
     if (prevSong != null && resolvedSong.id != prevSong.id) {
@@ -1138,7 +1221,9 @@ class MusicPlayerManager extends ChangeNotifier {
     final queueToUse = newQueue ?? playlistContext;
     final rKey = SongParserUtils.songDeduplicationKey(resolvedSong);
     if (queueToUse != null && queueToUse.isNotEmpty) {
-      _queue = SongParserUtils.deduplicateSongs(queueToUse);
+      _queue = SongParserUtils.deduplicateSongs(
+        queueToUse.where((s) => !_isPreviewAudio(s)).toList(),
+      );
       var idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
       if (idx == -1 && rKey.isNotEmpty) {
         idx = _queue.indexWhere(
@@ -1212,9 +1297,6 @@ class MusicPlayerManager extends ChangeNotifier {
         if (s.audioUrl.contains('apple.com') ||
             s.audioUrl.contains('mzstatic.com') ||
             s.audioUrl.contains('preview')) {
-          return false;
-        }
-        if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
           return false;
         }
         if (MusicApiService.detectSongLanguage(s) != seedLang) return false;
@@ -1308,7 +1390,7 @@ class MusicPlayerManager extends ChangeNotifier {
           );
           _isYouTubeWebPlaying = true;
           try {
-            await _audioPlayer.stop();
+            await _stopPlayer(requestId: requestId);
           } catch (_) {}
           YouTubeWebPlayer.play(videoId);
           YouTubeWebPlayer.setVolume(_volume);
@@ -1356,6 +1438,17 @@ class MusicPlayerManager extends ChangeNotifier {
       MediaItem? currentMediaItem;
       final List<AudioSource> audioSources = [];
       final queueSnapshot = List<Song>.from(_queue);
+      final offlineQueueUris = await Future.wait<Uri?>(
+        List<Future<Uri?>>.generate(queueSnapshot.length, (queueIndex) async {
+          if (queueIndex == _currentIndex) return null;
+          final qSong = queueSnapshot[queueIndex];
+          if (!DownloadService().isDownloaded(qSong.id)) {
+            return null;
+          }
+          return DownloadService().playableUriFor(qSong.id, title: qSong.title);
+        }),
+      );
+      if (requestId != _playbackRequestId) return;
       for (int i = 0; i < queueSnapshot.length; i++) {
         final qSong = queueSnapshot[i];
         final qCover = qSong.coverUrl.trim();
@@ -1404,13 +1497,7 @@ class MusicPlayerManager extends ChangeNotifier {
         if (i == _currentIndex) {
           qUri = sourceUri;
         } else {
-          final isQdl = DownloadService().isDownloaded(qSong.id);
-          final offlineQUri = isQdl
-              ? await DownloadService().playableUriFor(
-                  qSong.id,
-                  title: qSong.title,
-                )
-              : null;
+          final offlineQUri = offlineQueueUris[i];
           final rawQUrl = qSong.audioUrl.trim();
           final Uri parsedQUri;
           if (kIsWeb && rawQUrl.startsWith('/')) {
@@ -1423,7 +1510,18 @@ class MusicPlayerManager extends ChangeNotifier {
           qUri = offlineQUri ?? parsedQUri;
         }
 
-        audioSources.add(AudioSource.uri(qUri, tag: qMediaItem));
+        audioSources.add(
+          AudioSource.uri(
+            qUri,
+            tag: qMediaItem,
+            headers: !kIsWeb && qSong.id.startsWith('yt_')
+                ? const {
+                    'User-Agent':
+                        'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                  }
+                : null,
+          ),
+        );
       }
 
       if (sourceUri.toString().trim().isEmpty) {
@@ -1435,10 +1533,12 @@ class MusicPlayerManager extends ChangeNotifier {
       if (kIsWeb) {
         _playlistSource = null;
         try {
-          await _audioPlayer.stop();
+          await _stopPlayer(requestId: requestId);
         } catch (_) {}
-        await _audioPlayer.setAudioSource(
+        if (requestId != _playbackRequestId) return;
+        await _setAudioSourceForRequest(
           AudioSource.uri(sourceUri, tag: currentMediaItem),
+          requestId: requestId,
           initialPosition: Duration.zero,
           preload: true,
         );
@@ -1448,26 +1548,31 @@ class MusicPlayerManager extends ChangeNotifier {
           useLazyPreparation: true,
         );
 
-        await _audioPlayer.setAudioSource(
+        if (requestId != _playbackRequestId) return;
+        await _setAudioSourceForRequest(
           _playlistSource!,
+          requestId: requestId,
           initialIndex: _currentIndex,
           initialPosition: Duration.zero,
           preload: true,
         );
       }
 
+      if (requestId != _playbackRequestId) return;
       try {
-        await _audioPlayer.setSpeed(_playbackSpeed);
+        await _setSpeedForRequest(_playbackSpeed, requestId: requestId);
       } catch (_) {}
       try {
-        await _audioPlayer.setVolume(_volume);
+        await _setVolumeForRequest(_volume, requestId: requestId);
       } catch (_) {}
       try {
-        await _audioPlayer.setLoopMode(
+        await _setLoopModeForRequest(
           _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+          requestId: requestId,
         );
       } catch (_) {}
-      _startPlayback();
+      if (requestId != _playbackRequestId) return;
+      _startPlayback(requestId: requestId);
       _isPlaying = true;
       _isBuffering = false;
 
@@ -1475,6 +1580,7 @@ class MusicPlayerManager extends ChangeNotifier {
         unawaited(_infillSmartQueue(resolvedSong, targetQueueSize: 50));
       }
     } catch (e, stack) {
+      if (requestId != _playbackRequestId) return;
       // 10/10 Resilience: Attempt automatic stream auto-heal if online URL was expired or broken
       final isDl = DownloadService().isDownloaded(resolvedSong.id);
       if (!isDl && resolvedSong.title.isNotEmpty) {
@@ -1493,29 +1599,44 @@ class MusicPlayerManager extends ChangeNotifier {
             final freshStream = await YouTubeSearchService.resolveAudioStream(
               vid,
             );
+            if (requestId != _playbackRequestId) return;
             if (freshStream != null && freshStream.isNotEmpty) {
               healedSongs = [resolvedSong.copyWith(audioUrl: freshStream)];
             }
           }
 
+          if (requestId != _playbackRequestId) return;
           if (healedSongs.isEmpty && cleanTitle.isNotEmpty) {
             healedSongs = await MusicApiService.searchLiveSongs(
               cleanTitle,
               limit: 5,
             );
           }
+          if (requestId != _playbackRequestId) return;
           if (healedSongs.isEmpty) {
             healedSongs = await MusicApiService.searchLiveSongs(
               '${resolvedSong.title} ${resolvedSong.artist}',
               limit: 5,
             );
           }
-          if (healedSongs.isNotEmpty &&
-              healedSongs.first.audioUrl.isNotEmpty &&
-              healedSongs.first.audioUrl != resolvedSong.audioUrl) {
+          if (requestId != _playbackRequestId) return;
+          Song? verifiedHeal;
+          for (final candidate in healedSongs) {
+            if (_isVerifiedFullTrackReplacement(resolvedSong, candidate) &&
+                candidate.audioUrl != resolvedSong.audioUrl) {
+              verifiedHeal = candidate;
+              break;
+            }
+          }
+
+          if (verifiedHeal != null) {
             final freshTrack = resolvedSong.copyWith(
-              audioUrl: healedSongs.first.audioUrl,
+              audioUrl: verifiedHeal.audioUrl,
+              duration: verifiedHeal.duration.inSeconds > 0
+                  ? verifiedHeal.duration
+                  : resolvedSong.duration,
             );
+            if (requestId != _playbackRequestId) return;
             final idx = _queue.indexWhere((s) => s.id == resolvedSong.id);
             if (idx != -1) _queue[idx] = freshTrack;
 
@@ -1579,14 +1700,16 @@ class MusicPlayerManager extends ChangeNotifier {
             if (kIsWeb) {
               _playlistSource = null;
               try {
-                await _audioPlayer.stop();
+                await _stopPlayer(requestId: requestId);
               } catch (_) {}
               final rawFreshUrl = freshTrack.audioUrl.trim();
               final freshUri = (kIsWeb && rawFreshUrl.startsWith('/'))
                   ? Uri.base.resolve(rawFreshUrl)
                   : Uri.parse(rawFreshUrl);
-              await _audioPlayer.setAudioSource(
+              if (requestId != _playbackRequestId) return;
+              await _setAudioSourceForRequest(
                 AudioSource.uri(freshUri, tag: healedCurrentItem),
+                requestId: requestId,
                 initialPosition: Duration.zero,
                 preload: true,
               );
@@ -1596,20 +1719,24 @@ class MusicPlayerManager extends ChangeNotifier {
                 useLazyPreparation: true,
               );
 
-              await _audioPlayer.setAudioSource(
+              if (requestId != _playbackRequestId) return;
+              await _setAudioSourceForRequest(
                 _playlistSource!,
+                requestId: requestId,
                 initialIndex: _currentIndex,
                 initialPosition: Duration.zero,
                 preload: true,
               );
             }
+            if (requestId != _playbackRequestId) return;
             try {
-              await _audioPlayer.setSpeed(_playbackSpeed);
+              await _setSpeedForRequest(_playbackSpeed, requestId: requestId);
             } catch (_) {}
             try {
-              await _audioPlayer.setVolume(_volume);
+              await _setVolumeForRequest(_volume, requestId: requestId);
             } catch (_) {}
-            _startPlayback();
+            if (requestId != _playbackRequestId) return;
+            _startPlayback(requestId: requestId);
             _isPlaying = true;
             _isBuffering = false;
             _errorMessage = null;
@@ -1622,6 +1749,7 @@ class MusicPlayerManager extends ChangeNotifier {
         }
       }
 
+      if (requestId != _playbackRequestId) return;
       if (isDl &&
           await DownloadService().playableUriFor(
                 resolvedSong.id,
@@ -1637,12 +1765,14 @@ class MusicPlayerManager extends ChangeNotifier {
       _isBuffering = false;
       _isPlaying = false;
       try {
-        await _audioPlayer.stop();
+        await _stopPlayer(requestId: requestId);
       } catch (_) {}
       MediaSessionService.updatePlaybackState(isPlaying: false);
     } finally {
-      _isTransitioning = false;
-      notifyListeners();
+      if (requestId == _playbackRequestId) {
+        _isTransitioning = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -1684,20 +1814,401 @@ class MusicPlayerManager extends ChangeNotifier {
     await playSong(songs[targetIndex], newQueue: List.from(songs));
   }
 
-  void _startPlayback() {
+  Future<void> _stopPlayer({int? requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != null && requestId != _playbackRequestId) return;
+      await _audioPlayer.stop();
+    });
+  }
+
+  Future<Duration?> _setAudioSourceForRequest(
+    AudioSource source, {
+    required int requestId,
+    int? initialIndex,
+    Duration? initialPosition,
+    bool preload = true,
+  }) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != _playbackRequestId) return null;
+      return _audioPlayer.setAudioSource(
+        source,
+        initialIndex: initialIndex,
+        initialPosition: initialPosition,
+        preload: preload,
+      );
+    });
+  }
+
+  Future<void> _pausePlayer({int? requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != null && requestId != _playbackRequestId) return;
+      await _audioPlayer.pause();
+    });
+  }
+
+  Future<void> _seekPlayer(Duration position, {required int requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != _playbackRequestId) return;
+      await _audioPlayer.seek(position);
+    });
+  }
+
+  Future<void> _setSpeedForRequest(double speed, {required int requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != _playbackRequestId) return;
+      await _audioPlayer.setSpeed(speed);
+    });
+  }
+
+  Future<void> _setVolumeForRequest(double volume, {int? requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != null && requestId != _playbackRequestId) return;
+      await _audioPlayer.setVolume(volume);
+    });
+  }
+
+  Future<void> _setLoopModeForRequest(LoopMode mode, {int? requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != null && requestId != _playbackRequestId) return;
+      await _audioPlayer.setLoopMode(mode);
+    });
+  }
+
+  Future<void> _playPlayer({required int requestId}) {
+    return _playerCommandQueue.run(() async {
+      if (requestId != _playbackRequestId) return;
+
+      // Do not hold the command queue until the track finishes.
+      unawaited(
+        _audioPlayer.play().catchError((Object error) {
+          if (requestId != _playbackRequestId) return;
+          if (!kIsWeb && _currentSong?.id.startsWith('yt_') == true) {
+            unawaited(_recoverYouTubeStreamAfterError());
+            return;
+          }
+          _errorMessage = 'Playback error: $error';
+          _isPlaying = false;
+          _isBuffering = false;
+          unawaited(BatteryOptimizationService.releaseWakeLock());
+          notifyListeners();
+        }),
+      );
+    });
+  }
+
+  void _startPlayback({int? requestId}) {
+    final effectiveRequestId = requestId ?? _playbackRequestId;
+    if (effectiveRequestId != _playbackRequestId) return;
+
     unawaited(BatteryOptimizationService.acquireWakeLock());
-    unawaited(
-      _audioPlayer.play().catchError((Object e) {
-        _errorMessage = 'Playback error: $e';
-        _isPlaying = false;
-        _isBuffering = false;
-        unawaited(BatteryOptimizationService.releaseWakeLock());
+    unawaited(_playPlayer(requestId: effectiveRequestId));
+  }
+
+  Future<void> _recoverYouTubeStreamAfterError() async {
+    if (kIsWeb || _isYouTubeWebPlaying) return;
+
+    final requestId = _playbackRequestId;
+    final failedSong = _currentSong;
+
+    if (failedSong == null ||
+        !failedSong.id.startsWith('yt_') ||
+        _playlistSource == null ||
+        _queue.isEmpty) {
+      return;
+    }
+
+    // A failed request gets only one refresh attempt.
+    if (_youtubeStreamRecoveryRequestId == requestId) return;
+    _youtubeStreamRecoveryRequestId = requestId;
+
+    final videoId = failedSong.id.substring(3);
+    _isTransitioning = true;
+    _isBuffering = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      // On native Android, prefer a verified full track from another provider.
+      Song? verifiedReplacement;
+      final cleanTitle = SongParserUtils.normalizeSongTitle(failedSong.title);
+      final primaryArtist = failedSong.artist
+          .split(RegExp(r'[,&/]'))
+          .first
+          .trim();
+
+      if (cleanTitle.isNotEmpty) {
+        try {
+          var candidates = await MusicApiService.searchLiveSongs(
+            primaryArtist.isNotEmpty
+                ? '$cleanTitle $primaryArtist'
+                : cleanTitle,
+            limit: 10,
+          ).timeout(const Duration(seconds: 12));
+
+          if (requestId != _playbackRequestId) return;
+
+          for (final candidate in candidates) {
+            if (!_isVerifiedFullTrackReplacement(failedSong, candidate)) {
+              continue;
+            }
+            final seconds = candidate.duration.inSeconds;
+            if (seconds < 90) continue;
+
+            final originalSeconds = failedSong.duration.inSeconds;
+            if (originalSeconds > 0) {
+              final tolerance = originalSeconds ~/ 4 > 45
+                  ? originalSeconds ~/ 4
+                  : 45;
+              if ((seconds - originalSeconds).abs() > tolerance) continue;
+            }
+
+            verifiedReplacement = candidate;
+            break;
+          }
+
+          if (verifiedReplacement == null && primaryArtist.isNotEmpty) {
+            candidates = await MusicApiService.searchLiveSongs(
+              cleanTitle,
+              limit: 10,
+            ).timeout(const Duration(seconds: 12));
+
+            if (requestId != _playbackRequestId) return;
+
+            for (final candidate in candidates) {
+              if (!_isVerifiedFullTrackReplacement(failedSong, candidate)) {
+                continue;
+              }
+              final seconds = candidate.duration.inSeconds;
+              if (seconds < 90) continue;
+
+              final originalSeconds = failedSong.duration.inSeconds;
+              if (originalSeconds > 0) {
+                final tolerance = originalSeconds ~/ 4 > 45
+                    ? originalSeconds ~/ 4
+                    : 45;
+                if ((seconds - originalSeconds).abs() > tolerance) continue;
+              }
+
+              verifiedReplacement = candidate;
+              break;
+            }
+          }
+        } catch (searchError) {
+          debugPrint(
+            '[Playback] Alternate-provider lookup failed: $searchError',
+          );
+        }
+      }
+
+      if (requestId != _playbackRequestId) return;
+
+      String? replacementAudioUrl;
+      var replacementDuration = failedSong.duration;
+
+      if (verifiedReplacement != null) {
+        replacementAudioUrl = verifiedReplacement.audioUrl;
+        if (verifiedReplacement.duration.inSeconds > 0) {
+          replacementDuration = verifiedReplacement.duration;
+        }
+        debugPrint(
+          '[Playback] Verified alternate-provider track: '
+          '${verifiedReplacement.id}',
+        );
+      } else if (videoId.isNotEmpty) {
+        final failedUri = Uri.tryParse(failedSong.audioUrl);
+        final isDirectGoogleVideo =
+            failedUri?.host.endsWith('googlevideo.com') == true &&
+            failedUri!.queryParameters.containsKey('itag');
+
+        debugPrint('[Playback] No verified match; trying YouTube refresh.');
+        final freshStream = await YouTubeSearchService.resolveAudioStream(
+          videoId,
+          excludeStreamUrl: isDirectGoogleVideo ? failedSong.audioUrl : null,
+        );
+
+        if (requestId != _playbackRequestId) return;
+        if (freshStream != null && freshStream.trim().isNotEmpty) {
+          replacementAudioUrl = freshStream;
+        }
+      }
+
+      if (replacementAudioUrl == null || replacementAudioUrl.trim().isEmpty) {
+        throw Exception(
+          'No verified full-track source is currently available.',
+        );
+      }
+
+      final currentIndex = _queue.indexWhere(
+        (song) => song.id == failedSong.id,
+      );
+      if (currentIndex < 0) {
+        throw Exception('The failed track is no longer in the playback queue.');
+      }
+
+      final refreshedSong = failedSong.copyWith(
+        audioUrl: replacementAudioUrl,
+        duration: replacementDuration,
+      );
+      _queue[currentIndex] = refreshedSong;
+      _currentSong = refreshedSong;
+      _currentIndex = currentIndex;
+      _syncCurrentSongAndIndex();
+
+      final queueSnapshot = List<Song>.from(_queue);
+      final offlineUris = await Future.wait<Uri?>(
+        List<Future<Uri?>>.generate(queueSnapshot.length, (index) async {
+          if (index == currentIndex) return null;
+          final queuedSong = queueSnapshot[index];
+          if (!DownloadService().isDownloaded(queuedSong.id)) return null;
+          return DownloadService().playableUriFor(
+            queuedSong.id,
+            title: queuedSong.title,
+          );
+        }),
+      );
+
+      if (requestId != _playbackRequestId) return;
+
+      final sources = <AudioSource>[];
+
+      for (var index = 0; index < queueSnapshot.length; index++) {
+        final queuedSong = queueSnapshot[index];
+        final cover = queuedSong.coverUrl.trim();
+        final secureCover = cover.startsWith('http://')
+            ? cover.replaceFirst('http://', 'https://')
+            : cover;
+
+        Uri? artUri;
+        if (secureCover.startsWith('file://')) {
+          artUri = Uri.tryParse(secureCover);
+        } else if (secureCover.startsWith('/') &&
+            !secureCover.startsWith('//')) {
+          artUri = Uri.file(secureCover);
+        } else if (secureCover.startsWith('https://')) {
+          final parsed = Uri.tryParse(secureCover);
+          if (parsed != null && parsed.host.isNotEmpty) artUri = parsed;
+        }
+
+        final mediaItem = MediaItem(
+          id: queuedSong.id,
+          album: queuedSong.album.isNotEmpty ? queuedSong.album : 'Jumbo Music',
+          title: queuedSong.title.isNotEmpty
+              ? queuedSong.title
+              : 'Unknown Title',
+          artist: queuedSong.artist.isNotEmpty
+              ? queuedSong.artist
+              : 'Unknown Artist',
+          artUri: artUri,
+          duration: queuedSong.duration.inSeconds > 0
+              ? queuedSong.duration
+              : null,
+          playable: true,
+          displayTitle: queuedSong.title.isNotEmpty
+              ? queuedSong.title
+              : 'Unknown Title',
+          displaySubtitle: queuedSong.artist.isNotEmpty
+              ? queuedSong.artist
+              : 'Unknown Artist',
+          displayDescription: queuedSong.album.isNotEmpty
+              ? queuedSong.album
+              : 'Jumbo Music',
+        );
+
+        final Uri audioUri;
+        if (index == currentIndex) {
+          audioUri = Uri.parse(replacementAudioUrl);
+        } else {
+          final rawUrl = queuedSong.audioUrl.trim();
+          audioUri =
+              offlineUris[index] ??
+              Uri.parse(rawUrl.isNotEmpty ? rawUrl : replacementAudioUrl);
+        }
+
+        sources.add(
+          AudioSource.uri(
+            audioUri,
+            tag: mediaItem,
+            headers: !kIsWeb && queuedSong.id.startsWith('yt_')
+                ? const {
+                    'User-Agent':
+                        'com.google.android.youtube/20.10.38 (Linux; U; Android 11) gzip',
+                  }
+                : null,
+          ),
+        );
+      }
+
+      final refreshedPlaylist = ConcatenatingAudioSource(
+        children: sources,
+        useLazyPreparation: true,
+      );
+
+      if (requestId != _playbackRequestId) return;
+
+      await _stopPlayer(requestId: requestId);
+      if (requestId != _playbackRequestId) return;
+
+      _playlistSource = refreshedPlaylist;
+      await _setAudioSourceForRequest(
+        refreshedPlaylist,
+        requestId: requestId,
+        initialIndex: currentIndex,
+        initialPosition: Duration.zero,
+        preload: true,
+      );
+
+      if (requestId != _playbackRequestId) return;
+
+      await _setSpeedForRequest(_playbackSpeed, requestId: requestId);
+      await _setVolumeForRequest(_volume, requestId: requestId);
+      await _setLoopModeForRequest(
+        _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+        requestId: requestId,
+      );
+
+      if (requestId != _playbackRequestId) return;
+
+      _position = Duration.zero;
+      _duration = refreshedSong.duration;
+      _errorMessage = null;
+      _isBuffering = false;
+      _isPlaying = true;
+
+      MediaSessionService.updateMetadata(
+        title: refreshedSong.title,
+        artist: refreshedSong.artist,
+        album: refreshedSong.album.isNotEmpty
+            ? refreshedSong.album
+            : 'Jumbo Music',
+        coverUrl: refreshedSong.coverUrl,
+      );
+      MediaSessionService.updatePlaybackState(isPlaying: true);
+
+      _startPlayback(requestId: requestId);
+      debugPrint('[Playback] Recovered source loaded; playback restarted.');
+      notifyListeners();
+    } catch (error) {
+      if (requestId != _playbackRequestId) return;
+
+      _errorMessage = 'Unable to refresh YouTube stream: $error';
+      _isPlaying = false;
+      _isBuffering = false;
+      MediaSessionService.updatePlaybackState(isPlaying: false);
+      unawaited(BatteryOptimizationService.releaseWakeLock());
+
+      debugPrint('[Playback] YouTube stream recovery failed: $error');
+      notifyListeners();
+    } finally {
+      if (requestId == _playbackRequestId) {
+        _isTransitioning = false;
         notifyListeners();
-      }),
-    );
+      }
+    }
   }
 
   Future<void> pause() async {
+    final requestId = ++_playbackRequestId;
+    _isTransitioning = false;
     _isPlaying = false;
     notifyListeners();
     MediaSessionService.updatePlaybackState(isPlaying: false);
@@ -1705,7 +2216,7 @@ class MusicPlayerManager extends ChangeNotifier {
     if (kIsWeb && _isYouTubeWebPlaying) {
       YouTubeWebPlayer.pause();
     } else {
-      await _audioPlayer.pause();
+      await _pausePlayer(requestId: requestId);
     }
     if (_currentSong != null) {
       unawaited(
@@ -1745,7 +2256,7 @@ class MusicPlayerManager extends ChangeNotifier {
       await playSong(currentSong!, newQueue: _queue.isNotEmpty ? _queue : null);
       return;
     }
-    await _audioPlayer.play();
+    await _playPlayer(requestId: _playbackRequestId);
   }
 
   Future<void> togglePlay() async {
@@ -2185,7 +2696,7 @@ class MusicPlayerManager extends ChangeNotifier {
       if (kIsWeb && _isYouTubeWebPlaying) {
         YouTubeWebPlayer.seek(newPosition.inMilliseconds / 1000.0);
       } else {
-        await _audioPlayer.seek(newPosition);
+        await _seekPlayer(newPosition, requestId: _playbackRequestId);
       }
     } catch (e) {
       debugPrint('[Playback] seek error ignored: $e');
@@ -2194,12 +2705,14 @@ class MusicPlayerManager extends ChangeNotifier {
 
   void _handleSongCompletion() async {
     if (_isTransitioning) return;
+    final completionRequestId = _playbackRequestId;
     _isTransitioning = true;
 
     try {
       if (_sleepAfterCurrentSong) {
         cancelSleepTimer();
-        await _audioPlayer.pause();
+        await _pausePlayer(requestId: completionRequestId);
+        if (completionRequestId != _playbackRequestId) return;
         _isPlaying = false;
         notifyListeners();
         return;
@@ -2216,8 +2729,9 @@ class MusicPlayerManager extends ChangeNotifier {
           YouTubeWebPlayer.seek(0);
           YouTubeWebPlayer.resume();
         } else {
-          await _audioPlayer.seek(Duration.zero);
-          _startPlayback();
+          await _seekPlayer(Duration.zero, requestId: completionRequestId);
+          if (completionRequestId != _playbackRequestId) return;
+          _startPlayback(requestId: completionRequestId);
         }
         return;
       }
@@ -2240,7 +2754,9 @@ class MusicPlayerManager extends ChangeNotifier {
       }
     } catch (_) {
     } finally {
-      _isTransitioning = false;
+      if (completionRequestId == _playbackRequestId) {
+        _isTransitioning = false;
+      }
     }
   }
 
@@ -2257,8 +2773,9 @@ class MusicPlayerManager extends ChangeNotifier {
     } else {
       _loopMode = LoopMode.off;
     }
-    await _audioPlayer.setLoopMode(
+    await _setLoopModeForRequest(
       _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+      requestId: _playbackRequestId,
     );
     notifyListeners();
   }
@@ -2283,8 +2800,9 @@ class MusicPlayerManager extends ChangeNotifier {
         _infillSmartQueue(currentSong!);
       }
     }
-    await _audioPlayer.setLoopMode(
+    await _setLoopModeForRequest(
       _loopMode == LoopMode.one ? LoopMode.one : LoopMode.off,
+      requestId: _playbackRequestId,
     );
     DatabaseService.instance.updateSetting('autoplay', _autoplay);
     notifyListeners();
@@ -2292,7 +2810,7 @@ class MusicPlayerManager extends ChangeNotifier {
 
   Future<void> setPlaybackSpeed(double speed) async {
     _playbackSpeed = speed;
-    await _audioPlayer.setSpeed(speed);
+    await _setSpeedForRequest(speed, requestId: _playbackRequestId);
     final dur = _duration.inSeconds > 0
         ? _duration.inSeconds.toDouble()
         : (currentSong != null
@@ -2307,6 +2825,8 @@ class MusicPlayerManager extends ChangeNotifier {
   }
 
   Future<void> stopPlayback() async {
+    ++_playbackRequestId;
+    _isTransitioning = false;
     try {
       _isPlaying = false;
       _isBuffering = false;
@@ -2320,7 +2840,7 @@ class MusicPlayerManager extends ChangeNotifier {
         _stopYouTubeProgressTimer();
         YouTubeWebPlayer.stop();
       }
-      await _audioPlayer.stop();
+      await _stopPlayer();
       MediaSessionService.updatePlaybackState(isPlaying: false);
       PresenceService.instance.updateListeningStatus(
         song: null,
@@ -2357,6 +2877,7 @@ class MusicPlayerManager extends ChangeNotifier {
     _sleepTimer?.cancel();
     _sleepTicker?.cancel();
     _playerStateSubscription?.cancel();
+    _playerErrorSubscription?.cancel();
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _bufferedPositionSubscription?.cancel();

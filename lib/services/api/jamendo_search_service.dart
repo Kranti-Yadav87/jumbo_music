@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../config/app_config.dart';
 import '../../models/song.dart';
 import '../crash_reporting_service.dart';
+import 'song_parser_utils.dart';
 
 /// Legal full-length catalog: Jamendo (Creative Commons / independent music).
 ///
@@ -77,6 +78,14 @@ class JamendoSearchService {
       final seconds = item['duration'] is num
           ? (item['duration'] as num).toInt()
           : int.tryParse('${item['duration']}') ?? 0;
+      if (seconds <= 0 ||
+          SongParserUtils.isExplicitPreviewOrPromo(
+            title: name,
+            audioUrl: audio,
+          )) {
+        continue;
+      }
+
       final release = item['releasedate']?.toString() ?? '';
       final year = release.length >= 4 ? release.substring(0, 4) : '';
       final album = item['album_name']?.toString();

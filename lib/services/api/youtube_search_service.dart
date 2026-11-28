@@ -12,17 +12,10 @@ import 'music_tag_classifier.dart';
 class YouTubeSearchService {
   YouTubeSearchService._();
 
-  /// Normalizes user queries by removing conversational connectors like "by",
-  /// "song", "audio", "video", "official", "mp3" that are not part of song metadata.
+  /// Removes media-related filler while preserving meaningful title words
+  /// such as "by" in songs like "Stand By Me".
   static String normalizeQuery(String query) {
     String q = query.trim();
-    // Replace standalone "by" surrounded by whitespace with a single space
-    q = q.replaceAll(RegExp(r'\s+by\s+', caseSensitive: false), ' ');
-    // Remove standalone "by" at start or end
-    q = q.replaceAll(
-      RegExp(r'(^\s*by\s+|\s+by\s*$)', caseSensitive: false),
-      ' ',
-    );
     // Remove common media suffixes
     q = q.replaceAll(
       RegExp(
@@ -195,10 +188,63 @@ class YouTubeSearchService {
     return [];
   }
 
+  /// Selects a genuinely alternate audio-only format after a stream failure.
+  /// AAC in MP4 is preferred; otherwise a different container is required.
+  @visibleForTesting
+  static AudioOnlyStreamInfo? selectAlternateAudioStream(
+    Iterable<AudioOnlyStreamInfo> streams, {
+    required int excludeTag,
+    required String failedContainer,
+  }) {
+    final candidates = streams
+        .where(
+          (stream) =>
+              stream.tag != excludeTag &&
+              (stream.audioTrack == null || stream.audioTrack!.audioIsDefault),
+        )
+        .toList();
+    if (candidates.isEmpty) return null;
+
+    int compareBitrate(AudioOnlyStreamInfo a, AudioOnlyStreamInfo b) =>
+        b.bitrate.compareTo(a.bitrate);
+
+    final aacCandidates =
+        candidates
+            .where(
+              (stream) =>
+                  stream.container == StreamContainer.mp4 &&
+                  stream.audioCodec.toLowerCase().startsWith('mp4a'),
+            )
+            .toList()
+          ..sort(compareBitrate);
+
+    if (failedContainer.toLowerCase() != 'mp4' && aacCandidates.isNotEmpty) {
+      return aacCandidates.first;
+    }
+
+    final differentContainerCandidates =
+        candidates
+            .where(
+              (stream) =>
+                  stream.container.name.toLowerCase() !=
+                  failedContainer.toLowerCase(),
+            )
+            .toList()
+          ..sort(compareBitrate);
+
+    return differentContainerCandidates.isEmpty
+        ? null
+        : differentContainerCandidates.first;
+  }
+
   /// Resolves direct audio stream for a YouTube video.
-  /// On Native: uses youtube_explode_dart to extract high-bitrate .googlevideo.com audio stream.
+  /// On Native: extracts a high-bitrate audio-only stream.
   /// On Web: returns the proxy stream endpoint /api/youtube-stream?id=$videoId.
-  static Future<String?> resolveAudioStream(String videoId) async {
+  /// Supplying [excludeStreamUrl] selects a different container for recovery.
+  static Future<String?> resolveAudioStream(
+    String videoId, {
+    String? excludeStreamUrl,
+  }) async {
     if (videoId.isEmpty) return null;
     if (kIsWeb) {
       return '/api/youtube-stream?id=$videoId';
@@ -207,8 +253,30 @@ class YouTubeSearchService {
       final yt = YoutubeExplode();
       try {
         final manifest = await yt.videos.streamsClient.getManifest(videoId);
-        final audio = manifest.audioOnly.withHighestBitrate();
-        return audio.url.toString();
+        final AudioOnlyStreamInfo? audio;
+
+        if (excludeStreamUrl == null || excludeStreamUrl.trim().isEmpty) {
+          audio = manifest.audioOnly.withHighestBitrate();
+        } else {
+          final failedUri = Uri.tryParse(excludeStreamUrl);
+          final failedTag = int.tryParse(
+            failedUri?.queryParameters['itag'] ?? '',
+          );
+          final mime = failedUri?.queryParameters['mime'] ?? '';
+          final failedContainer = mime.contains('/')
+              ? mime.split('/').last.toLowerCase()
+              : '';
+
+          if (failedTag == null || failedContainer.isEmpty) return null;
+
+          audio = selectAlternateAudioStream(
+            manifest.audioOnly,
+            excludeTag: failedTag,
+            failedContainer: failedContainer,
+          );
+        }
+
+        return audio?.url.toString();
       } finally {
         yt.close();
       }
@@ -237,7 +305,7 @@ class YouTubeSearchService {
 
       final videoId = item['videoId']?.toString().trim() ?? '';
       final title = item['title']?.toString().trim() ?? '';
-      final artist = item['channelTitle']?.toString().trim() ?? '';
+      final uploaderName = item['channelTitle']?.toString().trim() ?? '';
 
       if (!RegExp(r'^[A-Za-z0-9_-]{11}$').hasMatch(videoId)) {
         continue;
@@ -254,11 +322,36 @@ class YouTubeSearchService {
       final yearMatch = RegExp(r'^(19|20)\d{2}').firstMatch(publishedAt);
       final releaseYear = yearMatch?.group(0) ?? '';
 
+      final rawViewCount = item['viewCount'];
+      final viewCount = rawViewCount is num
+          ? rawViewCount.toInt()
+          : int.tryParse(rawViewCount?.toString() ?? '') ?? 0;
+
+      final rawLikeCount = item['likeCount'];
+      final likeCount = rawLikeCount is num
+          ? rawLikeCount.toInt()
+          : int.tryParse(rawLikeCount?.toString() ?? '') ?? 0;
+
+      final rawTags = item['tags'];
+      final tags = rawTags is List
+          ? rawTags
+                .whereType<String>()
+                .map((tag) => tag.trim())
+                .where((tag) => tag.isNotEmpty)
+                .take(30)
+                .toList()
+          : <String>[];
+
+      final description = item['description']?.toString() ?? '';
+      final categoryId = item['categoryId']?.toString() ?? '';
+      final channelId = item['channelId']?.toString() ?? '';
+
       songs.add(
         _buildSong(
           videoId: videoId,
           title: title,
-          artist: artist.isEmpty ? 'YouTube' : artist,
+          artist: 'Unknown Artist',
+          uploaderName: uploaderName,
           album: 'YouTube',
           duration: Duration(
             seconds: durationSeconds < 0 ? 0 : durationSeconds,
@@ -267,6 +360,12 @@ class YouTubeSearchService {
               ? thumbnail
               : 'https://i.ytimg.com/vi/$videoId/hqdefault.jpg',
           releaseYear: releaseYear,
+          viewCount: viewCount < 0 ? 0 : viewCount,
+          likeCount: likeCount < 0 ? 0 : likeCount,
+          description: description,
+          tags: tags,
+          categoryId: categoryId,
+          channelId: channelId,
         ),
       );
     }
@@ -709,6 +808,13 @@ class YouTubeSearchService {
     required Duration duration,
     required String coverUrl,
     String releaseYear = '',
+    int viewCount = 0,
+    int likeCount = 0,
+    String description = '',
+    List<String> tags = const [],
+    String categoryId = '',
+    String channelId = '',
+    String uploaderName = '',
   }) {
     final songId = 'yt_$videoId';
     final language = MusicTagClassifier.detectTextLanguage(
@@ -738,6 +844,13 @@ class YouTubeSearchService {
       quality: 'YouTube HD',
       lyrics: '',
       isLiveStream: false,
+      viewCount: viewCount,
+      likeCount: likeCount,
+      description: description,
+      tags: tags,
+      categoryId: categoryId,
+      channelId: channelId,
+      uploaderName: uploaderName,
     );
   }
 

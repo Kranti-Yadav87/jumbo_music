@@ -101,9 +101,6 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
           track.audioUrl.contains('preview')) {
         continue;
       }
-      if (track.duration.inSeconds > 0 && track.duration.inSeconds < 75) {
-        continue;
-      }
       if (seedLang != null) {
         final trackLanguage = MusicApiService.detectSongLanguage(track);
         final indicCompatible =
@@ -206,7 +203,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
   }) async {
     if (!_autoplay || _isQueueLocked) return;
 
-    if (_isLoadingRecommendations) {
+    if (_isLoadingRecommendations && _lastInfilledSongId == seedSong.id) {
       if (_infillCompleter != null && !_infillCompleter!.isCompleted) {
         try {
           await _infillCompleter!.future.timeout(const Duration(seconds: 4));
@@ -219,25 +216,39 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         _queue.length >= targetQueueSize) {
       return;
     }
-    _lastInfilledSongId = seedSong.id;
 
+    final requestId = ++_recommendationRequestId;
+    _lastInfilledSongId = seedSong.id;
     _isLoadingRecommendations = true;
-    _infillCompleter = Completer<void>();
+
+    final requestCompleter = Completer<void>();
+    _infillCompleter = requestCompleter;
     notify();
 
     try {
       final seedLang = MusicApiService.detectSongLanguage(seedSong);
       final seedEra = MusicTagClassifier.detectSongEra(seedSong);
+
       final smartTracks = await AiRecommendationEngine.instance.buildSmartQueue(
         seedSong: seedSong,
-        existingQueue: _queue,
+        existingQueue: List<Song>.from(_queue),
         targetSize: targetQueueSize,
       );
 
+      // Discard results from an older song or outdated request.
+      if (requestId != _recommendationRequestId ||
+          _currentSong?.id != seedSong.id ||
+          !_autoplay ||
+          _isQueueLocked) {
+        return;
+      }
+
       if (smartTracks.isNotEmpty) {
         _queue = SongParserUtils.deduplicateSongs(_queue);
+
         final currentQueueIds = _queue.map((s) => s.id).toSet()
           ..add(seedSong.id);
+
         final currentQueueKeys =
             _queue.map(SongParserUtils.songDeduplicationKey).toSet()
               ..add(SongParserUtils.songDeduplicationKey(seedSong));
@@ -245,14 +256,14 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         final List<Song> newTracks = smartTracks.where((s) {
           if (s.id == seedSong.id) return false;
           if (s.audioUrl.trim().isEmpty) return false;
+
           if (s.audioUrl.contains('apple.com') ||
               s.audioUrl.contains('mzstatic.com') ||
               s.audioUrl.contains('preview')) {
             return false;
           }
-          if (s.duration.inSeconds > 0 && s.duration.inSeconds < 75) {
-            return false;
-          }
+
+
           final candLang = MusicApiService.detectSongLanguage(s);
           if (candLang != seedLang) {
             final bool indicOk =
@@ -260,27 +271,34 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
                 MusicTagClassifier.isIndicLanguage(candLang);
             if (!indicOk) return false;
           }
+
           if (seedLang != 'English' && MusicTagClassifier.isEnglishSong(s)) {
             return false;
           }
+
           if (seedLang == 'English' && !MusicTagClassifier.isEnglishSong(s)) {
             return false;
           }
+
           final candEra = MusicTagClassifier.detectSongEra(s);
           if (candEra != seedEra) {
             if (!MusicTagClassifier.isEraCompatible(seedEra, candEra)) {
               return false;
             }
           }
+
           if (currentQueueIds.contains(s.id)) return false;
+
           final key = SongParserUtils.songDeduplicationKey(s);
           if (currentQueueKeys.contains(key)) return false;
+
           if (_queue.any(
             (q) =>
                 q.id == s.id || SongParserUtils.songDeduplicationKey(q) == key,
           )) {
             return false;
           }
+
           currentQueueIds.add(s.id);
           currentQueueKeys.add(key);
           return true;
@@ -289,10 +307,10 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         if (newTracks.isNotEmpty) {
           _appendTracksToQueueAndPlaylistSource(newTracks);
 
-          // Add to allSongs as well
           final Set<String> allKeys = _allSongs
               .map(SongParserUtils.songDeduplicationKey)
               .toSet();
+
           for (final track in newTracks) {
             final key = SongParserUtils.songDeduplicationKey(track);
             if (!allKeys.contains(key)) {
@@ -300,6 +318,7 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
               allKeys.add(key);
             }
           }
+
           _queue = SongParserUtils.deduplicateSongs(_queue);
           _syncCurrentSongAndIndex();
         }
@@ -310,12 +329,20 @@ extension MusicPlayerQueueDelegate on MusicPlayerManager {
         'music_player_queue_delegate.dart:212',
       );
     } finally {
-      _isLoadingRecommendations = false;
-      if (_infillCompleter != null && !_infillCompleter!.isCompleted) {
-        _infillCompleter!.complete();
+      if (!requestCompleter.isCompleted) {
+        requestCompleter.complete();
       }
-      _infillCompleter = null;
-      notify();
+
+      // An older request must not reset a newer request's loading state.
+      if (requestId == _recommendationRequestId) {
+        _isLoadingRecommendations = false;
+
+        if (identical(_infillCompleter, requestCompleter)) {
+          _infillCompleter = null;
+        }
+
+        notify();
+      }
     }
   }
 }

@@ -1,6 +1,35 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:jumbo_music/models/song.dart';
 import 'package:jumbo_music/services/api/youtube_search_service.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
+import 'package:youtube_explode_dart/src/videos/streams/models/audio_track.dart';
+
+AudioOnlyStreamInfo _audioOnlyStream({
+  required int tag,
+  required String container,
+  required String audioCodec,
+  required int bitrate,
+  bool isDefault = true,
+}) {
+  final streamContainer = container == 'mp4'
+      ? StreamContainer.mp4
+      : StreamContainer.webM;
+
+  return AudioOnlyStreamInfo(
+    VideoId('gD4EtH2Plik'),
+    tag,
+    Uri.parse('https://example.com/audio/$tag'),
+    streamContainer,
+    const FileSize(1024),
+    Bitrate(bitrate),
+    audioCodec,
+    'audio',
+    const [],
+    MediaType('audio', container),
+    AudioTrack(displayName: 'English', id: 'en', audioIsDefault: isDefault),
+  );
+}
 
 Song _testSong(String id, String title, String artist) {
   return Song(
@@ -128,7 +157,8 @@ void main() {
       expect(songs, hasLength(1));
       expect(songs.first.id, 'yt_gD4EtH2Plik');
       expect(songs.first.title, '295');
-      expect(songs.first.artist, 'Sidhu Moose Wala');
+      expect(songs.first.artist, 'Unknown Artist');
+      expect(songs.first.uploaderName, 'Sidhu Moose Wala');
       expect(songs.first.duration, const Duration(seconds: 270));
       expect(songs.first.coverUrl, 'https://example.com/thumbnail.jpg');
       expect(songs.first.releaseYear, '2022');
@@ -175,15 +205,159 @@ void main() {
       }, limit: 1);
 
       expect(songs, hasLength(1));
-      expect(songs.first.artist, 'YouTube');
+      expect(songs.first.artist, 'Unknown Artist');
       expect(songs.first.duration, Duration.zero);
       expect(YouTubeSearchService.parseDataApiSearchResults({}), isEmpty);
     });
 
-    test('normalizeQuery strips conversational connectors accurately', () {
+    test('parseDataApiSearchResults parses Smart Music metadata', () {
+      final songs = YouTubeSearchService.parseDataApiSearchResults({
+        'items': [
+          {
+            'videoId': 'gD4EtH2Plik',
+            'title': 'Heer',
+            'channelTitle': 'Afusic',
+            'durationSeconds': 197,
+            'viewCount': 1250000,
+            'likeCount': 45000,
+            'description': 'Official audio of Heer',
+            'tags': ['Heer', 'Afusic', '', 123, 'Punjabi Song'],
+            'categoryId': '10',
+            'channelId': 'UC123456789',
+          },
+        ],
+      });
+
+      expect(songs, hasLength(1));
+      final song = songs.first;
+
+      expect(song.artist, 'Unknown Artist');
+      expect(song.uploaderName, 'Afusic');
+      expect(song.viewCount, 1250000);
+      expect(song.likeCount, 45000);
+      expect(song.description, 'Official audio of Heer');
+      expect(song.tags, ['Heer', 'Afusic', 'Punjabi Song']);
+      expect(song.categoryId, '10');
+      expect(song.channelId, 'UC123456789');
+    });
+
+    test(
+      'parseDataApiSearchResults safely defaults missing and negative metadata',
+      () {
+        final songs = YouTubeSearchService.parseDataApiSearchResults({
+          'items': [
+            {'videoId': 'gD4EtH2Plik', 'title': 'Missing metadata'},
+            {
+              'videoId': 'mOB1S1qXcPQ',
+              'title': 'Negative metadata',
+              'viewCount': -100,
+              'likeCount': '-50',
+              'description': '',
+              'tags': ['  ', 123],
+            },
+          ],
+        });
+
+        expect(songs, hasLength(2));
+
+        final missing = songs[0];
+        expect(missing.viewCount, 0);
+        expect(missing.likeCount, 0);
+        expect(missing.description, '');
+        expect(missing.tags, isEmpty);
+        expect(missing.categoryId, '');
+        expect(missing.channelId, '');
+
+        final negative = songs[1];
+        expect(negative.viewCount, 0);
+        expect(negative.likeCount, 0);
+        expect(negative.tags, isEmpty);
+      },
+    );
+
+    test('alternate stream selection prefers AAC and excludes failed itag', () {
+      final failedOpus = _audioOnlyStream(
+        tag: 251,
+        container: 'webm',
+        audioCodec: 'opus',
+        bitrate: 143250,
+      );
+      final lowerBitrateOpus = _audioOnlyStream(
+        tag: 249,
+        container: 'webm',
+        audioCodec: 'opus',
+        bitrate: 55250,
+      );
+      final aac = _audioOnlyStream(
+        tag: 140,
+        container: 'mp4',
+        audioCodec: 'mp4a.40.2',
+        bitrate: 127450,
+      );
+
+      final selected = YouTubeSearchService.selectAlternateAudioStream(
+        [failedOpus, lowerBitrateOpus, aac],
+        excludeTag: 251,
+        failedContainer: 'webm',
+      );
+
+      expect(selected?.tag, 140);
+    });
+
+    test(
+      'alternate stream selection returns null without another container',
+      () {
+        final streams = [
+          _audioOnlyStream(
+            tag: 251,
+            container: 'webm',
+            audioCodec: 'opus',
+            bitrate: 143250,
+          ),
+          _audioOnlyStream(
+            tag: 249,
+            container: 'webm',
+            audioCodec: 'opus',
+            bitrate: 55250,
+          ),
+        ];
+
+        expect(
+          YouTubeSearchService.selectAlternateAudioStream(
+            streams,
+            excludeTag: 251,
+            failedContainer: 'webm',
+          ),
+          isNull,
+        );
+      },
+    );
+
+    test('alternate stream selection ignores non-default audio tracks', () {
+      final streams = [
+        _audioOnlyStream(
+          tag: 140,
+          container: 'mp4',
+          audioCodec: 'mp4a.40.2',
+          bitrate: 127450,
+          isDefault: false,
+        ),
+      ];
+
+      expect(
+        YouTubeSearchService.selectAlternateAudioStream(
+          streams,
+          excludeTag: 251,
+          failedContainer: 'webm',
+        ),
+        isNull,
+      );
+    });
+
+    test('normalizeQuery preserves title and artist connectors', () {
       expect(
         YouTubeSearchService.normalizeQuery('Heer by afusic'),
-        equals('Heer afusic'),
+        equals('Heer by afusic'),
       );
       expect(
         YouTubeSearchService.normalizeQuery('afusic song'),
@@ -191,15 +365,15 @@ void main() {
       );
       expect(
         YouTubeSearchService.normalizeQuery('dil by afusic official video'),
-        equals('dil afusic'),
+        equals('dil by afusic'),
       );
       expect(
         YouTubeSearchService.normalizeQuery('shape of you by ed sheeran'),
-        equals('shape of you ed sheeran'),
+        equals('shape of you by ed sheeran'),
       );
       expect(
         YouTubeSearchService.normalizeQuery('Stand By Me'),
-        equals('Stand Me'),
+        equals('Stand By Me'),
       );
     });
 

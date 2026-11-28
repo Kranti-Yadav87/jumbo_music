@@ -112,21 +112,32 @@ class SongParserUtils {
     return 'Unknown Artist';
   }
 
+  /// Rejects explicit preview, sample and promotional media.
+  /// Duration alone is not used to decide whether a song is complete.
+  static bool isExplicitPreviewOrPromo({
+    required String title,
+    required String audioUrl,
+  }) {
+    final titlePattern = RegExp(
+      r'\b(?:preview|sample|snippet|teaser|trailer|promo|promotional|'
+      r'ringtone|caller\s*tune|short\s+version|short\s+edit|'
+      r'30\s*sec(?:ond)?s?|clip|dialogue\s+promo)\b',
+      caseSensitive: false,
+    );
+    final urlPattern = RegExp(
+      r'(?:^|[/_.?&=-])(?:preview|sample|snippet|teaser|trailer|promo)(?:[/_.?&=-]|$)',
+      caseSensitive: false,
+    );
+    return titlePattern.hasMatch(title) || urlPattern.hasMatch(audioUrl);
+  }
+
   static Song? parseSong(Map<String, dynamic> item) {
     try {
       final audioUrl = extractAudioUrl(item['downloadUrl']);
       final name = unescape(item['name'] ?? item['song'] ?? item['title']);
       if (audioUrl.isEmpty || name.isEmpty) return null;
 
-      final lowerName = name.toLowerCase();
-      // Filter out short ringtones, caller tunes, trailers, dialogue promos
-      if (lowerName.contains('ringtone') ||
-          lowerName.contains('caller tune') ||
-          lowerName.contains('dialogue promo') ||
-          lowerName.contains('official trailer') ||
-          lowerName.contains('teaser') ||
-          lowerName.contains('30 sec') ||
-          lowerName.contains('30sec')) {
+      if (isExplicitPreviewOrPromo(title: name, audioUrl: audioUrl)) {
         return null;
       }
 
@@ -142,12 +153,9 @@ class SongParserUtils {
           'song_${DateTime.now().millisecondsSinceEpoch}';
 
       final rawDur = int.tryParse(item['duration']?.toString() ?? '');
-      // If duration is missing or zero, default to 240s so valid songs are not discarded
-      final durationSec = (rawDur != null && rawDur > 0) ? rawDur : 240;
-      // Filter out true short snippets/ringtones/30s promos (< 45s)
-      if (rawDur != null && rawDur > 0 && rawDur < 45) {
-        return null;
-      }
+      // Never invent a duration: zero means the provider did not supply one.
+      // Genuine short songs remain valid; explicit previews are filtered above.
+      final durationSec = (rawDur != null && rawDur > 0) ? rawDur : 0;
 
       var year = item['year']?.toString().trim() ?? '';
       if (year.isEmpty && item['release_date'] != null) {

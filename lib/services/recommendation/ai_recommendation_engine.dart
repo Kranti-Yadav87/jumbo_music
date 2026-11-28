@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import '../../models/song.dart';
 import '../database_service.dart';
 import '../music_api_service.dart';
+import '../api/song_parser_utils.dart';
 
 enum SongTempoCategory { slow, midTempo, upbeat }
 
@@ -392,13 +393,13 @@ class AiRecommendationEngine {
     if (candidate.audioUrl.trim().isEmpty) return -100.0;
     if (candidate.id == seedSong.id) return -100.0;
 
-    // Disqualify 30-second previews and short promo/ringtone snippets
+    // Reject explicit preview and promotional media, not genuine short songs.
     if (candidate.audioUrl.contains('apple.com') ||
         candidate.audioUrl.contains('mzstatic.com') ||
-        candidate.audioUrl.contains('preview')) {
-      return -100.0;
-    }
-    if (candidate.duration.inSeconds > 0 && candidate.duration.inSeconds < 75) {
+        SongParserUtils.isExplicitPreviewOrPromo(
+          title: candidate.title,
+          audioUrl: candidate.audioUrl,
+        )) {
       return -100.0;
     }
 
@@ -495,11 +496,10 @@ class AiRecommendationEngine {
       if (candidate.audioUrl.trim().isEmpty) return;
       if (candidate.audioUrl.contains('apple.com') ||
           candidate.audioUrl.contains('mzstatic.com') ||
-          candidate.audioUrl.contains('preview')) {
-        return;
-      }
-      if (candidate.duration.inSeconds > 0 &&
-          candidate.duration.inSeconds < 75) {
+          SongParserUtils.isExplicitPreviewOrPromo(
+            title: candidate.title,
+            audioUrl: candidate.audioUrl,
+          )) {
         return;
       }
       final candLang = MusicApiService.detectSongLanguage(candidate);

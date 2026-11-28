@@ -3,8 +3,9 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const query = String(req.query.q || '').trim();
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 30));
+  const requestUrl = new URL(req.url, 'http://localhost');
+  const query = String(requestUrl.searchParams.get('q') || '').trim();
+  const limit = Math.min(50, Math.max(1, Number(requestUrl.searchParams.get('limit')) || 30));
 
   if (!query || query.length > 150) {
     return res.status(400).json({ error: 'Invalid search query' });

@@ -17,6 +17,15 @@ class Song {
   final bool downloadAllowed;
   final String licenseUrl;
 
+  // Temporary YouTube search metadata. Deliberately excluded from toJson().
+  final int viewCount;
+  final int likeCount;
+  final String description;
+  final List<String> tags;
+  final String categoryId;
+  final String channelId;
+  final String uploaderName;
+
   const Song({
     required this.id,
     required this.title,
@@ -35,6 +44,13 @@ class Song {
     this.downloadUrl = '',
     this.downloadAllowed = false,
     this.licenseUrl = '',
+    this.viewCount = 0,
+    this.likeCount = 0,
+    this.description = '',
+    this.tags = const [],
+    this.categoryId = '',
+    this.channelId = '',
+    this.uploaderName = '',
   });
 
   Song copyWith({
@@ -55,6 +71,13 @@ class Song {
     String? downloadUrl,
     bool? downloadAllowed,
     String? licenseUrl,
+    int? viewCount,
+    int? likeCount,
+    String? description,
+    List<String>? tags,
+    String? categoryId,
+    String? channelId,
+    String? uploaderName,
   }) {
     return Song(
       id: id ?? this.id,
@@ -74,6 +97,13 @@ class Song {
       downloadUrl: downloadUrl ?? this.downloadUrl,
       downloadAllowed: downloadAllowed ?? this.downloadAllowed,
       licenseUrl: licenseUrl ?? this.licenseUrl,
+      viewCount: viewCount ?? this.viewCount,
+      likeCount: likeCount ?? this.likeCount,
+      description: description ?? this.description,
+      tags: tags ?? this.tags,
+      categoryId: categoryId ?? this.categoryId,
+      channelId: channelId ?? this.channelId,
+      uploaderName: uploaderName ?? this.uploaderName,
     );
   }
 

@@ -451,6 +451,80 @@ void main() {
     );
 
     test(
+      'playSong refuses a preview when search only returns a different artist',
+      () async {
+        final manager = MusicPlayerManager();
+        manager.setMockState(allSongs: []);
+
+        final previewSong = Song(
+          id: 'preview_apple_no_match',
+          title: 'Unreleased Test Song',
+          artist: 'Test Artist',
+          album: 'Test Album',
+          coverUrl: 'https://example.com/test.jpg',
+          audioUrl: 'https://audio-ssl.itunes.apple.com/preview.m4a',
+          duration: const Duration(seconds: 30),
+        );
+
+        final wrongArtistSong = Song(
+          id: 'wrong_artist_full_track',
+          title: 'Unreleased Test Song',
+          artist: 'Different Artist',
+          album: 'Other Album',
+          coverUrl: 'https://example.com/other.jpg',
+          audioUrl: 'https://example.com/full-track.mp3',
+          duration: const Duration(seconds: 240),
+        );
+
+        MusicApiService.mockSearchLiveSongs =
+            (String query, {int limit = 30}) async {
+              return [wrongArtistSong];
+            };
+
+        try {
+          await manager.playSong(previewSong, newQueue: [previewSong]);
+
+          expect(manager.isPlaying, isFalse);
+          expect(manager.errorMessage, contains('Full version is unavailable'));
+        } finally {
+          MusicApiService.mockSearchLiveSongs = null;
+        }
+      },
+    );
+
+    test(
+      'playSong refuses a preview when full-track lookup throws an error',
+      () async {
+        final manager = MusicPlayerManager();
+        manager.setMockState(allSongs: []);
+
+        final previewSong = Song(
+          id: 'preview_apple_lookup_error',
+          title: 'Network Error Test Song',
+          artist: 'Test Artist',
+          album: 'Test Album',
+          coverUrl: 'https://example.com/test.jpg',
+          audioUrl: 'https://audio-ssl.itunes.apple.com/preview.m4a',
+          duration: const Duration(seconds: 30),
+        );
+
+        MusicApiService.mockSearchLiveSongs =
+            (String query, {int limit = 30}) async {
+              throw Exception('Simulated network failure');
+            };
+
+        try {
+          await manager.playSong(previewSong, newQueue: [previewSong]);
+
+          expect(manager.isPlaying, isFalse);
+          expect(manager.errorMessage, contains('Full version is unavailable'));
+        } finally {
+          MusicApiService.mockSearchLiveSongs = null;
+        }
+      },
+    );
+
+    test(
       'Zero song repetition: MusicPlayerManager queue deduplicates title variants and never has duplicate songs',
       () async {
         final manager = MusicPlayerManager();

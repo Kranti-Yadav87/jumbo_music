@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
@@ -108,16 +109,27 @@ class MusicApiService {
         CrashReportingService.swallow(error, 'music_api_service.dart:ytSearch');
         return <Song>[];
       }),
+      JamendoSearchService.search(cleanQuery, limit: limit).catchError((error) {
+        CrashReportingService.swallow(
+          error,
+          'music_api_service.dart:jamendoSearch',
+        );
+        return <Song>[];
+      }),
     ]);
 
     final jioSongs = searchFutures[0];
     final ytSongs = searchFutures[1];
+    // Jamendo parser already requires provider duration metadata and rejects
+    // explicit preview/promo signals. Do not reject genuine short songs.
+    final jamendoSongs = searchFutures[2];
 
-    if (jioSongs.isNotEmpty || ytSongs.isNotEmpty) {
+    if (jioSongs.isNotEmpty || ytSongs.isNotEmpty || jamendoSongs.isNotEmpty) {
       final ranked = _rankAndDeduplicateResults(
         cleanQuery,
         jioSongs,
         ytSongs,
+        jamendoSongs: jamendoSongs,
         limit: limit,
       );
       if (ranked.isNotEmpty) {
@@ -126,24 +138,9 @@ class MusicApiService {
       }
     }
 
-    // Fallback 1: Jamendo (legal, full-length tracks) when configured
-    final jamendo = await JamendoSearchService.search(cleanQuery, limit: limit);
-    if (jamendo.isNotEmpty) {
-      final fullJamendo = jamendo
-          .where((s) => s.duration.inSeconds >= 45)
-          .toList();
-      if (fullJamendo.isNotEmpty) {
-        _cacheSearch(cleanQuery, fullJamendo);
-        return fullJamendo;
-      }
-    }
-
-    // Fallback 2: iTunes live search
-    final itunes = await searchOnlineSongsFallback(cleanQuery, limit: limit);
-    if (itunes.isNotEmpty) {
-      _cacheSearch(cleanQuery, itunes);
-    }
-    return itunes;
+    // iTunes supplies preview clips, not verified full-track streams.
+    // Keep it available only through the explicit fallback API.
+    return <Song>[];
   }
 
   /// JioSaavn search. Web requests use the same-origin Vercel proxy.
@@ -188,8 +185,9 @@ class MusicApiService {
       for (final item in rawResults) {
         if (item is Map<String, dynamic>) {
           final song = SongParserUtils.parseSong(item);
-          if (song != null &&
-              (song.duration.inSeconds == 0 || song.duration.inSeconds >= 45)) {
+          // JioSaavn must supply a real positive duration; zero is unknown,
+          // not proof that the result is a complete track.
+          if (song != null && song.duration.inSeconds > 0) {
             songs.add(song);
           }
         }
@@ -216,18 +214,41 @@ class MusicApiService {
     return [];
   }
 
-  /// Ranks and deduplicates music search results using query relevance scoring
+  /// Test-only entry point for the real shared search ranking implementation.
+  @visibleForTesting
+  static List<Song> rankSearchResultsForTesting(
+    String query,
+    List<Song> jioSongs,
+    List<Song> ytSongs, {
+    List<Song> jamendoSongs = const [],
+    int limit = 30,
+  }) {
+    return _rankAndDeduplicateResults(
+      query,
+      jioSongs,
+      ytSongs,
+      jamendoSongs: jamendoSongs,
+      limit: limit,
+    );
+  }
+
+  /// Ranks merged provider results by title and artist relevance.
   static List<Song> _rankAndDeduplicateResults(
     String query,
     List<Song> jioSongs,
     List<Song> ytSongs, {
+    List<Song> jamendoSongs = const [],
     int limit = 30,
   }) {
-    if (jioSongs.isEmpty && ytSongs.isEmpty) return [];
-    final allCandidates = [...ytSongs, ...jioSongs];
-    final queryLower = query.toLowerCase().trim();
+    if (limit <= 0 ||
+        (jioSongs.isEmpty && ytSongs.isEmpty && jamendoSongs.isEmpty)) {
+      return [];
+    }
 
-    // Query tokens minus common search stop words
+    final allCandidates = [...ytSongs, ...jioSongs, ...jamendoSongs];
+    final normalizedQuery = SongParserUtils.normalizeSongTitle(query);
+    final queryLower = normalizedQuery.toLowerCase();
+
     const stopWords = {
       'by',
       'song',
@@ -259,85 +280,332 @@ class MusicApiService {
     };
 
     final rawTokens = queryLower
-        .replaceAll(RegExp(r'[^\w\s]'), ' ')
-        .split(RegExp(r'\s+'))
-        .where((t) => t.isNotEmpty)
+        .split(RegExp(r'[^a-z0-9]+'))
+        .where((token) => token.isNotEmpty)
         .toList();
 
-    final filteredTokens = rawTokens
-        .where((t) => !stopWords.contains(t))
+    final searchTokens = rawTokens
+        .where((token) => !stopWords.contains(token))
+        .toSet()
         .toList();
-    final searchTokens = filteredTokens.isNotEmpty ? filteredTokens : rawTokens;
 
-    double scoreSong(Song s) {
-      final title = s.title.toLowerCase();
-      final artist = s.artist.toLowerCase();
-      final combined = '$title $artist';
-      double score = 0.0;
+    final byMatch = RegExp(
+      r'\s+by\s+',
+      caseSensitive: false,
+    ).firstMatch(query.trim());
 
-      // 1. Exact full query matches
-      if (title == queryLower) {
-        score += 150.0;
-      } else if (title.contains(queryLower)) {
-        score += 80.0;
-      } else if (combined.contains(queryLower)) {
-        score += 70.0;
+    final titleIntent = byMatch == null
+        ? ''
+        : SongParserUtils.normalizeSongTitle(
+            query.trim().substring(0, byMatch.start),
+          );
+
+    final artistIntent = byMatch == null
+        ? ''
+        : SongParserUtils.normalizeSongTitle(
+            query.trim().substring(byMatch.end),
+          );
+
+    bool containsWholeWord(String text, String token) {
+      final words = text
+          .split(RegExp(r'[^a-z0-9]+'))
+          .where((word) => word.isNotEmpty);
+      return words.contains(token);
+    }
+
+    double scoreSong(Song song) {
+      final title = SongParserUtils.normalizeSongTitle(song.title);
+      final artist = SongParserUtils.normalizeSongTitle(song.artist);
+      double score = 0;
+
+      // Full title and phrase matches carry strong relevance.
+      if (queryLower.isNotEmpty && title == queryLower) {
+        score += 200;
+      } else if (queryLower.length > 2 && title.contains(queryLower)) {
+        score += 110;
       }
 
-      // 2. Individual token matches
+      if (queryLower.isNotEmpty && artist == queryLower) {
+        score += 100;
+      }
+
+      final normalizedUploader = SongParserUtils.normalizeSongTitle(
+        song.uploaderName,
+      );
+      final hasUnknownArtist = artist.isEmpty || artist == 'unknown artist';
+
       int matchedTokens = 0;
       for (final token in searchTokens) {
-        bool matched = false;
-        if (title.contains(token)) {
-          score += 30.0;
-          matched = true;
-          if (title.startsWith(token)) score += 10.0;
+        final titleMatch = containsWholeWord(title, token);
+        final artistMatch = containsWholeWord(artist, token);
+        final uploaderMatch =
+            hasUnknownArtist &&
+            searchTokens.length > 1 &&
+            !titleMatch &&
+            containsWholeWord(normalizedUploader, token);
+
+        if (titleMatch) {
+          score += 30;
+          if (title.startsWith(token)) score += 8;
         }
-        if (artist.contains(token)) {
-          score += 45.0; // Artist match is extremely high signal (e.g. Afusic)
-          matched = true;
+
+        if (artistMatch) {
+          score += 48;
         }
-        if (matched) matchedTokens++;
+
+        if (uploaderMatch) {
+          score += 32;
+        }
+
+        if (titleMatch || artistMatch || uploaderMatch) matchedTokens++;
       }
 
-      // 3. Completeness bonus: All query tokens present in track title/artist!
+      // Reward candidates that cover the complete meaningful query.
       if (searchTokens.isNotEmpty && matchedTokens == searchTokens.length) {
-        score += 120.0;
+        score += 110;
       } else if (searchTokens.length > 1 && matchedTokens >= 2) {
-        score += 40.0;
+        score += 25;
       }
 
-      // 4. Source preference / Quality tie-breaker
-      // Prefer a direct non-YouTube audio source when available.
-      if (!s.id.startsWith('yt_') &&
-          s.audioUrl.isNotEmpty &&
-          !s.audioUrl.contains('youtube.com')) {
-        score += 5.0;
+      // When the user explicitly types "title by artist", evaluate both
+      // parts separately. Keep title-only candidates as lower-ranked fallbacks.
+      if (titleIntent.isNotEmpty && artistIntent.isNotEmpty) {
+        if (title == titleIntent) {
+          score += 100;
+        } else if (title.contains(titleIntent)) {
+          score += 60;
+        }
+
+        if (artist == artistIntent) {
+          score += 180;
+        } else if (artist.contains(artistIntent)) {
+          score += 150;
+        } else if (title == titleIntent) {
+          score -= 35;
+        }
+
+        // Uploader is only a weak fallback when the actual artist is unknown.
+
+        final uploaderMatchesArtist = RegExp(
+          r'(^|[^a-z0-9])' + RegExp.escape(artistIntent) + r'([^a-z0-9]|$)',
+        ).hasMatch(normalizedUploader);
+
+        if (hasUnknownArtist && uploaderMatchesArtist) {
+          if (normalizedUploader == artistIntent) {
+            score += 45;
+          } else {
+            score += 25;
+          }
+        }
       }
 
+      // Smart Music: capped popularity bonus.
+      final views = song.viewCount < 0 ? 0 : song.viewCount;
+      final likes = song.likeCount < 0 ? 0 : song.likeCount;
+
+      if (views > 0) {
+        score += (math.log(views + 1) / math.ln10 * 3).clamp(0.0, 20.0);
+      }
+      if (likes > 0) {
+        score += (math.log(likes + 1) / math.ln10 * 0.5).clamp(0.0, 3.0);
+      }
+
+      final titleAndTagsText = [
+        song.title,
+        ...song.tags,
+      ].join(' ').toLowerCase();
+
+      final descriptionText = song.description.toLowerCase();
+      final combinedMetadata = '$titleAndTagsText $descriptionText';
+
+      // Official wording is a weak signal, not proof of authenticity.
+      if (RegExp(
+        r'\bofficial\s+(audio|music video|video)\b',
+      ).hasMatch(combinedMetadata)) {
+        score += 8;
+      }
+
+      if (song.categoryId == '10') score += 2;
+
+      // Strong indicators in title/tags.
+      if (RegExp(r'\bkaraoke\b').hasMatch(titleAndTagsText)) {
+        score -= 55;
+      }
+      if (RegExp(r'\bcover\b').hasMatch(titleAndTagsText)) {
+        score -= 45;
+      }
+      if (RegExp(r'\bfan[ -]?made\b').hasMatch(titleAndTagsText)) {
+        score -= 45;
+      }
+      if (RegExp(r'\breaction\b').hasMatch(titleAndTagsText)) {
+        score -= 55;
+      }
+      if (RegExp(r'\bshorts?\b|#shorts').hasMatch(titleAndTagsText)) {
+        score -= 25;
+      }
+
+      // Description penalties require explicit context.
+      if (RegExp(
+        r'\bkaraoke\s+(version|track|instrumental)\b',
+      ).hasMatch(descriptionText)) {
+        score -= 55;
+      }
+      final hasExplicitDescriptionCover =
+          RegExp(
+            r'\bcover\s+(version|song|of|for)\b',
+          ).hasMatch(descriptionText) &&
+          !RegExp(
+            r'\b(not|no|never|isn.t|is not)\s+(a\s+)?cover\b',
+          ).hasMatch(descriptionText) &&
+          !RegExp(
+            r'\bcover\s+art\b|\bcover\s+photo\b',
+          ).hasMatch(descriptionText);
+
+      if (hasExplicitDescriptionCover) {
+        score -= 45;
+      }
+      if (RegExp(r'\bfan[ -]?made\b').hasMatch(descriptionText)) {
+        score -= 45;
+      }
+      if (RegExp(
+        r'\breaction\s+video\b|\breacts?\s+to\b',
+      ).hasMatch(descriptionText)) {
+        score -= 55;
+      }
+      if (RegExp(r'#shorts\b|\byoutube\s+shorts\b').hasMatch(descriptionText)) {
+        score -= 25;
+      }
+
+      // Prefer common full-song duration without rejecting short originals.
+      final durationSeconds = song.duration.inSeconds;
+      if (durationSeconds >= 120 && durationSeconds <= 480) {
+        score += 3;
+      } else if (durationSeconds > 600) {
+        score -= 3;
+      } else if (durationSeconds > 0 && durationSeconds < 60) {
+        score -= 4;
+      } else if (durationSeconds >= 60 && durationSeconds < 120) {
+        score -= 2;
+      }
+
+      // Preserve the existing provider tie-breaker.
+      if (!song.id.startsWith('yt_') &&
+          song.audioUrl.isNotEmpty &&
+          !song.audioUrl.contains('youtube.com')) {
+        score += 5;
+      }
       return score;
     }
 
-    allCandidates.sort((a, b) => scoreSong(b).compareTo(scoreSong(a)));
+    // Preserve provider order when two candidates have equal scores.
 
-    final seenKeys = <String>{};
-    final List<Song> ranked = [];
+    // Exclude clearly non-original or low-quality YouTube uploads.
+    // Keep JioSaavn and Jamendo catalog results unaffected.
+    bool shouldExcludeYouTubeCandidate(Song song) {
+      if (!song.id.startsWith('yt_')) return false;
 
-    for (final s in allCandidates) {
-      final cleanTitle = SongParserUtils.normalizeSongTitle(s.title);
-      final cleanArt = s.artist
-          .toLowerCase()
-          .split(RegExp(r'[,&/]'))
-          .first
-          .replaceAll(RegExp(r'[^\w\s]'), '')
-          .trim();
-      final compositeKey = '$cleanTitle---$cleanArt';
+      final titleAndTags = [song.title, ...song.tags].join(' ').toLowerCase();
 
-      if (compositeKey.isNotEmpty && seenKeys.contains(compositeKey)) {
+      final description = song.description.toLowerCase();
+
+      // "Cover art" is artwork metadata, not a cover-song indicator.
+      final titleMetadata = titleAndTags.replaceAll(
+        RegExp(r'\bcover\s+(?:art|photo|image)\b'),
+        ' ',
+      );
+
+      final hasUnwantedTitleSignal = RegExp(
+        r'\b(?:cover|karaoke|lyrics?|fan[\s-]?(?:made|edit)|reaction|shorts?|slowed|reverb|remix)\b',
+      ).hasMatch(titleMetadata);
+
+      final hasUnwantedDescriptionSignal = RegExp(
+        r'\b(?:karaoke|lyrics?\s+video|fan[\s-]?(?:made|edit)|reaction\s+video|youtube\s+shorts|#shorts|slowed(?:\s+and\s+reverb)?|reverb|remix|cover\s+(?:version|song|of)|(?:my|recorded|sung)\s+cover)\b',
+      ).hasMatch(description);
+
+      final hasPreviewOrClipSignal =
+          RegExp(
+            r'\b(?:preview|sample|snippet|teaser|trailer|promo|clip|shorts?)\b|#shorts',
+          ).hasMatch(titleMetadata) ||
+          RegExp(
+            r'\b(?:preview|sample|snippet|teaser|trailer|promo|clip|youtube\s+shorts)\b|#shorts',
+          ).hasMatch(description);
+
+      return hasUnwantedTitleSignal ||
+          hasUnwantedDescriptionSignal ||
+          hasPreviewOrClipSignal;
+    }
+
+    final rankedCandidates = allCandidates.asMap().entries.toList();
+    rankedCandidates.sort((a, b) {
+      final comparison = scoreSong(b.value).compareTo(scoreSong(a.value));
+      return comparison != 0 ? comparison : a.key.compareTo(b.key);
+    });
+
+    final seenArtistsByTitle = <String, List<MapEntry<bool, Set<String>>>>{};
+    final ranked = <Song>[];
+
+    for (final entry in rankedCandidates) {
+      final song = entry.value;
+      if (shouldExcludeYouTubeCandidate(song)) continue;
+      final cleanTitle = SongParserUtils.normalizeSongTitle(song.title);
+      final normalizedArtist = song.artist.trim().toLowerCase();
+      final hasUnknownArtist =
+          normalizedArtist.isEmpty || normalizedArtist == 'unknown artist';
+
+      final artistParts = hasUnknownArtist
+          ? <String>[SongParserUtils.normalizeSongTitle(song.uploaderName)]
+          : song.artist
+                .split(RegExp(r'[,&/]'))
+                .map(SongParserUtils.normalizeSongTitle)
+                .where((part) => part.isNotEmpty)
+                .toList();
+
+      artistParts.removeWhere((part) => part.isEmpty);
+      artistParts.sort();
+
+      // Keep tracks with no artist or uploader metadata distinct.
+      final identityParts = artistParts.isNotEmpty
+          ? artistParts.toSet()
+          : <String>{'unknown:${song.id}'};
+
+      final previousIdentities = cleanTitle.isEmpty
+          ? <MapEntry<bool, Set<String>>>[]
+          : seenArtistsByTitle.putIfAbsent(
+              cleanTitle,
+              () => <MapEntry<bool, Set<String>>>[],
+            );
+
+      final exactDuplicate = previousIdentities.any(
+        (existing) =>
+            existing.value.length == identityParts.length &&
+            existing.value.containsAll(identityParts),
+      );
+
+      // An unknown-artist upload may match one member of a real
+      // collaboration. Only apply this fallback across known/unknown
+      // artist pairs; never merge two different real collaborations.
+      final uploaderCollaborationDuplicate = previousIdentities.any((existing) {
+        if (existing.key == hasUnknownArtist) return false;
+
+        final unknownParts = hasUnknownArtist ? identityParts : existing.value;
+        final realArtistParts = hasUnknownArtist
+            ? existing.value
+            : identityParts;
+
+        return unknownParts.length == 1 &&
+            realArtistParts.contains(unknownParts.first);
+      });
+
+      if (cleanTitle.isNotEmpty &&
+          (exactDuplicate || uploaderCollaborationDuplicate)) {
         continue;
       }
-      seenKeys.add(compositeKey);
-      ranked.add(s);
+
+      if (cleanTitle.isNotEmpty) {
+        previousIdentities.add(MapEntry(hasUnknownArtist, identityParts));
+      }
+
+      ranked.add(song);
       if (ranked.length >= limit) break;
     }
 
@@ -1184,15 +1452,14 @@ class MusicApiService {
             continue;
           }
 
-          // 3. Audio quality and duration filter (no previews, min 75s)
-          if (song.audioUrl.trim().isEmpty ||
-              song.audioUrl.contains('apple.com') ||
-              song.audioUrl.contains('mzstatic.com') ||
-              song.audioUrl.contains('preview') ||
-              (song.duration.inSeconds > 0 && song.duration.inSeconds < 75)) {
+          // 3. Reject empty audio URLs and Apple preview audio.
+          // Do not reject genuine short songs based on duration alone.
+          final audioUrl = song.audioUrl.trim().toLowerCase();
+          if (audioUrl.isEmpty ||
+              audioUrl.contains('apple.com') ||
+              audioUrl.contains('mzstatic.com')) {
             continue;
           }
-
           // 4. Zero Duplicates filter (canonical identity key)
           final dedupeKey = SongParserUtils.songDeduplicationKey(song);
           if (dedupeKey == seedDedupeKey) {
